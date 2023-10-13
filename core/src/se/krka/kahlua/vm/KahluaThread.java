@@ -1248,8 +1248,161 @@ public class KahluaThread {
         return out;
     }
 
-    public Platform getPlatform() {
+	public Platform getPlatform() {
         return platform;
     }
 
+
+	// From PZ
+
+
+	public void pcallvoid(Object var1, Object[] var2) {
+		int var3 = var2 == null ? 0 : var2.length;// 1801
+		Coroutine var4 = this.currentCoroutine;// 1803
+		int var5 = var4.getTop();// 1804
+		var4.setTop(var5 + 1 + var3);// 1806
+		var4.objectStack[var5] = var1;// 1807
+		if (var3 > 0) {// 1808
+			System.arraycopy(var2, 0, var4.objectStack, var5 + 1, var3);// 1809
+		}
+
+		this.pcall(var3);// 1812
+		KahluaUtil.luaAssert(var4 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1813
+		var4.setTop(var5);// 1814
+	}// 1816
+
+	public void pcallvoid(Object var1, Object var2) {
+		Coroutine var3 = this.currentCoroutine;// 1819
+		int var4 = var3.getTop();// 1820
+		var3.setTop(var4 + 1 + 1);// 1822
+		var3.objectStack[var4] = var1;// 1823
+		var3.objectStack[var4 + 1] = var2;// 1825
+		int var5 = this.pcall(1);// 1827
+		KahluaUtil.luaAssert(var3 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1828
+		var3.setTop(var4);// 1829
+	}// 1831
+
+	public void pcallvoid(Object var1, Object var2, Object var3) {
+		Coroutine var4 = this.currentCoroutine;// 1835
+		int var5 = var4.getTop();// 1836
+		var4.setTop(var5 + 1 + 2);// 1838
+		var4.objectStack[var5] = var1;// 1839
+		var4.objectStack[var5 + 1] = var2;// 1840
+		var4.objectStack[var5 + 2] = var3;// 1841
+		int var6 = this.pcall(2);// 1842
+		KahluaUtil.luaAssert(var4 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1843
+		var4.setTop(var5);// 1844
+	}// 1846
+
+	public void pcallvoid(Object var1, Object var2, Object var3, Object var4) {
+		Coroutine var5 = this.currentCoroutine;// 1850
+		int var6 = var5.getTop();// 1851
+		var5.setTop(var6 + 1 + 3);// 1853
+		var5.objectStack[var6] = var1;// 1854
+		var5.objectStack[var6 + 1] = var2;// 1856
+		var5.objectStack[var6 + 2] = var3;// 1857
+		var5.objectStack[var6 + 3] = var4;// 1858
+		int var7 = this.pcall(3);// 1861
+		KahluaUtil.luaAssert(var5 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1862
+		var5.setTop(var6);// 1863
+	}// 1865
+
+	public Boolean pcallBoolean(Object var1, Object var2) {
+		Coroutine var3 = this.currentCoroutine;// 1868
+		int var4 = var3.getTop();// 1869
+		var3.setTop(var4 + 1 + 1);// 1871
+		var3.objectStack[var4] = var1;// 1872
+		var3.objectStack[var4 + 1] = var2;// 1873
+		int var5 = this.pcall(1);// 1875
+		KahluaUtil.luaAssert(var3 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1876
+		Boolean var6 = null;// 1877
+		if (var5 > 1) {// 1878
+			Boolean var7 = (Boolean)var3.objectStack[var4];// 1879
+			if (var7) {// 1880
+				Object var8 = var3.objectStack[var4 + 1];// 1881
+				if (var8 instanceof Boolean) {// 1882
+					var6 = (Boolean)var8 ? Boolean.TRUE : Boolean.FALSE;// 1883
+				}
+			}
+		}
+
+		var3.setTop(var4);// 1886
+		return var6;// 1887
+	}
+
+	public Boolean pcallBoolean(Object var1, Object var2, Object var3) {
+		Coroutine var4 = this.currentCoroutine;// 1891
+		int var5 = var4.getTop();// 1892
+		var4.setTop(var5 + 1 + 2);// 1894
+		var4.objectStack[var5] = var1;// 1895
+		var4.objectStack[var5 + 1] = var2;// 1896
+		var4.objectStack[var5 + 2] = var3;// 1897
+		int var6 = this.pcall(2);// 1899
+		KahluaUtil.luaAssert(var4 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1900
+		Boolean var7 = null;// 1901
+		if (var6 > 1) {// 1902
+			Boolean var8 = (Boolean)var4.objectStack[var5];// 1903
+			if (var8) {// 1904
+				Object var9 = var4.objectStack[var5 + 1];// 1905
+				if (var9 instanceof Boolean) {// 1906
+					var7 = (Boolean)var9 ? Boolean.TRUE : Boolean.FALSE;// 1907
+				}
+			}
+		}
+
+		var4.setTop(var5);// 1910
+		return var7;// 1911
+	}
+
+	public Boolean pcallBoolean(Object var1, Object var2, Object var3, Object var4) {
+		Coroutine var5 = this.currentCoroutine;// 1915
+		int var6 = var5.getTop();// 1916
+		var5.setTop(var6 + 1 + 3);// 1918
+		var5.objectStack[var6] = var1;// 1919
+		var5.objectStack[var6 + 1] = var2;// 1920
+		var5.objectStack[var6 + 2] = var3;// 1921
+		var5.objectStack[var6 + 3] = var4;// 1922
+		int var7 = this.pcall(3);// 1924
+		KahluaUtil.luaAssert(var5 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1925
+		Boolean var8 = null;// 1926
+		if (var7 > 1) {// 1927
+			Boolean var9 = (Boolean)var5.objectStack[var6];// 1928
+			if (var9) {// 1929
+				Object var10 = var5.objectStack[var6 + 1];// 1930
+				if (var10 instanceof Boolean) {// 1931
+					var8 = (Boolean)var10 ? Boolean.TRUE : Boolean.FALSE;// 1932
+				}
+			}
+		}
+
+		var5.setTop(var6);// 1935
+		return var8;// 1936
+	}
+
+	public Boolean pcallBoolean(Object var1, Object[] var2) {
+		int var3 = var2 == null ? 0 : var2.length;// 1940
+		Coroutine var4 = this.currentCoroutine;// 1942
+		int var5 = var4.getTop();// 1943
+		var4.setTop(var5 + 1 + var3);// 1945
+		var4.objectStack[var5] = var1;// 1946
+		if (var3 > 0) {// 1947
+			System.arraycopy(var2, 0, var4.objectStack, var5 + 1, var3);// 1948
+		}
+
+		int var6 = this.pcall(var3);// 1950
+		KahluaUtil.luaAssert(var4 == this.currentCoroutine, "Internal Kahlua error - coroutine changed in pcall");// 1951
+		Boolean var7 = null;// 1952
+		if (var6 > 1) {// 1953
+			Boolean var8 = (Boolean)var4.objectStack[var5];// 1954
+			if (var8) {// 1955
+				Object var9 = var4.objectStack[var5 + 1];// 1956
+				if (var9 instanceof Boolean) {// 1957
+					var7 = (Boolean)var9 ? Boolean.TRUE : Boolean.FALSE;// 1958
+				}
+			}
+		}
+
+		var4.setTop(var5);// 1961
+		return var7;// 1962
+	}
 }

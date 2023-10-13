@@ -42,6 +42,7 @@ public class BitLib {
     reg(bit, "rol", new rol());
     reg(bit, "ror", new ror());
     reg(bit, "bswap", new bswap());
+    bit.rawset("isJavabit", true);
   }
 
 

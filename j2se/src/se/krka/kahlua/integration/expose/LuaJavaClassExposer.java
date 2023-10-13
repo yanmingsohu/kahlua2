@@ -46,14 +46,16 @@ import java.util.Set;
  * and is therefore not supported in CLDC.
  */
 public class LuaJavaClassExposer {
-    private final static Object DEBUGINFO_KEY = new Object();
-    private final KahluaConverterManager manager;
-    private final Platform platform;
-    private final KahluaTable environment;
-    private final KahluaTable classMetatables;
-    private final Set<Type> visitedTypes = new HashSet<Type>();
+  private final static Object DEBUGINFO_KEY = new Object();
+  private final KahluaConverterManager manager;
+  private final Platform platform;
+  private final KahluaTable environment;
+  private final KahluaTable classMetatables;
+  private final Set<Type> visitedTypes = new HashSet<Type>();
 	private final KahluaTable autoExposeBase;
 	private final Map<Class<?>, Boolean> shouldExposeCache = new HashMap<Class<?>, Boolean>();
+	// From PZ
+  public final HashMap<String, Class<?>> TypeMap;
 
 	public LuaJavaClassExposer(KahluaConverterManager manager, Platform platform, KahluaTable environment) {
 		this(manager, platform, environment, null);
@@ -65,6 +67,7 @@ public class LuaJavaClassExposer {
         this.environment = environment;
 		this.autoExposeBase = autoExposeBase;
 		classMetatables = KahluaUtil.getClassMetatables(platform, environment);
+    this.TypeMap = new HashMap();
 
 		if (classMetatables.getMetatable() == null) {
 			KahluaTable mt = platform.newTable();
@@ -208,6 +211,10 @@ public class LuaJavaClassExposer {
      */
     public void exposeMethod(Class<?> clazz, Method method) {
         exposeMethod(clazz, method, method.getName());
+    }
+
+    public void exposeMethod(Class<?> clazz, Method method, KahluaTable t) {
+      exposeGlobalClassFunction(t, clazz, method, method.getName());
     }
 
     /**
@@ -519,6 +526,10 @@ public class LuaJavaClassExposer {
     }
 
     private void exposeLikeJavaByClass(KahluaTable staticBase, Set<Type> visited, Class<?> clazz) {
+      String name = clazz.toString();// 568
+      name = name.substring(name.lastIndexOf(".") + 1);// 569
+      this.TypeMap.put(name, clazz);// 570
+
         exposeList(staticBase, visited, clazz.getInterfaces());
         exposeLikeJava(staticBase, visited, clazz.getGenericSuperclass());
         if (clazz.isArray()) {
@@ -539,4 +550,11 @@ public class LuaJavaClassExposer {
             exposeList(staticBase, visited, constructor.getExceptionTypes());
         }
     }
+
+
+  public void destroy() {
+    this.shouldExposeCache.clear();// 595
+    this.TypeMap.clear();// 596
+    this.visitedTypes.clear();// 597
+  }// 598
 }

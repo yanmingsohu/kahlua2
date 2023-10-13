@@ -60,6 +60,10 @@ public class FuncState {
 	
 	int[] upvalues_k = new int[LUAI_MAXUPVALUES];  /* upvalues */
 	int[] upvalues_info = new int[LUAI_MAXUPVALUES];  /* upvalues */
+
+	// From Project Zomboid
+	public static String currentFile;
+	public static String currentfullFile;
 	
 	
 	short actvar[] = new short[LUAI_MAXVARS];  /* declared-variable stack */

@@ -40,6 +40,8 @@ import se.krka.kahlua.vm.KahluaTable;
 
 public class LuaCompiler implements JavaFunction {
 
+	// From PZ
+	public static boolean rewriteEvents = false;
 	private final int index;
 	
 	private static final int LOADSTRING = 0;

@@ -35,10 +35,16 @@ public class ConstructorCaller extends AbstractCaller {
 	public ConstructorCaller(Constructor<?> constructor) {
         super(constructor.getParameterTypes());
 		this.constructor = constructor;
-        constructor.setAccessible(true);
-        if (needsMultipleReturnValues()) {
-            throw new RuntimeException("Constructor can not return multiple values");
-        }
+
+    try {
+      constructor.setAccessible(true);
+    } catch(Exception e) {
+      // failed when calling
+    }
+
+    if (needsMultipleReturnValues()) {
+        throw new RuntimeException("Constructor can not return multiple values");
+    }
 	}
 	
 	@Override

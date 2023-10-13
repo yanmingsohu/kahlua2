@@ -123,6 +123,8 @@
 			destdir="${classes.dir}/interpreter"
 			debug="true"
             classpathref="interpreter.dependencies"
+			target="1.8"
+			source="1.8"
 		>
 			<src path="${interpreter.src.dir}"/>
 		</javac>
@@ -141,6 +143,8 @@
 				deprecation="on"
 				optimize="on"
                 classpathref="main.classpath"
+				target="1.8"
+				source="1.8"
 				>
 			<src path="${j2se.src.dir}"/>
 			<compilerarg value="-processor"/>
@@ -234,6 +238,8 @@
 			destdir="${test.classes.dir}"
 			debug="true"
 			classpathref="main.classpath"
+			target="1.8"
+			source="1.8"
 		>
 			<src path="${test.src.dir}"/>
 		</javac>
@@ -299,6 +305,8 @@
 		<javac
 			destdir="${build.dir}/doclet"
 			debug="true"
+			target="1.8"
+			source="1.8"
 		>
 			<src path="javadoc/src"/>
 		</javac>
