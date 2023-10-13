@@ -48,6 +48,7 @@ public class J2SEPlatform implements Platform {
 		OsLib.register(this, env);
 		TableLib.register(this, env);
 		LuaCompiler.register(env);
+		BitLib.register(this, env);
 
 		KahluaThread workerThread = setupWorkerThread(env);
 		KahluaUtil.setupLibrary(env, workerThread, "/stdlib");

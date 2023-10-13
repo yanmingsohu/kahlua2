@@ -121,7 +121,7 @@ public class Test {
 					if (!(results[1] instanceof KahluaTable)) {
 						KahluaUtil.fail(("Did not get a table back from " + child + ", got a " + results[1] + " instead."));
 					}
-					testsuites.rawset(new Double(testsuites.len() + 1.0), results[1]);
+					testsuites.rawset(Double.valueOf(testsuites.len() + 1.0), results[1]);
 				}
 			}
 		}
@@ -133,8 +133,8 @@ public class Test {
 		
 		results = thread.pcall(generateReportClosure, new Object[] {testParent});
 		if (results[0] == Boolean.TRUE) {
-			Long testsOk = new Long(((Double) results[2]).longValue());
-			Long testsFail = new Long(((Double) results[3]).longValue());
+			Long testsOk = Long.valueOf(((Double) results[2]).longValue());
+			Long testsFail = Long.valueOf(((Double) results[3]).longValue());
 			System.out.println(String.format("Test result: %d ok. %d failed.", new Object[] { testsOk, testsFail}));
 			System.out.print(results[1]);
 			if (testsFail > 0) {

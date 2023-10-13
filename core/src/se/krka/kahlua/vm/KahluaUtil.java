@@ -28,7 +28,7 @@ public class KahluaUtil {
 	}
 
 	public static Double toDouble(double d) {
-		return new Double(d);
+		return Double.valueOf(d);
 	}
 
 	public static Double toDouble(long d) {
