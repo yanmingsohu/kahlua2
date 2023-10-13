@@ -11,3 +11,4 @@ contrib/midlet-minimal/build/
 contrib/midlet-minimal/obfuscation-map.txt
 
 javac.**.args
+luagb/cartridge/**.gb.lua
