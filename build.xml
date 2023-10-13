@@ -9,7 +9,6 @@
 	
 	<property name="emma.dir" value="/usr/share/java" />
 
-	<property name="cldc11.src.dir"       value="${baseDir}/cldc11/src"/>
 	<property name="core.src.dir"       value="${baseDir}/core/src"/>
 	<property name="j2se.src.dir"       value="${baseDir}/j2se/src"/>
 	<property name="interpreter.src.dir"       value="${baseDir}/interpreter/src"/>
@@ -25,10 +24,6 @@
 	<property name="test.lua.input.dir"     value="${test.dir}/lua"/>
 	<property name="test.emma.coverage.dir"     value="${test.dir}/coverage"/>
 
-	<path id="cldc11.dependencies">
-        <pathelement path="${classes.dir}/core"/>
-		<pathelement location="${baseDir}/lib/cldcapi11.jar" />
-	</path>
 
     <path id="j2se.dependencies">
         <pathelement path="${classes.dir}/core"/>
@@ -75,7 +70,6 @@
 		<mkdir dir="${classes.dir}/core"/>
 		<mkdir dir="${classes.dir}/j2se"/>
 		<mkdir dir="${classes.dir}/interpreter"/>
-		<mkdir dir="${classes.dir}/cldc11"/>
 		<mkdir dir="${build.dir}/core-src-replaced"/>
 
 		<mkdir dir="${test.build.dir}"/>
@@ -83,7 +77,7 @@
 		<mkdir dir="${test.lua.output.dir}"/>
 	</target>
 
-	<target name="compile" depends="setup, compile-core, compile-cldc11, compile-j2se, compile-interpreter" description="Compiles Kahlua">
+	<target name="compile" depends="setup, compile-core, compile-j2se, compile-interpreter" description="Compiles Kahlua">
 	</target>
 	
 	<target name="build" depends="compile, build-stdlib" description="Builds Kahlua">
@@ -93,46 +87,27 @@
 		<copy todir="${build.dir}/core-src-replaced">
 			<fileset dir="${core.src.dir}" />
 		</copy>
-		<replace dir="${build.dir}/core-src-replaced" replacefilterfile="version.properties">
+		<replace dir="${build.dir}/core-src-replaced"
+						 replacefilterfile="version.properties">
 		</replace>
 		<javac
 			destdir="${classes.dir}/core"
 			debug="true"
-			target="1.4"
-			source="1.4"
-			classpathref="cldc11.dependencies"
+			target="1.8"
+			source="1.8"
 		>
-			<compilerarg value="-bootclasspath" />
-			<compilerarg value="" />
 
 			<src path="${build.dir}/core-src-replaced"/>
 		</javac>
 	</target>
 
-	<target name="compile-cldc11" depends="compile-core">
-		<javac
-			destdir="${classes.dir}/cldc11"
-			debug="true"
-			target="1.4"
-			source="1.4"
-			classpathref="cldc11.dependencies"
-		>
-			<classpath>
-				<pathelement location="${classes.dir}/core" />
-			</classpath>
-			<compilerarg value="-bootclasspath" />
-			<compilerarg value="" />
-
-			<src path="${cldc11.src.dir}"/>
-		</javac>
-	</target>
 
 	<target name="compile-j2se" depends="compile-core">
 		<javac
 			destdir="${classes.dir}/j2se"
 			debug="true"
-			target="1.5"
-			source="1.5"
+			target="1.8"
+			source="1.8"
             classpathref="j2se.dependencies"
 		>
 			<src path="${j2se.src.dir}"/>
@@ -183,9 +158,6 @@
     	<jar jarfile="${build.dir}/kahlua-${version}-core.jar">
     		<fileset dir="${classes.dir}/core" />
     	</jar>
-    	<jar jarfile="${build.dir}/kahlua-${version}-cldc11.jar">
-    		<fileset dir="${classes.dir}/cldc11" />
-    	</jar>
     	<jar jarfile="${build.dir}/kahlua-${version}-j2se.jar">
     		<fileset dir="${classes.dir}/j2se" />
     	</jar>
@@ -208,7 +180,6 @@
 				<include name="core/**" />
 				<include name="j2se/**" />
 				<include name="interpreter/**" />
-				<include name="cldc11/**" />
 
 				<include name="testsuite/**" />
 				<exclude name="testsuite/bin/**" />
@@ -262,8 +233,6 @@
 		<javac
 			destdir="${test.classes.dir}"
 			debug="true"
-			target="1.5"
-			source="1.5"
 			classpathref="main.classpath"
 		>
 			<src path="${test.src.dir}"/>
@@ -287,16 +256,17 @@
 		</java>
     </target>
 
-    <target name="run-test" depends="test-depend, default-debugargs" description="Run the test-suite">
-		<property name="test.file" value="" />
-		<java classname="Test" fork="true" dir="${baseDir}">
-			<jvmarg line="${debugargs}" />
-			<classpath location="${instrumented.dir}" />
-			<classpath refid="test.classpath" />
-			
-			<arg value="${test.lua.input.dir}" />
-			<arg value="${test.file}" />
-		</java>
+    <target name="run-test" depends="test-depend, default-debugargs"
+						description="Run the test-suite">
+			<property name="test.file" value="" />
+			<java classname="Test" fork="true" dir="${baseDir}">
+				<jvmarg line="${debugargs}" />
+				<classpath location="${instrumented.dir}" />
+				<classpath refid="test.classpath" />
+
+				<arg value="${test.lua.input.dir}" />
+				<arg value="${test.file}" />
+			</java>
     </target>
 
 	<target name="clean-emma">
@@ -341,7 +311,6 @@
 				destdir="${build.dir}/javadoc"
 				>
 				<fileset dir="${core.src.dir}" />
-				<fileset dir="${cldc11.src.dir}" />
 				<fileset dir="${j2se.src.dir}" />
 		</javadoc>
 	</target>

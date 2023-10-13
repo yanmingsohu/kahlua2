@@ -23,7 +23,7 @@ public class KahluaConverterManagerTest {
 	public void testPrimitives1() {
 		KahluaConverterManager manager = new KahluaConverterManager();
 		KahluaNumberConverter.install(manager);
-		Double result = manager.fromLuaToJava(new Double(1.25), double.class);
+		Double result = manager.fromLuaToJava(Double.valueOf(1.25), double.class);
 		assertEquals(result.getClass(), Double.class);
 		assertEquals(result.doubleValue(), 1.25);
 	}
@@ -32,11 +32,11 @@ public class KahluaConverterManagerTest {
 	public void testPrimitives2() {
 		KahluaConverterManager manager = new KahluaConverterManager();
 		KahluaNumberConverter.install(manager);
-		Long result = manager.fromLuaToJava(new Double(123.45), long.class);
+		Long result = manager.fromLuaToJava(Double.valueOf(123.45), long.class);
 		assertEquals(result.getClass(), Long.class);
 		assertEquals(result.longValue(), 123);
 		
-		long result2 = manager.fromLuaToJava(new Double(123.45), long.class);
+		long result2 = manager.fromLuaToJava(Double.valueOf(123.45), long.class);
 		assertEquals(result2, 123);		
 	}
 	
@@ -48,7 +48,7 @@ public class KahluaConverterManagerTest {
 		assertEquals(result.getClass(), Double.class);
 		assertEquals(((Double) result).doubleValue(), 123.0);
 		
-		result = manager.fromJavaToLua(new Integer(123));
+		result = manager.fromJavaToLua(Integer.valueOf(123));
 		assertEquals(result.getClass(), Double.class);
 		assertEquals(((Double) result).doubleValue(), 123.0);
 		
@@ -57,7 +57,7 @@ public class KahluaConverterManagerTest {
     @Test
 	public void testConversionError() {
 		KahluaConverterManager manager = new KahluaConverterManager();
-        Long obj = manager.fromLuaToJava(new Double(123.45), long.class);
+        Long obj = manager.fromLuaToJava(Double.valueOf(123.45), long.class);
         assertEquals(null, obj);
     }
 
@@ -66,7 +66,7 @@ public class KahluaConverterManagerTest {
 		KahluaConverterManager manager = new KahluaConverterManager();
 		KahluaNumberConverter.install(manager);
 		Object object = manager.fromJavaToLua(123L);
-		assertEquals(object, new Double(123));
+		assertEquals(object, Double.valueOf(123));
 	}
 	
 	@Test

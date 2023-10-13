@@ -29,7 +29,7 @@ public class KahluaNumberConverter {
     public static void install(KahluaConverterManager manager) {
 		manager.addLuaConverter(new LuaToJavaConverter<Double, Long>() {
 			public Long fromLuaToJava(Double luaObject, Class<Long> javaClass) {
-				return new Long(luaObject.longValue());
+				return luaObject.longValue();
 			}
 			public Class<Long> getJavaType() {
 				return Long.class;
@@ -40,7 +40,7 @@ public class KahluaNumberConverter {
 		});
 		manager.addLuaConverter(new LuaToJavaConverter<Double, Integer>() {
 			public Integer fromLuaToJava(Double luaObject, Class<Integer> javaClass) {
-				return new Integer(luaObject.intValue());
+				return luaObject.intValue();
 			}
 			public Class<Integer> getJavaType() {
 				return Integer.class;
@@ -51,7 +51,7 @@ public class KahluaNumberConverter {
 		});
 		manager.addLuaConverter(new LuaToJavaConverter<Double, Float>() {
 			public Float fromLuaToJava(Double luaObject, Class<Float> javaClass) {
-				return new Float(luaObject.floatValue());
+				return luaObject.floatValue();
 			}
 			public Class<Float> getJavaType() {
 				return Float.class;
@@ -62,7 +62,7 @@ public class KahluaNumberConverter {
 		});
 		manager.addLuaConverter(new LuaToJavaConverter<Double, Byte>() {
 			public Byte fromLuaToJava(Double luaObject, Class<Byte> javaClass) {
-				return new Byte(luaObject.byteValue());
+				return luaObject.byteValue();
 			}
 			public Class<Byte> getJavaType() {
 				return Byte.class;
@@ -73,7 +73,7 @@ public class KahluaNumberConverter {
 		});
 		manager.addLuaConverter(new LuaToJavaConverter<Double, Character>() {
 			public Character fromLuaToJava(Double luaObject, Class<Character> javaClass) {
-				return new Character((char) luaObject.intValue());
+				return Character.valueOf((char) luaObject.intValue());
 			}
 			public Class<Character> getJavaType() {
 				return Character.class;
@@ -84,7 +84,7 @@ public class KahluaNumberConverter {
 		});
 		manager.addLuaConverter(new LuaToJavaConverter<Double, Short>() {
 			public Short fromLuaToJava(Double luaObject, Class<Short> javaClass) {
-				return new Short(luaObject.shortValue());
+				return luaObject.shortValue();
 			}
 			public Class<Short> getJavaType() {
 				return Short.class;
@@ -127,7 +127,7 @@ public class KahluaNumberConverter {
         }
 
         public Object fromJavaToLua(T javaObject) {
-            return new Double(javaObject.doubleValue());
+            return Double.valueOf(javaObject.doubleValue());
         }
 
         public Class<T> getJavaType() {
