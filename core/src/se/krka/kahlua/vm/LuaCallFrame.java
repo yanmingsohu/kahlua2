@@ -22,13 +22,13 @@ THE SOFTWARE.
 package se.krka.kahlua.vm;
 
 public class LuaCallFrame {
-    private final Platform platform;
+	private final Platform platform;
 
 	public final Coroutine coroutine;
 
-    public LuaCallFrame(Coroutine coroutine) {
+	public LuaCallFrame(Coroutine coroutine) {
 		this.coroutine = coroutine;
-        platform = coroutine.getPlatform();
+		platform = coroutine.getPlatform();
 	}
 	
 	public LuaClosure closure;

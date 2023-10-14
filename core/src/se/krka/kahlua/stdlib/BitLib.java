@@ -29,6 +29,7 @@ public class BitLib {
   public static void register(Platform platform, KahluaTable env) {
     KahluaTable bit = platform.newTable();
     env.rawset("bit", bit);
+    bit.rawset("Javabitlib", true);
 
     reg(bit, "tobit", new tobit());
     reg(bit, "tohex", new tohex());

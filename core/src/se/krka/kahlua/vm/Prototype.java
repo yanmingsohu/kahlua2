@@ -39,13 +39,13 @@ public final class Prototype {
 	public Object[] constants;
 	public Prototype[] prototypes;
 
-    public int numParams;
+	public int numParams;
 
-    public boolean isVararg;
+	public boolean isVararg;
 
-    // debug info
-    public String name;
-    public int[] lines;
+	// debug info
+	public String name;
+	public int[] lines;
 
 	public int numUpvalues;
 

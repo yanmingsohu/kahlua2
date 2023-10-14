@@ -66,7 +66,7 @@ public class Luaenv {
 		// java bit
 		KahluaTable javaBase = platform.newEnvironment();
 		// lua bit
-//		KahluaTable javaBase = platform.newTable();
+		//KahluaTable javaBase = platform.newTable();
 
 		env.rawset("Java", javaBase);
 		exposer.exposeLikeJavaRecursively(ArrayList.class, javaBase);
@@ -114,8 +114,10 @@ public class Luaenv {
 	public void updateScreen(KahluaTable pixel) {
 		for (int y = 0; y < pixel.len(); ++y) {
 			KahluaTable row = (KahluaTable) pixel.rawget(y);
+
 			for (int x=0; x < row.len(); ++x) {
 				KahluaTable c = (KahluaTable) row.rawget(x);
+
 				int r = (int)(double) c.rawget(1);
 				int g = (int)(double) c.rawget(2);
 				int b = (int)(double) c.rawget(3);

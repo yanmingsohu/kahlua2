@@ -2,6 +2,10 @@ local romfile = "cartridge/Legend of Zelda, The - Link's Awakening (U) (V1.2) [!
 local card = require(romfile);
 local Gameboy = require("gameboy/init")
 
+if bit.Javabitlib then
+  print("Java Bit lib")
+end
+
 
 local function play_gameboy_audio()
 end

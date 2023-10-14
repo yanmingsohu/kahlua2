@@ -29,7 +29,7 @@ public class J2SEPlatform implements Platform {
     @Override
     public KahluaTable newEnvironment() {
         KahluaTable env = newTable();
-		setupEnvironment(env);
+				setupEnvironment(env);
         return env;
     }
 

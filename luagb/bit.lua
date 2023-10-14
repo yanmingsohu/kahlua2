@@ -344,7 +344,7 @@ function M.bit.bswap(x)
 end
 
 
-print("Sortware BIT op")
+if not bit then print("Sortware BIT op") end
 
 -- Try to return to the native `bit` library, 
 -- which is implemented in https://github.com/yanmingsohu/kahlua2
