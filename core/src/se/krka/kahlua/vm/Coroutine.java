@@ -59,7 +59,7 @@ public class Coroutine {
 		callFrameStack = new LuaCallFrame[INITIAL_CALL_FRAME_STACK_SIZE];
 	}
 
-    public Coroutine(Platform platform, KahluaTable environment) {
+	public Coroutine(Platform platform, KahluaTable environment) {
 		this(platform, environment, null);
 	}
 

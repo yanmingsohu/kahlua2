@@ -140,7 +140,7 @@ public class KahluaThread {
 		return nReturnValues;
 	}
 
-	private int callJava(JavaFunction f, int localBase, int returnBase,
+	int callJava(JavaFunction f, int localBase, int returnBase,
 			int nArguments) {
 		Coroutine coroutine = currentCoroutine;
 
@@ -162,7 +162,7 @@ public class KahluaThread {
 		return nReturnValues;
 	}
 
-	private final Object prepareMetatableCall(Object o) {
+	final Object prepareMetatableCall(Object o) {
 		if (o instanceof JavaFunction || o instanceof LuaClosure) {
 			return o;
 		}
@@ -952,7 +952,7 @@ public class KahluaThread {
 		return meta.rawget(meta_op);
 	}
 
-	private final Object getCompMetaOp(Object a, Object b, String meta_op) {
+	final Object getCompMetaOp(Object a, Object b, String meta_op) {
 		KahluaTable meta1 = (KahluaTable) getmetatable(a, true);
 		KahluaTable meta2 = (KahluaTable) getmetatable(b, true);
 		if (meta1 == null || meta2 == null)
@@ -965,7 +965,7 @@ public class KahluaThread {
 		return meta_operator1;
 	}
 
-	private final Object getBinMetaOp(Object a, Object b, String meta_op) {
+	final Object getBinMetaOp(Object a, Object b, String meta_op) {
 		Object op = getMetaOp(a, meta_op);
 		if (op != null) {
 			return op;
@@ -1006,7 +1006,7 @@ public class KahluaThread {
 		return (op >>> 14) - 131071;
 	}
 
-	private Double primitiveMath(Double x, Double y, int opcode) {
+	Double primitiveMath(Double x, Double y, int opcode) {
 		double v1 = KahluaUtil.fromDouble(x);
 		double v2 = KahluaUtil.fromDouble(y);
 		double res = 0;
