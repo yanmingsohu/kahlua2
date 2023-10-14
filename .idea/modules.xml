@@ -8,6 +8,7 @@
       <module fileurl="file://$PROJECT_DIR$/interpreter/interpreter.iml" filepath="$PROJECT_DIR$/interpreter/interpreter.iml" />
       <module fileurl="file://$PROJECT_DIR$/j2se/j2se.iml" filepath="$PROJECT_DIR$/j2se/j2se.iml" />
       <module fileurl="file://$PROJECT_DIR$/javadoc/javadoc.iml" filepath="$PROJECT_DIR$/javadoc/javadoc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/luagb/luagb.iml" filepath="$PROJECT_DIR$/luagb/luagb.iml" />
       <module fileurl="file://$PROJECT_DIR$/contrib/midlet/midlet.iml" filepath="$PROJECT_DIR$/contrib/midlet/midlet.iml" />
       <module fileurl="file://$PROJECT_DIR$/testsuite/testsuite.iml" filepath="$PROJECT_DIR$/testsuite/testsuite.iml" />
     </modules>
