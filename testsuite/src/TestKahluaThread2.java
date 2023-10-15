@@ -52,6 +52,10 @@ public class TestKahluaThread2 implements Runnable {
     Double x = -1.0;
     x = -x;
 
+    boolean bb = (d != null) && (d != Boolean.FALSE);
+    Boolean bbb = bb;
+    Boolean bbc = Boolean.TRUE;
+
     if (a!=null && b !=null) {
       if (b > c) {
         Tool.pl(c);
@@ -81,7 +85,7 @@ public class TestKahluaThread2 implements Runnable {
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
 
-    thread.test_every_lua_code(18);
+    thread.test_every_lua_code(19);
   }
 
 

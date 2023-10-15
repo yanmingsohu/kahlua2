@@ -716,8 +716,41 @@ public class KahluaThread2 extends KahluaThread {
     void op_not() {
       int a = getA8(op);
       int b = getB9(op);
-      Object aObj = callFrame.get(b);
-      callFrame.set(a, KahluaUtil.toBoolean(!KahluaUtil.boolEval(aObj)));
+
+      //Object aObj = callFrame.get(b);
+      //callFrame.set(a, KahluaUtil.toBoolean(!KahluaUtil.boolEval(aObj)));
+      Label setFalse = new Label();
+      Label setTrue = new Label();
+      Label save = new Label();
+
+      cm.vField("callFrame");
+      cm.vInt(b);
+      cm.vInvokeFieldFunc("callFrame", "get", I);
+      mv.visitVarInsn(ASTORE, 1);
+
+      mv.visitVarInsn(ALOAD, 1);
+      mv.visitJumpInsn(IFNULL, setFalse);
+      mv.visitVarInsn(ALOAD, 1);
+      cm.vStatic(cm.getField(Boolean.class, "FALSE"));
+      mv.visitJumpInsn(IF_ACMPEQ, setFalse);
+      cm.vGoto(setTrue);
+
+      cm.vLabel(setFalse, line);
+      cm.vStatic(cm.getField(Boolean.class, "FALSE"));
+      mv.visitVarInsn(ASTORE, 2);
+      cm.vGoto(save);
+
+      cm.vLabel(setTrue, line);
+      cm.vStatic(cm.getField(Boolean.class, "TRUE"));
+      mv.visitVarInsn(ASTORE, 2);
+      cm.vGoto(save);
+
+      cm.vLabel(save, line);
+      cm.vLabel(save, line);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      mv.visitVarInsn(ALOAD, 2);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_len() {
