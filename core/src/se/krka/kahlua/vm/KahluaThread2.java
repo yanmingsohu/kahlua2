@@ -28,12 +28,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Date;
 
 import org.objectweb.asm.*;
 import org.objectweb.asm.signature.SignatureVisitor;
-import org.objectweb.asm.signature.SignatureWriter;
 import se.krka.kahlua.stdlib.BaseLib;
 
+import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -112,7 +113,8 @@ public class KahluaThread2 extends KahluaThread {
       LuaBuilder luab = new LuaBuilder(currentCoroutine);
       luab.makeJavacode();
       LuaScript x = luab.createJavaAgent();
-      x.call(currentCoroutine);
+      x.reinit(this, currentCoroutine);
+      x.run();
 
     } catch(Exception e) {
       e.printStackTrace();
@@ -120,38 +122,18 @@ public class KahluaThread2 extends KahluaThread {
   }
 
 
-  public void test() throws Exception {
-    Prototype p = new Prototype();
-    p.name = "./testsuite/lua/testhelper.lua";
-    p.constants = new Object[]{};
-
-    KahluaTable env = platform.newTable();
-    LuaClosure lc = new LuaClosure(p, env);
-    Coroutine cr = new Coroutine(platform, env, this);
-    cr.pushNewCallFrame(lc, null, 0,0,0, false, true);
-    LuaBuilder luab = new LuaBuilder(cr);
-
-    luab.cm.defaultInit();
-    luab.mv = luab.cm.beginMethod("run");
-
-    for (int i=0; i<=1; ++i) {
-      Method m = LuaBuilder.class.getDeclaredMethod(opNames[i].toLowerCase());
-      System.out.println("> "+ m);
-      m.invoke(luab);
-      System.out.println("> ok");
-    }
-
-    luab.cm.endMethod();
-
-    LuaScript agent = luab.createJavaAgent();
-    agent.call(cr);
-  }
-
-
   /**
    * @link https://the-ravi-programming-language.readthedocs.io/en/latest/lua_bytecode_reference.html
    */
   public class LuaBuilder {
+    private final Class O = Object.class;
+    private final Class S = String.class;
+    private final Class I = int.class;
+    private final Class F = float.class;
+    private final Class D = double.class;
+    private final Class PT = Prototype.class;
+    private final Class FR = LuaCallFrame.class;
+
     private LuaCallFrame callFrame;
     private LuaClosure closure;
     private Prototype prototype;
@@ -205,8 +187,7 @@ public class KahluaThread2 extends KahluaThread {
         mv.visitLabel(label);
         mv.visitLineNumber(line, label);
 
-        System.out.println("LL " +
-            pc + " = " + op + " / " + opNames[opcode]+" "+ line);
+        Tool.pl("LL ",pc, op, opNames[opcode], line);
 
         switch (opcode) {
           case OP_MOVE: op_move(); break;
@@ -222,11 +203,11 @@ public class KahluaThread2 extends KahluaThread {
           case OP_NEWTABLE: op_newtable(); break;
           case OP_SELF: op_self(); break;
           case OP_ADD: op_add(); break;
-          case OP_SUB: break;
-          case OP_MUL: break;
-          case OP_DIV: break;
-          case OP_MOD: break;
-          case OP_POW: break;
+          case OP_SUB: op_sub(); break;
+          case OP_MUL: op_mul(); break;
+          case OP_DIV: op_div(); break;
+          case OP_MOD: op_mod(); break;
+          case OP_POW: op_pow(); break;
           case OP_UNM: op_unm(); break;
           case OP_NOT: op_not(); break;
           case OP_LEN: op_len(); break;
@@ -250,7 +231,6 @@ public class KahluaThread2 extends KahluaThread {
         }
       }
 
-      cm._call_print();
       cm.endMethod();
     }
 
@@ -271,7 +251,7 @@ public class KahluaThread2 extends KahluaThread {
       cm.vField("callFrame");
       cm.vInt(b);
       cm.vInvokeFieldFunc("callFrame","get", int.class);
-      cm.vInvokeFieldFunc("callFrame","set", int.class, Object.class);
+      cm.vInvokeFieldFunc("callFrame","set", int.class, O);
     }
 
     void op_loadk() {
@@ -286,9 +266,10 @@ public class KahluaThread2 extends KahluaThread {
       cm.vField(Prototype.class, "constants");
       cm.vInt(b);
       mv.visitInsn(AALOAD);
-      cm.vInvokeFieldFunc("callFrame", "set", int.class, Object.class);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
+    // TODO: op is changed on running ???
     void op_loadbool() {
       int a = getA8(op);
       int b = getB9(op);
@@ -296,17 +277,13 @@ public class KahluaThread2 extends KahluaThread {
       String v = (b == 0 ? "FALSE" : "TRUE");
 
       //callFrame.set(88, Boolean.FALSE);
-      mv.visitVarInsn(ALOAD, 0);
-      mv.visitFieldInsn(GETFIELD, "se/krka/kahlua/vm/KahluaThread2$LuaBuilder",
-        "callFrame", "Lse/krka/kahlua/vm/LuaCallFrame;");
-      mv.visitLdcInsn(a);
-      mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean",
-        v, "Ljava/lang/Boolean;");
-      mv.visitMethodInsn(INVOKEVIRTUAL, "se/krka/kahlua/vm/LuaCallFrame",
-        "set", "(ILjava/lang/Object;)V", false);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vStatic(cm.getField(Boolean.class, v));
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
 
       if (c != 0) {
-        mv.visitJumpInsn(GOTO, labels[pc + 1]);
+        cm.vGoto(labels[pc + 1]);
       }
     }
 
@@ -315,48 +292,50 @@ public class KahluaThread2 extends KahluaThread {
       int b = getB9(op);
 
       //callFrame.stackClear(a, b);
-      //callFrame.stackClear(88, 99);
-
-      mv.visitVarInsn(ALOAD, 0);
-      mv.visitFieldInsn(GETFIELD, "se/krka/kahlua/vm/KahluaThread2$LuaBuilder",
-        "callFrame", "Lse/krka/kahlua/vm/LuaCallFrame;");
-
+      cm.vField("callFrame");
       mv.visitLdcInsn(a);
       mv.visitLdcInsn(b);
-      mv.visitMethodInsn(INVOKEVIRTUAL, "se/krka/kahlua/vm/LuaCallFrame",
-        "stackClear", "(II)V", false);
+      cm.vInvokeFieldFunc("callFrame", "stackClear", I, I);
     }
 
     void op_getupval() {
       int a = getA8(op);
       int b = getB9(op);
 
-      //UpValue uv = closure.upvalues[b];
-      //callFrame.set(a, uv.getValue());
+      //callFrame.set(a, closure.upvalues[b].getValue());
+      cm.vField("callFrame");
+      cm.vInt(a);
 
-      //UpValue uv = closure.upvalues[99];
-      //callFrame.set(88, uv.getValue());
-
-      mv.visitVarInsn(ALOAD, 0);
-      mv.visitFieldInsn(GETFIELD, "se/krka/kahlua/vm/KahluaThread2$LuaBuilder", "closure", "Lse/krka/kahlua/vm/LuaClosure;");
-      mv.visitFieldInsn(GETFIELD, "se/krka/kahlua/vm/LuaClosure", "upvalues", "[Lse/krka/kahlua/vm/UpValue;");
+      cm.vField("closure");
+      cm.vField(LuaClosure.class, "upvalues");
       mv.visitLdcInsn(b);
       mv.visitInsn(AALOAD);
-      mv.visitVarInsn(ASTORE, 3);
 
-      mv.visitVarInsn(ALOAD, 0);
-      mv.visitFieldInsn(GETFIELD, "se/krka/kahlua/vm/KahluaThread2$LuaBuilder", "callFrame", "Lse/krka/kahlua/vm/LuaCallFrame;");
-      mv.visitLdcInsn(a);
-      mv.visitVarInsn(ALOAD, 3);
-      mv.visitMethodInsn(INVOKEVIRTUAL, "se/krka/kahlua/vm/UpValue", "getValue", "()Ljava/lang/Object;", false);
-      mv.visitMethodInsn(INVOKEVIRTUAL, "se/krka/kahlua/vm/LuaCallFrame", "set", "(ILjava/lang/Object;)V", false);
+      cm.vInvokeFunc(UpValue.class, "getValue");
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_getglobal() {
       int a = getA8(op);
       int b = getBx(op);
-      Object res = tableGet(closure.env, prototype.constants[b]);
-      callFrame.set(a, res);
+
+      //Object res = tableGet(closure.env, prototype.constants[b]);
+      //callFrame.set(a, res);
+
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vThis();
+
+      cm.vField("closure");
+      cm.vField(LuaClosure.class, "env");
+
+      cm.vField("prototype");
+      cm.vField(Prototype.class, "constants");
+      cm.vInt(b);
+      mv.visitInsn(AALOAD);
+
+      cm.vInvokeFunc(LuaScript.class, "tableGet", O, O);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_gettable() {
@@ -364,29 +343,68 @@ public class KahluaThread2 extends KahluaThread {
       int b = getB9(op);
       int c = getC9(op);
 
-      Object bObj = callFrame.get(b);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vThis();
 
-      Object key = getRegisterOrConstant(callFrame, c, prototype);
+      cm.vField("callFrame");
+      cm.vInt(b);
+      //Object bObj = callFrame.get(b);
+      cm.vInvokeFieldFunc("callFrame","get", I);
 
-      Object res = tableGet(bObj, key);
-      callFrame.set(a, res);
+      cm.vThis();
+      cm.vField("callFrame");
+      cm.vInt(c);
+      cm.vField("prototype");
+      //Object key = getRegisterOrConstant(callFrame, c, prototype);
+      cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+
+      //Object res = tableGet(bObj, key);
+      cm.vInvokeFunc(LuaScript.class, "tableGet", O, O);
+
+      //callFrame.set(a, res);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_setglobal() {
       int a = getA8(op);
       int b = getBx(op);
-      Object value = callFrame.get(a);
-      Object key = prototype.constants[b];
 
-      tableSet(closure.env, key, value);
+      //Object value = callFrame.get(a);
+      //Object key = prototype.constants[b];
+      //tableSet(closure.env, key, value);
+      cm.vThis();
+
+      cm.vField("closure");
+      cm.vField(LuaClosure.class, "env");
+
+      cm.vField("prototype");
+      cm.vField(Prototype.class, "constants");
+      cm.vInt(b);
+      mv.visitInsn(AALOAD);
+
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vInvokeFieldFunc("callFrame","get", I);
+      cm.vInvokeFunc(LuaScript.class, "tableSet", O, O, O);
     }
 
     void op_setupval() {
       int a = getA8(op);
       int b = getB9(op);
 
-      UpValue uv = closure.upvalues[b];
-      uv.setValue(callFrame.get(a));
+      //UpValue uv = closure.upvalues[b];
+      //uv.setValue(callFrame.get(a));
+      cm.vField("closure");
+      cm.vField(LuaClosure.class, "upvalues");
+      mv.visitLdcInsn(b);
+      mv.visitInsn(AALOAD);
+
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vInvokeFieldFunc("callFrame","get", I);
+
+      cm.vInvokeFunc(UpValue.class, "setValue", O);
     }
 
     void op_settable() {
@@ -394,19 +412,41 @@ public class KahluaThread2 extends KahluaThread {
       int b = getB9(op);
       int c = getC9(op);
 
-      Object aObj = callFrame.get(a);
+      //Object aObj = callFrame.get(a);
+      //Object key = getRegisterOrConstant(callFrame, b, prototype);
+      //Object value = getRegisterOrConstant(callFrame, c, prototype);
+      //tableSet(aObj, key, value);
+      cm.vThis();
 
-      Object key = getRegisterOrConstant(callFrame, b, prototype);
-      Object value = getRegisterOrConstant(callFrame, c, prototype);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vInvokeFieldFunc("callFrame","get", I);
 
-      tableSet(aObj, key, value);
+      cm.vThis();
+      cm.vField("callFrame");
+      cm.vInt(b);
+      cm.vField("prototype");
+      cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+
+      cm.vThis();
+      cm.vField("callFrame");
+      cm.vInt(c);
+      cm.vField("prototype");
+      cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+
+      cm.vInvokeFunc(LuaScript.class, "tableSet", O, O, O);
     }
 
     void op_newtable() {
       int a = getA8(op);
 
-      KahluaTable t = platform.newTable();
-      callFrame.set(a, t);
+      //KahluaTable t = platform.newTable();
+      //callFrame.set(a, t);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      cm.vField("platform");
+      cm.vInvokeFieldFunc("platform","newTable");
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_self() {
@@ -414,46 +454,215 @@ public class KahluaThread2 extends KahluaThread {
       int b = getB9(op);
       int c = getC9(op);
 
-      Object key = getRegisterOrConstant(callFrame, c, prototype);
+      /*
       Object bObj = callFrame.get(b);
-
-      Object fun = tableGet(bObj, key);
-
-      callFrame.set(a, fun);
       callFrame.set(a + 1, bObj);
+      Object key = getRegisterOrConstant(callFrame, c, prototype);
+      Object fun = tableGet(bObj, key);
+      callFrame.set(a, fun); */
+
+      cm.vField("callFrame");
+      {
+        cm.vField("callFrame");
+        cm.vInt(b);
+        cm.vInvokeFieldFunc("callFrame", "get", I);
+        mv.visitVarInsn(ASTORE, 1);
+      }
+      cm.vInt(a+1);
+      mv.visitVarInsn(ALOAD, 1);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
+
+      cm.vField("callFrame");
+      cm.vInt(a);
+      {
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, 1);
+        {
+          cm.vThis();
+          cm.vField("callFrame");
+          cm.vInt(c);
+          cm.vField("prototype");
+          cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+        }
+        cm.vInvokeFunc(LuaScript.class, "tableGet", O, O);
+      }
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
+    }
+
+    void op_add() {
+      math_cal("__add", true, ()->{
+        mv.visitInsn(DADD);
+      });
+    }
+
+    void op_sub() {
+      math_cal("__sub", true, ()->{
+        mv.visitInsn(DSUB);
+      });
+    }
+
+    void op_mul() {
+      math_cal("__mul", true, ()->{
+        mv.visitInsn(DMUL);
+      });
+    }
+
+    void op_div() {
+      math_cal("__div", true, ()->{
+        mv.visitInsn(DDIV);
+      });
+    }
+
+    void op_pow() {
+      math_cal("__pow", false, ()->{
+        cm.vField("platform");
+        mv.visitVarInsn(ALOAD, 3);
+        cm.vInvokeFunc(Double.class, "doubleValue");
+        mv.visitVarInsn(ALOAD, 4);
+        cm.vInvokeFunc(Double.class, "doubleValue");
+        cm.vInvokeFieldFunc("platform", "pow", D, D);
+      });
+    }
+
+    void op_mod() {
+      math_cal("__mod", false, ()->{
+        Label v2iszero = new Label();
+        Label end = new Label();
+
+        mv.visitVarInsn(ALOAD, 4);
+        cm.vInvokeFunc(Double.class, "doubleValue");
+        cm.vDouble(0);
+        mv.visitInsn(DCMPL);
+        mv.visitJumpInsn(IFEQ, v2iszero); // if v4 == 0 goto v2iszero
+
+        // v4 != 0
+        mv.visitVarInsn(ALOAD, 3);
+        cm.vInvokeFunc(Double.class, "doubleValue");
+        {
+          mv.visitVarInsn(ALOAD, 3);
+          cm.vInvokeFunc(Double.class, "doubleValue");
+          mv.visitVarInsn(ALOAD, 4);
+          cm.vInvokeFunc(Double.class, "doubleValue");
+          mv.visitInsn(DDIV);
+          mv.visitInsn(D2I);
+        }
+        mv.visitInsn(I2D);
+        mv.visitVarInsn(ALOAD, 4);
+        cm.vInvokeFunc(Double.class, "doubleValue");
+        mv.visitInsn(DMUL);
+        mv.visitInsn(DSUB);
+
+        cm.vGoto(end);
+
+        // v4 == 0
+        cm.vLabel(v2iszero, line);
+        cm.vDouble(Double.NaN);
+
+        cm.vLabel(end, line);
+      });
     }
 
     // add sub mul div mod pow
-    void op_add() {
+    void math_cal(String meta_op, boolean popValued, Runnable primitiveOp) {
       int a = getA8(op);
       int b = getB9(op);
       int c = getC9(op);
 
+      /*
       Object bo = getRegisterOrConstant(callFrame, b, prototype);
       Object co = getRegisterOrConstant(callFrame, c, prototype);
 
-      Double bd = null, cd = null;
+      Double bd = KahluaUtil.rawTonumber(bo);
+      Double cd = KahluaUtil.rawTonumber(co);
       Object res = null;
-      if ((bd = KahluaUtil.rawTonumber(bo)) == null
-        || (cd = KahluaUtil.rawTonumber(co)) == null) {
-        String meta_op = meta_ops[opcode];
 
-        Object metafun = getBinMetaOp(bo, co, meta_op);
-        if (metafun == null) {
-          KahluaUtil.fail((meta_op + " not defined for operands"));
-        }
-        res = call(metafun, bo, co, null);
+      if (bd == null || cd == null) {
+        res = metaOp(bo, co, meta_op);
       } else {
-        res = primitiveMath(bd, cd, opcode);
+        res = bd (+) cd;
       }
-      callFrame.set(a, res);
+      callFrame.set(a, res);*/
+
+      Label saveRes = new Label();
+      Label useMetaOp1 = new Label();
+      Label useMetaOp2 = new Label();
+      Label primitive = new Label();
+
+      {
+        cm.vThis();
+        cm.vField("callFrame");
+        cm.vInt(b);
+        cm.vField("prototype");
+        cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+        mv.visitVarInsn(ASTORE, 1); // bo:1
+
+        cm.vThis();
+        cm.vField("callFrame");
+        cm.vInt(c);
+        cm.vField("prototype");
+        cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+        mv.visitVarInsn(ASTORE, 2); // co:2
+
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, 1);
+        cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
+        mv.visitVarInsn(ASTORE, 3); // bd:3
+
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, 2);
+        cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
+        mv.visitVarInsn(ASTORE, 4); // cd:4
+
+        // if (bd == null || cd == null) then useMetaOp();
+        mv.visitVarInsn(ALOAD, 3);
+        mv.visitJumpInsn(IFNULL, useMetaOp2);
+        mv.visitVarInsn(ALOAD, 4);
+        mv.visitJumpInsn(IFNULL, useMetaOp2);
+        cm.vGoto(primitive);
+
+        // primitiveMath();
+        cm.vLabel(primitive, line);
+
+        if (popValued) {
+          mv.visitVarInsn(ALOAD, 3);
+          cm.vInvokeFunc(Double.class, "doubleValue");
+          mv.visitVarInsn(ALOAD, 4);
+          cm.vInvokeFunc(Double.class, "doubleValue");
+        }
+
+        primitiveOp.run();
+
+        cm.vInvokeStatic(Double.class, "valueOf", D); // Must TO Double(Object)
+        mv.visitVarInsn(ASTORE, 5);
+        cm.vGoto(saveRes);
+
+        // useMetaOp()
+        cm.vLabel(useMetaOp1, line);
+        mv.visitInsn(POP);
+
+        cm.vLabel(useMetaOp2, line);
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitVarInsn(ALOAD, 2);
+        mv.visitLdcInsn(meta_op);
+        cm.vInvokeFunc(LuaScript.class, "metaOp", O, O, S);
+        mv.visitVarInsn(ASTORE, 5);
+        cm.vGoto(saveRes);
+      }
+      // saveRes()
+      cm.vLabel(saveRes, line);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      mv.visitVarInsn(ALOAD, 5);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_unm() {
       int a = getA8(op);
       int b = getB9(op);
-      Object aObj = callFrame.get(b);
 
+      /*
+      Object aObj = callFrame.get(b);
       Double aDouble = KahluaUtil.rawTonumber(aObj);
       Object res;
       if (aDouble != null) {
@@ -463,7 +672,45 @@ public class KahluaThread2 extends KahluaThread {
         //BaseLib.luaAssert(metafun != null, "__unm not defined for operand");
         res = call(metafun, aObj, null, null);
       }
-      callFrame.set(a, res);
+      callFrame.set(a, res);*/
+      Label save = new Label();
+      Label useDouble = new Label();
+
+      cm.vField("callFrame");
+      cm.vInt(b);
+      cm.vInvokeFieldFunc("callFrame", "get", I);
+      mv.visitVarInsn(ASTORE, 1);
+
+      cm.vThis();
+      mv.visitVarInsn(ALOAD, 1);
+      cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
+      mv.visitVarInsn(ASTORE, 2);
+
+      mv.visitVarInsn(ALOAD, 2);
+      mv.visitJumpInsn(IFNULL, useDouble);
+
+      // use meta op
+      cm.vThis();
+      mv.visitVarInsn(ALOAD, 1);
+      cm.vString("__unm");
+      cm.vInvokeFunc(LuaScript.class, "getMetaOp", O, S);
+      mv.visitVarInsn(ASTORE, 3);
+      cm.vGoto(save);
+
+      // use double
+      cm.vLabel(useDouble, line);
+      mv.visitVarInsn(ALOAD, 2);
+      cm.vInvokeFunc(Double.class, "doubleValue");
+      mv.visitInsn(DNEG);
+      cm.vInvokeStatic(Double.class, "valueOf", D);
+      mv.visitVarInsn(ASTORE, 3);
+
+      // save
+      cm.vLabel(save, line);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      mv.visitVarInsn(ALOAD, 3);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_not() {
@@ -992,24 +1239,63 @@ public class KahluaThread2 extends KahluaThread {
   }
 
 
-
   public static abstract class LuaScript implements Runnable {
-    public static final String myClassPath = toClassPath(LuaScript.class.getName());
     protected LuaCallFrame callFrame;
     protected LuaClosure closure;
     protected Prototype prototype;
+    protected Platform platform;
+    protected KahluaThread2 t;
 
-    public void call(Coroutine c) {
+    public LuaScript() {
+    }
+
+    public void reinit(KahluaThread2 kt2, Coroutine c) {
+      this.t = kt2;
       callFrame = c.currentCallFrame();
       closure = callFrame.closure;
       prototype = closure.prototype;
+      platform = kt2.platform;
+    }
 
-      run();
+    Object tableGet(Object table, Object key) {
+      return t.tableGet(table, key);
+    }
+
+    void tableSet(Object o, Object k, Object v) {
+      t.tableSet(o, k, v);
+    }
+
+    Object getRegisterOrConstant(LuaCallFrame c, int i, Prototype p) {
+      return t.getRegisterOrConstant(c, i, p);
+    }
+
+    void fail(String msg) {
+      throw new RuntimeException(msg);
+    }
+
+    Double rawTonumber(Object o) {
+      return KahluaUtil.rawTonumber(o);
+    }
+
+    Object getBinMetaOp(Object a, Object b, String meta_op) {
+      return t.getBinMetaOp(a, b, meta_op);
+    }
+
+    Object getMetaOp(Object a, String meta) {
+      return t.getMetaOp(a, meta);
+    }
+
+    Object metaOp(Object a, Object b, String op) {
+      Object metafun = getBinMetaOp(a, b, op);
+      if (metafun == null) {
+        fail("["+ op +"] not defined for operands");
+      }
+      return t.call(metafun, a, b, null);
     }
   }
 
 
-  public static class ClassMaker {
+  public class ClassMaker {
     ClassWriter cw;
     FieldVisitor fv;
     MethodVisitor mv;
@@ -1027,7 +1313,7 @@ public class KahluaThread2 extends KahluaThread {
       this.className = className;
       this.classPath = toClassPath(className);
 
-      cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+      cw = new ClassWriter(COMPUTE_FRAMES);
       cw.visit(52,
         ACC_PUBLIC + Opcodes.ACC_SUPER,
         classPath,
@@ -1039,34 +1325,16 @@ public class KahluaThread2 extends KahluaThread {
     }
 
     private MethodVisitor beginMethod(String mname) {
+      if (mv != null) throw new RuntimeException();
       mv = cw.visitMethod(ACC_PUBLIC, mname, "()V", null, null);
       mv.visitCode();
       return mv;
     }
 
-    private void _call_print() {
-      Label l0 = new Label();
-      mv.visitLabel(l0);
-      mv.visitLineNumber(77, l0);
-      mv.visitFieldInsn(GETSTATIC,
-        "java/lang/System",
-        "out",
-        "Ljava/io/PrintStream;");
-      mv.visitLdcInsn("hello");
-      mv.visitMethodInsn(INVOKEVIRTUAL,
-        "java/io/PrintStream",
-        "println",
-        "(Ljava/lang/String;)V",
-        false);
-
-      Label l1 = new Label();
-      mv.visitLabel(l1);
-      mv.visitLineNumber(78, l1);
-    }
-
     private void endMethod() {
       mv.visitInsn(RETURN);
-      mv.visitMaxs(0, 0);
+      mv.visitMaxs(10, 10);
+      //mv.visitMaxs(0 ,0);
       mv.visitEnd();
       mv = null;
     }
@@ -1100,19 +1368,12 @@ public class KahluaThread2 extends KahluaThread {
       mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
       mv.visitCode();
 
-      Label label0 = new Label();
-      mv.visitLabel(label0);
-      mv.visitLineNumber(0, label0);
       mv.visitVarInsn(ALOAD, 0);
       mv.visitMethodInsn(INVOKESPECIAL, superClassName, "<init>", "()V", false);
       mv.visitInsn(RETURN);
-
-      String desc = "L"+ classPath +";";
-      Label label1 = new Label();
-      mv.visitLabel(label1);
-      mv.visitLocalVariable("this", desc, null, label0, label1, 0);
       mv.visitMaxs(1, 1);
       mv.visitEnd();
+      mv = null;
     }
 
     // Execution of methods in members
@@ -1125,11 +1386,34 @@ public class KahluaThread2 extends KahluaThread {
           m.getName(), getMethodSi(m), false);
     }
 
+    private void vInvokeFunc(Class owner, String method, Class ...param) {
+      Method m = getMethod(owner, method, param);
+
+      mv.visitMethodInsn(INVOKEVIRTUAL, toClassPath(owner),
+        m.getName(), getMethodSi(m), false);
+    }
+
+    private void vInvokeStatic(Class owner, String method, Class ...param) {
+      Method m = getMethod(owner, method, param);
+
+      mv.visitMethodInsn(INVOKESTATIC, toClassPath(owner),
+        m.getName(), getMethodSi(m), false);
+    }
+
     private void vInt(int a) {
       mv.visitLdcInsn(a);
     }
 
+    private void vDouble(double a) {
+      mv.visitLdcInsn(a);
+    }
+
+    private void vString(String s) {
+      mv.visitLdcInsn(s);
+    }
+
     private void vThis() {
+      // Zero is This
       mv.visitVarInsn(ALOAD, 0);
     }
 
@@ -1146,7 +1430,37 @@ public class KahluaThread2 extends KahluaThread {
       typeName(desc, f.getType());
 
       mv.visitFieldInsn(GETFIELD, oclass, f.getName(), desc.toString());
-      System.out.println(oclass+" "+ f.getName() +" "+ desc.toString());
+    }
+
+    private void vStatic(Field f) {
+      Class c = f.getDeclaringClass();
+      String oclass = toClassPath(c.getName());
+      String v = f.getName();
+
+      StringBuilder desc = new StringBuilder();
+      typeName(desc, f.getType());
+
+      mv.visitFieldInsn(GETSTATIC, oclass, v, desc.toString());
+    }
+
+    private void vStatic(Method m) {
+      Class c = m.getDeclaringClass();
+      String oclass = toClassPath(c.getName());
+      String v = m.getName();
+
+      StringBuilder desc = new StringBuilder();
+      typeName(desc, c);
+
+      mv.visitFieldInsn(GETSTATIC, oclass, v, desc.toString());
+    }
+
+    private void vGoto(Label l) {
+      mv.visitJumpInsn(GOTO, l);
+    }
+
+    private void vLabel(Label l, int line) {
+      mv.visitLabel(l);
+      mv.visitLineNumber(line, l);
     }
 
     // Get field from Super Class
@@ -1284,5 +1598,57 @@ public class KahluaThread2 extends KahluaThread {
       }
     }
     return r.toString();
+  }
+
+
+
+  public void test_every_lua_code(int endIndex) throws Exception {
+    final String line = " -------------------------------------------- ";
+    Prototype p = new Prototype();
+    p.name = "./testsuite/lua/testhelper.lua";
+    p.constants = new Object[]{};
+    p.lines = new int[opNames.length];
+
+    KahluaTable env = platform.newTable();
+    LuaClosure lc = new LuaClosure(p, env);
+    Coroutine cr = new Coroutine(platform, env, this);
+    cr.pushNewCallFrame(lc, null, 0,0,0, false, true);
+    LuaBuilder luab = new LuaBuilder(cr);
+    luab.op = (1<<6) | (2<<14) | (3<<23);
+    luab.labels = new Label[p.lines.length];
+
+    luab.cm.defaultInit();
+    luab.mv = luab.cm.beginMethod("run");
+
+    for (int i=0; i<p.lines.length; ++i) {
+      p.lines[i] = i;
+      luab.labels[i] = new Label();
+    }
+
+    for (int i=0; i<=endIndex; ++i) {
+      luab.pc = i+1;
+      luab.op = ((1)<<6) | ((3)<<14) | ((2)<<23);
+      Label label = luab.labels[i];
+      luab.line = p.lines[i];
+
+      Method m = LuaBuilder.class.getDeclaredMethod(opNames[i].toLowerCase());
+      Tool.pl(">> ", m.getName(), "()");
+
+      luab.mv.visitLabel(label);
+      luab.mv.visitLineNumber(p.lines[i], label);
+      luab.mv.visitLdcInsn(line + m.getName() +" ( "+ i +" )");
+      luab.cm.vInvokeStatic(Tool.class, "pl", Object.class);
+      m.invoke(luab);
+
+      Tool.pl("> ok");
+    }
+
+    luab.mv.visitLdcInsn("END / "+ new Date().toString());
+    luab.cm.vInvokeStatic(Tool.class, "pl", Object.class);
+    luab.cm.endMethod();
+
+    LuaScript agent = luab.createJavaAgent();
+    agent.reinit(this, cr);
+    agent.run();
   }
 }

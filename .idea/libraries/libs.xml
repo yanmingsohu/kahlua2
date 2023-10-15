@@ -3,7 +3,9 @@
     <CLASSES>
       <root url="file://$PROJECT_DIR$/lib" />
     </CLASSES>
-    <JAVADOC />
+    <JAVADOC>
+      <root url="https://asm.ow2.io/javadoc/index.html" />
+    </JAVADOC>
     <SOURCES />
     <jarDirectory url="file://$PROJECT_DIR$/lib" recursive="false" />
   </library>

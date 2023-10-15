@@ -246,14 +246,4 @@ public class BitLib {
       return 1;
     }
   }
-
-
-  public static void pl(Object ...o) {
-    StringBuilder buf = new StringBuilder();
-    for (int i=0; i<o.length; ++i) {
-      buf.append(o[i]);
-      buf.append(" ");
-    }
-    System.out.println(buf.toString());
-  }
 }

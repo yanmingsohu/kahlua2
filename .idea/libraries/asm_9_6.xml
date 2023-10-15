@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="asm-9.6">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/asm-9.6.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="https://asm.ow2.io/javadoc" />
+    </JAVADOC>
+    <SOURCES />
+  </library>
+</component>

@@ -39,21 +39,49 @@ public class TestKahluaThread2 implements Runnable {
   public LuaCallFrame callFrame;
 
 
+  public void ___asm() {
+    Double a = 1.0;
+    Double b = 2.0;
+    double c = a+b;
+    Object d = null;
+    double nn = Double.NaN;
+
+    int ipart = (int) (a / b);
+    double res = a - ipart * b;
+
+    Double x = -1.0;
+    x = -x;
+
+    if (a!=null && b !=null) {
+      if (b > c) {
+        Tool.pl(c);
+        d = a + b;
+        c = a - b;
+      } else {
+        Tool.pl(b);
+        d = c * a.doubleValue();
+      }
+    } else {
+      Tool.pl(a, c, res);
+      d = b-c;
+    }
+  }
+
+
   public static void main(String[] av) throws Exception {
 //    testVM();
     testMaker();
 //    test1();
-    System.out.println("done");
+    Tool.pl("Done");
   }
 
 
   private static void testMaker() throws Exception {
-    KahluaConverterManager converterManager = new KahluaConverterManager();
     Platform plat = J2SEPlatform.getInstance();
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
 
-    thread.test();
+    thread.test_every_lua_code(18);
   }
 
 
@@ -144,6 +172,6 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static void pl(Object o) {
-    System.out.println(o);
+    Tool.pl(o);
   }
 }
