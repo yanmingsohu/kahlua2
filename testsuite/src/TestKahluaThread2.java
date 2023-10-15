@@ -66,8 +66,15 @@ public class TestKahluaThread2 implements Runnable {
         d = c * a.doubleValue();
       }
     } else {
-      Tool.pl(a, c, res);
+      Tool.pl(a, c, res, null, null);
       d = b-c;
+    }
+
+    if (d instanceof String) {
+      Tool.pl("String", ((String)d).substring(0));
+    } else if (d instanceof Double) {
+      Tool.pl("Double", (Double)d);
+      throw new RuntimeException("xxx");
     }
   }
 
@@ -85,7 +92,7 @@ public class TestKahluaThread2 implements Runnable {
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
 
-    thread.test_every_lua_code(19);
+    thread.test_every_lua_code(20);
   }
 
 

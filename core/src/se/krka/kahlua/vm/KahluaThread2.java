@@ -746,7 +746,6 @@ public class KahluaThread2 extends KahluaThread {
       cm.vGoto(save);
 
       cm.vLabel(save, line);
-      cm.vLabel(save, line);
       cm.vField("callFrame");
       cm.vInt(a);
       mv.visitVarInsn(ALOAD, 2);
@@ -757,20 +756,93 @@ public class KahluaThread2 extends KahluaThread {
       int a = getA8(op);
       int b = getB9(op);
 
+      /*
       Object o = callFrame.get(b);
       Object res;
       if (o instanceof KahluaTable) {
         KahluaTable t = (KahluaTable) o;
         res = KahluaUtil.toDouble(t.len());
-      } else if (o instanceof String) {
+      }
+      else if (o instanceof String) {
         String s = (String) o;
         res = KahluaUtil.toDouble(s.length());
-      } else {
+      }
+      else {
         Object f = getMetaOp(o, "__len");
         KahluaUtil.luaAssert(f != null, "__len not defined for operand");
         res = call(f, o, null, null);
       }
-      callFrame.set(a, res);
+      callFrame.set(a, res);*/
+      Label isString = new Label();
+      Label isTable = new Label();
+      Label isMeta = new Label();
+      Label save = new Label();
+      Label throwError = new Label();
+
+      cm.vField("callFrame");
+      cm.vInt(b);
+      cm.vInvokeFieldFunc("callFrame", "get", I);
+      mv.visitVarInsn(ASTORE, 1);
+
+      mv.visitVarInsn(ALOAD, 1);
+      cm.vIsof(String.class, isString);
+      mv.visitVarInsn(ALOAD, 1);
+      cm.vIsof(KahluaTable.class, isTable);
+      cm.vGoto(isMeta);
+
+      cm.vLabel(isString, line);
+      {
+        mv.visitVarInsn(ALOAD, 1);
+        cm.vCast(String.class);
+        cm.vInvokeFunc(String.class, "length");
+        mv.visitInsn(I2D);
+        cm.vInvokeStatic(Double.class, "valueOf", D);
+        mv.visitVarInsn(ASTORE, 2);
+      }
+      cm.vGoto(save);
+
+      cm.vLabel(isTable, line);
+      {
+        mv.visitVarInsn(ALOAD, 1);
+        cm.vCast(KahluaTable.class);
+        cm.vInvokeFunc(KahluaTable.class, "len");
+        mv.visitInsn(I2D);
+        cm.vInvokeStatic(Double.class, "valueOf", D);
+        mv.visitVarInsn(ASTORE, 2);
+      }
+      cm.vGoto(save);
+
+      cm.vLabel(isMeta, line);
+      {
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, 1);
+        cm.vString("__len");
+        cm.vInvokeFunc(LuaScript.class, "getMetaOp", O, S);
+        mv.visitVarInsn(ASTORE, 3);
+
+        mv.visitVarInsn(ALOAD, 3);
+        mv.visitJumpInsn(IFNULL, throwError);
+
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, 3);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitInsn(ACONST_NULL);
+        cm.vInvokeFunc(LuaScript.class, "call", O, O, O, O);
+        mv.visitVarInsn(ASTORE, 2);
+      }
+      cm.vGoto(save);
+
+      cm.vLabel(throwError, line);
+      {
+        cm.vThrow("__len not defined for operand");
+      }
+
+      cm.vLabel(save, line);
+      cm.vField("callFrame");
+      cm.vInt(a);
+      mv.visitVarInsn(ALOAD, 2);
+      cm.vInvokeFieldFunc("callFrame", "set", I, O);
     }
 
     void op_concat() {
@@ -1323,7 +1395,11 @@ public class KahluaThread2 extends KahluaThread {
       if (metafun == null) {
         fail("["+ op +"] not defined for operands");
       }
-      return t.call(metafun, a, b, null);
+      return call(metafun, a, b, null);
+    }
+
+    Object call(Object func, Object a1, Object a2, Object a3) {
+      return t.call(func, a1, a2, a3);
     }
   }
 
@@ -1450,6 +1526,15 @@ public class KahluaThread2 extends KahluaThread {
       mv.visitVarInsn(ALOAD, 0);
     }
 
+    private void vIsof(Class s, Label whenIsinstanceof) {
+      mv.visitTypeInsn(INSTANCEOF, toClassPath(s.getName()));
+      mv.visitJumpInsn(IFNE, whenIsinstanceof);
+    }
+
+    private void vCast(Class s) {
+      mv.visitTypeInsn(CHECKCAST, toClassPath(s.getName()));
+    }
+
     private void vField(String fname) {
       vThis();
       vField(superClass, fname);
@@ -1494,6 +1579,15 @@ public class KahluaThread2 extends KahluaThread {
     private void vLabel(Label l, int line) {
       mv.visitLabel(l);
       mv.visitLineNumber(line, l);
+    }
+
+    private void vThrow(String errMsg) {
+      mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
+      mv.visitInsn(DUP);
+      mv.visitLdcInsn(errMsg);
+      mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException",
+        "<init>", "(Ljava/lang/String;)V", false);
+      mv.visitInsn(ATHROW);
     }
 
     // Get field from Super Class
