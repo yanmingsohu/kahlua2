@@ -7,6 +7,7 @@ The PZ game team obviously doesn't have time to update the engine, they have mor
 So I will try to rewrite the core functionality in java bytecode to make the engine run faster,
 God bless me!
 
+
 ## My goals are twofold
 
 1. This project is a GameBody simulator: https://github.com/yanmingsohu/zPlayableGameBoy
@@ -15,14 +16,16 @@ God bless me!
 2. If goal 1 is completed, I will make a PZ compatibility layer, because the game has deeply embedded this engine, and I want to ensure that it can be ported to the game with minimal changes.
 
 
-If you think my work is good, you can support me here: https://www.patreon.com/messycode411
-
 
 # Performance
 
-This is the speed of running the game with the original version of the virtual machine:
+This is the speed of running the game with the original version of the virtual machine,
+You can see that the average frame rate is 1 frame/second, and it is very unstable.
 
 ![screen1](https://github.com/yanmingsohu/kahlua2/blob/master/screen1.png)
+
+Now let's working ...
+
 
 
 # Progress
@@ -35,9 +38,12 @@ This is the speed of running the game with the original version of the virtual m
 
 # About
 
-
-* [bit](https://github.com/AlberTajuelo/bitop-lua)
-* [LuaGB](https://github.com/zeta0134/LuaGB)
+* [bit](https://github.com/AlberTajuelo/bitop-lua) This is a library that uses lua to simulate bit operations. I have implemented it in Kahlua using java, so this library is only used as a reference.
+* [LuaGB](https://github.com/zeta0134/LuaGB) This is the GameBoy emulator, it's made in Lua
 * [jvm](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html)
 * [Lua byte code](https://abaojin.github.io/2017/01/11/lua-vm-bytecode/)
 
+
+# Support
+
+If you think my work is good, you can support me here: https://www.patreon.com/messycode411
