@@ -68,45 +68,55 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  protected void closureReturn(LuaCallFrame cf) {
+    coroutine.popCallFrame();
+  }
+
+
   protected Prototype findPrototype(int index) {
     return plist[index].prototype;
   }
 
 
-  Object tableGet(Object table, Object key) {
+  protected Object tableGet(Object table, Object key) {
     return t.tableGet(table, key);
   }
 
 
-  void tableSet(Object o, Object k, Object v) {
+  protected void tableSet(Object o, Object k, Object v) {
     t.tableSet(o, k, v);
   }
 
 
-  Object getRegisterOrConstant(LuaCallFrame c, int i, Prototype p) {
+  protected Object getRegisterOrConstant(LuaCallFrame c, int i, Prototype p) {
     return t.getRegisterOrConstant(c, i, p);
   }
 
 
-  void fail(String msg) {
+  protected void fail(String msg) {
     throw new RuntimeException(msg);
   }
+
 
   protected Double rawTonumber(Object o) {
     return KahluaUtil.rawTonumber(o);
   }
 
+
   protected Object getBinMetaOp(Object a, Object b, String meta_op) {
     return t.getBinMetaOp(a, b, meta_op);
   }
+
 
   protected Object getMetaOp(Object a, String meta) {
     return t.getMetaOp(a, meta);
   }
 
+
   protected Object getCompMetaOp(Object a, Object b, String meta_op) {
     return t.getCompMetaOp(a, b, meta_op);
   }
+
 
   protected Object metaOp(Object a, Object b, String op) {
     Object metafun = getBinMetaOp(a, b, op);
@@ -116,11 +126,13 @@ public abstract class LuaScript implements Runnable {
     return call(metafun, a, b, null);
   }
 
+
   protected Object call(Object func, Object a1, Object a2, Object a3) {
     return t.call(func, a1, a2, a3);
   }
 
-  void auto_op_concat(int a, int b, int c, LuaCallFrame callFrame) {
+
+  protected void auto_op_concat(int a, int b, int c, LuaCallFrame callFrame) {
     int first = b;
     int last = c;
 
@@ -174,6 +186,7 @@ public abstract class LuaScript implements Runnable {
     }
     callFrame.set(a, res);
   }
+
 
   protected void auto_op_eq(int a, int b, int c, int opcode,
                   LuaCallFrame callFrame,
@@ -267,6 +280,7 @@ public abstract class LuaScript implements Runnable {
     }
   }
 
+
   protected void auto_op_call(int a, int b, int c, LuaCallFrame callFrame) {
     int nArguments2 = b - 1;
     if (nArguments2 != -1) {
@@ -276,11 +290,14 @@ public abstract class LuaScript implements Runnable {
     }
   }
 
+
   protected void auto_op_tailcall(int a, int b) {
   }
 
+
   protected void auto_op_return(int a, int b) {
   }
+
 
   protected void auto_op_forprep(int a, int b, LuaCallFrame callFrame) {
     double iter = KahluaUtil.fromDouble(callFrame.get(a));
@@ -288,6 +305,7 @@ public abstract class LuaScript implements Runnable {
     callFrame.set(a, KahluaUtil.toDouble(iter - step));
     callFrame.pc += b;
   }
+
 
   protected void auto_op_forloop(int a, int b, LuaCallFrame callFrame) {
     double iter = KahluaUtil.fromDouble(callFrame.get(a));
@@ -305,6 +323,7 @@ public abstract class LuaScript implements Runnable {
     }
   }
 
+
   protected void auto_op_tforloop(int a, int c) {
 //    callFrame.setTop(a + 6);
 //    callFrame.stackCopy(a, a + 3, 3);
@@ -319,17 +338,21 @@ public abstract class LuaScript implements Runnable {
 //    }
   }
 
+
   protected void auto_op_setlist(int a, int b, int c) {
   }
+
 
   protected void auto_op_close(int a, LuaCallFrame callFrame) {
     callFrame.closeUpvalues(a);
   }
 
+
   protected void auto_op_closure(int a, int b, int pindex,
                        LuaCallFrame callFrame,
                        Prototype prototype) {
   }
+
 
   protected void auto_op_vararg(int a, int b, LuaCallFrame callFrame) {
     callFrame.pushVarargs(a, b);

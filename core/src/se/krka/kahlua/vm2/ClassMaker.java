@@ -303,6 +303,13 @@ public class ClassMaker {
   }
 
 
+  void vClosureFunctionFoot(ClosureInf inf) {
+    vThis();
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vInvokeFunc(LuaScript.class, "closureReturn", LuaCallFrame.class);
+  }
+
+
   // Get field from Super Class
   Field getField(String n) {
     return getField(superClass, n);

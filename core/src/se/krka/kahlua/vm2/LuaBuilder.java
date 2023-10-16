@@ -40,7 +40,6 @@ import static se.krka.kahlua.vm2.KahluaThread2.opNames;
  */
 public class LuaBuilder implements ClassMaker.IConst {
 
-
   final String classPath;
   final String className;
   protected MethodVisitor mv;
@@ -57,10 +56,10 @@ public class LuaBuilder implements ClassMaker.IConst {
 
 
   public LuaBuilder(String _classPath) {
-    classPath = _classPath;
-    className = Tool.formatClassName(classPath);
-    cm = new ClassMaker(className);
-    plist = new ArrayList<>(100);
+    this.classPath = _classPath;
+    this.className = Tool.formatClassName(classPath);
+    this.cm = new ClassMaker(className);
+    this.plist = new ArrayList<>(100);
   }
 
 
@@ -99,6 +98,7 @@ public class LuaBuilder implements ClassMaker.IConst {
       do_op_code(opcode, ci);
     }
 
+    cm.vClosureFunctionFoot(ci);
     cm.endMethod();
     processSubClosure(startIndex, plist.size());
   }
@@ -173,13 +173,14 @@ public class LuaBuilder implements ClassMaker.IConst {
 
 
   String closureFuncName() {
-    return "closure_"+ id;
+    return "closure_"+ (id++);
   }
 
 
   void op_closure(ClosureInf ci) {
     int a = getA8(op);
     int b = getBx(op);
+
     ClosureInf subci = pushClosure(ci.prototype.prototypes[b], closureFuncName());
     int pi = subci.arrIndex;
 
@@ -883,13 +884,16 @@ public class LuaBuilder implements ClassMaker.IConst {
     Label falseV = new Label();
     Label check = new Label();
 
+    final int value = vUser +1;
+
     mv.visitVarInsn(ALOAD, vCallframe);
     cm.vInt(a);
     cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    mv.visitVarInsn(ASTORE, 1);
+    mv.visitVarInsn(ASTORE, value);
 
-    mv.visitVarInsn(ALOAD, 1);
+    mv.visitVarInsn(ALOAD, value);
     mv.visitJumpInsn(IFNULL, falseV);
+    mv.visitVarInsn(ALOAD, value);
     cm.vStatic(cm.getField(Boolean.class, "FALSE"));
     mv.visitJumpInsn(IF_ACMPEQ, falseV);
     cm.vGoto(trueV);
@@ -904,7 +908,7 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     cm.vLabel(check, line);
     cm.vBoolean(eqt);
-    mv.visitJumpInsn(IF_ACMPEQ, jumpto);
+    mv.visitJumpInsn(IF_ICMPEQ, jumpto);
     cm.vGoto(end);
 
     cm.vLabel(end, line);
@@ -929,13 +933,16 @@ public class LuaBuilder implements ClassMaker.IConst {
     Label falseV = new Label();
     Label check = new Label();
 
+    final int value = vUser +1;
+
     mv.visitVarInsn(ALOAD, vCallframe);
     cm.vInt(b);
     cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    mv.visitVarInsn(ASTORE, 1);
+    mv.visitVarInsn(ASTORE, value);
 
-    mv.visitVarInsn(ALOAD, 1);
+    mv.visitVarInsn(ALOAD, value);
     mv.visitJumpInsn(IFNULL, falseV);
+    mv.visitVarInsn(ALOAD, value);
     cm.vStatic(cm.getField(Boolean.class, "FALSE"));
     mv.visitJumpInsn(IF_ACMPEQ, falseV);
     cm.vGoto(trueV);
@@ -950,13 +957,13 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     cm.vLabel(check, line);
     cm.vBoolean(eqt);
-    mv.visitJumpInsn(IF_ACMPEQ, jumpto);
+    mv.visitJumpInsn(IF_ICMPEQ, jumpto);
     cm.vGoto(setvalue);
 
     cm.vLabel(setvalue, line);
     mv.visitVarInsn(ALOAD, vCallframe);
     cm.vInt(a);
-    mv.visitVarInsn(ALOAD, 1);
+    mv.visitVarInsn(ALOAD, value);
     cm.vInvokeFunc(LuaCallFrame.class, "set", I,O);
   }
 

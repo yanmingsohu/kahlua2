@@ -37,7 +37,7 @@ local function storeTestcase(testcase, status, errormessage, stacktrace)
 		testcase.stacktrace = stacktrace
 	end
 	testcase.status = status
-	
+
 	if parent then
 		parent[category] = parent[category] or {}
 		table.insert(parent[category], testcase)
@@ -56,7 +56,7 @@ function testCall(name, f, ...)
 	assert(type(f) == "function", "expected a function, but got " .. tostring(f))
 
 	local testcase = createTestcase(name)
-	
+
 	local oldParent = parent
 	parent = testcase
 
@@ -65,7 +65,7 @@ function testCall(name, f, ...)
 		errormessage, stacktrace = nil, nil
 	end
 	parent = oldParent
-	
+
 	local stacktrace2 = debugstacktrace(nil, 3, nil, 1)
 	assert(stacktrace == nil or type(stacktrace) == "string", type(stacktrace))
 	assert(type(stacktrace2) == "string")
@@ -99,7 +99,7 @@ local function indentstring(indent, s)
 	return indent .. tmp:sub(1, #tmp - #indent)
 end
 
-function generatereport(tests)	
+function generatereport(tests)
 	local printTest
 	local function printSubtests(test, output, indent)
 		if test.fail then
@@ -109,7 +109,7 @@ function generatereport(tests)
 		end
 		return output
 	end
-	
+
 	function printTest(test, output, indent)
 		if test.status then
 			return output

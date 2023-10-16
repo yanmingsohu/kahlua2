@@ -116,6 +116,7 @@ public class KahluaThread2 extends KahluaThread {
 
     try {
       LuaClosure lc = (LuaClosure) o;
+      Tool.pl("Closure:", lc);
       LuaBuilder luab = new LuaBuilder(lc.prototype.name);
       luab.makeJavacode(lc.prototype);
 

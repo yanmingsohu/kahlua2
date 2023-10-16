@@ -44,6 +44,12 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
+    final int fi = 999;
+    boolean a= true;
+    boolean b= false;
+    if (a == b) {
+      Tool.pl(fi);
+    }
 //    Double a = 1.0;
 //    Double b = 2.0;
 //    double c = a+b;
