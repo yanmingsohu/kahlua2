@@ -23,5 +23,6 @@ while (true) do
   end
 
   local pixels = gb.graphics.game_screen
+  setFrame(gb.graphics.vblank_count)
   updateScreen(pixels)
 end

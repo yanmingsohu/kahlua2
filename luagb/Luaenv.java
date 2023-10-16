@@ -10,6 +10,7 @@ import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaThread;
 import se.krka.kahlua.vm.LuaClosure;
+import se.krka.kahlua.vm.Tool;
 
 import javax.swing.*;
 import java.awt.*;
@@ -40,6 +41,15 @@ public class Luaenv {
 	private Map<String, Object> libCache;
 	private JDialog fr;
 	private BufferedImage buf;
+	private double frame;
+	private double lastt;
+	private double total;
+	private StringBuilder fps = createFPS();
+
+	private final int Width = 500;
+	private final int Height = 400;
+	private final int GBw = 160;
+	private final int GBh = 140;
 
 
 	public static void main(String[] args) throws IOException {
@@ -48,18 +58,13 @@ public class Luaenv {
 
 	private Luaenv() {
 		libCache = new HashMap<>();
-		buf = new BufferedImage(500, 500, TYPE_INT_RGB);
+		buf = new BufferedImage(Width, Height, TYPE_INT_RGB);
+		lastt = System.currentTimeMillis();
 
-		fr = new JDialog();
-		fr.setSize(500,500);
+		fr = new Screen();
+		fr.setSize(Width,Height);
 		fr.setBackground(Color.black);
 		fr.setVisible(true);
-
-		fr.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				fr.dispose();
-			}
-		});
 	}
 
 	public void run() throws IOException {
@@ -112,6 +117,13 @@ public class Luaenv {
 
 	@LuaMethod(name = "updateScreen", global = true)
 	public void updateScreen(KahluaTable pixel) {
+		Graphics gr = buf.getGraphics();
+		gr.setColor(Color.black);
+		gr.fillRect(0,0, Width,Height);
+		final int offx = (Width-GBw*2) / 2;
+		final int offy = (Height - GBh*2) / 2;
+
+
 		for (int y = 0; y < pixel.len(); ++y) {
 			KahluaTable row = (KahluaTable) pixel.rawget(y);
 
@@ -122,17 +134,62 @@ public class Luaenv {
 				int g = (int)(double) c.rawget(2);
 				int b = (int)(double) c.rawget(3);
 				int rgb = (r << 16) | (g << 8) | b;
-				buf.setRGB(x*2   + 100, y*2   + 100, rgb);
-				buf.setRGB(x*2   + 100, y*2+1 + 100, rgb);
-				buf.setRGB(x*2+1 + 100, y*2   + 100, rgb);
-				buf.setRGB(x*2+1 + 100, y*2+1 + 100, rgb);
+				buf.setRGB(x*2   + offx, y*2   + offy, rgb);
+				buf.setRGB(x*2   + offx, y*2+1 + offy, rgb);
+				buf.setRGB(x*2+1 + offx, y*2   + offy, rgb);
+				buf.setRGB(x*2+1 + offx, y*2+1 + offy, rgb);
 			}
 		}
 
-		Graphics2D g = (Graphics2D) fr.getGraphics();
-		//g.setColor(Color.black);
-		//g.fill3DRect(0, 0, 500, 500, false);
-		g.drawImage(buf, 0,0, null);
+		gr.setColor(Color.white);
+		gr.drawString(fps.toString(), offx, 50);
+		fr.repaint();
+	}
+
+
+	@LuaMethod(name = "setFrame", global = true)
+	public void setFrame(double f) {
+		if (frame != f) {
+			double now = System.currentTimeMillis();
+			double used = now - lastt;
+			lastt = now;
+			setFrame((int)f, (int)used, (int)(1/(used/1000)));
+			total += used;
+		}
+		frame = f;
+	}
+
+
+	private void setFrame(int frame, int used, int _fps) {
+		final String sp = "   ";
+		fps.setLength(0);
+		fps.append(frame);
+		fps.append(" Frame");
+		fps.append(sp);
+
+		if (used > 1000) {
+			fps.append(used/1000);
+			fps.append(" s");
+		} else {
+			fps.append(used);
+			fps.append(" ms");
+		}
+		fps.append(sp);
+
+		fps.append(_fps);
+		fps.append(" FPS");
+		fps.append(sp);
+
+		fps.append((int)(frame / (total/1000)));
+		fps.append(" FPS.avg");
+	}
+
+
+	private StringBuilder createFPS() {
+		StringBuilder b = new StringBuilder();
+		//     0->4321  10->4321 19->4321
+		b.append("   0Frame    0ms      0FPS");
+		return b;
 	}
 
 
@@ -143,5 +200,23 @@ public class Luaenv {
 			buf.append(" ");
 		}
 		System.out.println(buf.toString());
+	}
+
+
+	public class Screen extends JDialog {
+		public Screen() {
+			setTitle("LuaGB on Java Lua Kahlua");
+			addWindowListener(new WindowAdapter() {
+				public void windowClosing(WindowEvent e) {
+					dispose();
+				}
+			});
+		}
+
+		public void paint(Graphics g) {
+			g.setColor(Color.black);
+			//g.fill3DRect(0, 0, 500, 500, false);
+			g.drawImage(buf, 0,0, null);
+		}
 	}
 }
