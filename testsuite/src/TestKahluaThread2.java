@@ -20,7 +20,6 @@
  THE SOFTWARE.
  */
 
-import org.objectweb.asm.signature.SignatureVisitor;
 import org.objectweb.asm.signature.SignatureWriter;
 import se.krka.kahlua.converter.KahluaConverterManager;
 import se.krka.kahlua.integration.LuaCaller;
@@ -28,6 +27,8 @@ import se.krka.kahlua.integration.LuaReturn;
 import se.krka.kahlua.j2se.J2SEPlatform;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.*;
+import se.krka.kahlua.vm2.KahluaThread2;
+import se.krka.kahlua.vm2.Tool;
 
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
@@ -40,41 +41,48 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
-    Double a = 1.0;
-    Double b = 2.0;
-    double c = a+b;
-    Object d = null;
-    double nn = Double.NaN;
+//    Double a = 1.0;
+//    Double b = 2.0;
+//    double c = a+b;
+//    Object d = null;
+//    double nn = Double.NaN;
+//
+//    int ipart = (int) (a / b);
+//    double res = a - ipart * b;
+//
+//    Double x = -1.0;
+//    x = -x;
+//
+//    boolean bb = (d != null) && (d != Boolean.FALSE);
+//    Boolean bbb = bb;
+//    Boolean bbc = Boolean.TRUE;
+//
+//    if (a!=null && b !=null) {
+//      if (b > c) {
+//        Tool.pl(c);
+//        d = a + b;
+//        c = a - b;
+//      } else {
+//        Tool.pl(b);
+//        d = c * a.doubleValue();
+//      }
+//    } else {
+//      Tool.pl(a, c, res, null, null);
+//      d = b-c;
+//    }
+//
+//    if (d instanceof String) {
+//      Tool.pl("String", ((String)d).substring(0));
+//    } else if (d instanceof Double) {
+//      Tool.pl("Double", (Double)d);
+//      throw new RuntimeException("xxx");
+//    }
 
-    int ipart = (int) (a / b);
-    double res = a - ipart * b;
+    Boolean a = true;
+    Object b = Boolean.FALSE;
 
-    Double x = -1.0;
-    x = -x;
-
-    boolean bb = (d != null) && (d != Boolean.FALSE);
-    Boolean bbb = bb;
-    Boolean bbc = Boolean.TRUE;
-
-    if (a!=null && b !=null) {
-      if (b > c) {
-        Tool.pl(c);
-        d = a + b;
-        c = a - b;
-      } else {
-        Tool.pl(b);
-        d = c * a.doubleValue();
-      }
-    } else {
-      Tool.pl(a, c, res, null, null);
-      d = b-c;
-    }
-
-    if (d instanceof String) {
-      Tool.pl("String", ((String)d).substring(0));
-    } else if (d instanceof Double) {
-      Tool.pl("Double", (Double)d);
-      throw new RuntimeException("xxx");
+    if (b != null && a == b) {
+      Tool.pl(true);
     }
   }
 
@@ -92,7 +100,7 @@ public class TestKahluaThread2 implements Runnable {
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
 
-    thread.test_every_lua_code(20);
+    thread.test_every_lua_code(27);
   }
 
 

@@ -1,28 +1,23 @@
 import se.krka.kahlua.converter.KahluaConverterManager;
 import se.krka.kahlua.integration.LuaCaller;
 import se.krka.kahlua.integration.LuaReturn;
-import se.krka.kahlua.integration.annotations.Desc;
 import se.krka.kahlua.integration.annotations.LuaMethod;
 import se.krka.kahlua.integration.expose.LuaJavaClassExposer;
-import se.krka.kahlua.integration.expose.ReturnValues;
 import se.krka.kahlua.j2se.J2SEPlatform;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaThread;
 import se.krka.kahlua.vm.LuaClosure;
-import se.krka.kahlua.vm.Tool;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static java.awt.image.BufferedImage.TYPE_INT_RGB;
@@ -205,7 +200,7 @@ public class Luaenv {
 
 	public class Screen extends JDialog {
 		public Screen() {
-			setTitle("LuaGB on Java Lua Kahlua");
+			setTitle("LuaGB on Kahlua");
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent e) {
 					dispose();

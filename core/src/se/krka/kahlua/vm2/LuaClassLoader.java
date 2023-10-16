@@ -20,41 +20,23 @@
  THE SOFTWARE.
  */
 
-package se.krka.kahlua.vm;
+package se.krka.kahlua.vm2;
 
-public class Tool {
-  public final static int callFrom = 2;
 
-  public static void pl(Object o) {
-    StringBuilder buf = new StringBuilder();
-    getCurrentStack(buf, callFrom);
-    buf.append(" - ");
-    buf.append(o);
-    System.out.println(buf);
+public class LuaClassLoader extends ClassLoader {
+  public static final LuaClassLoader instance = new LuaClassLoader();
+//    private Map<String, Class<?>> cache;
+
+  public LuaClassLoader() {
+//      cache = new HashMap<>();
   }
 
-
-  public static void pl(Object ...o) {
-    StringBuilder buf = new StringBuilder();
-    getCurrentStack(buf, callFrom);
-    for (int i=0; i<o.length; ++i) {
-      buf.append(" - ");
-      buf.append(o[i]);
-    }
-    System.out.println(buf.toString());
-  }
-
-
-  public static StringBuilder getCurrentStack(StringBuilder b, int i) {
-    Exception e = new Exception();
-    StackTraceElement[] ss = e.getStackTrace();
-    // b.append(ss[i]);
-    b.append(ss[i].getMethodName());
-    b.append('(');
-    b.append(ss[i].getFileName());
-    b.append(':');
-    b.append(ss[i].getLineNumber());
-    b.append(')');
-    return b;
+  public synchronized Class defineClass(String name, byte[] code) {
+//      Class r = cache.get(name);
+//      if (r == null) {
+//        r = defineClass(name, code, 0, code.length);
+//        cache.put(name, r);
+//      }
+    return defineClass(name, code, 0, code.length);
   }
 }

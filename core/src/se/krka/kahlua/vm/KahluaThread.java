@@ -67,7 +67,7 @@ public class KahluaThread {
 	public static final int OP_VARARG = 37;
 	public static final int MAX_INDEX_RECURSION = 100;
 
-    private static final String meta_ops[];
+    protected static final String meta_ops[];
     static {
         meta_ops = new String[38];
         meta_ops[OP_ADD] = "__add";
@@ -140,7 +140,7 @@ public class KahluaThread {
 		return nReturnValues;
 	}
 
-	int callJava(JavaFunction f, int localBase, int returnBase,
+	public int callJava(JavaFunction f, int localBase, int returnBase,
 			int nArguments) {
 		Coroutine coroutine = currentCoroutine;
 
@@ -944,7 +944,7 @@ public class KahluaThread {
 		}
 	}
 
-	protected Object getMetaOp(Object o, String meta_op) {
+	public Object getMetaOp(Object o, String meta_op) {
 		KahluaTable meta = (KahluaTable) getmetatable(o, true);
 		if (meta == null) {
 			return null;
@@ -952,7 +952,7 @@ public class KahluaThread {
 		return meta.rawget(meta_op);
 	}
 
-	final Object getCompMetaOp(Object a, Object b, String meta_op) {
+	public final Object getCompMetaOp(Object a, Object b, String meta_op) {
 		KahluaTable meta1 = (KahluaTable) getmetatable(a, true);
 		KahluaTable meta2 = (KahluaTable) getmetatable(b, true);
 		if (meta1 == null || meta2 == null)
@@ -965,7 +965,7 @@ public class KahluaThread {
 		return meta_operator1;
 	}
 
-	final Object getBinMetaOp(Object a, Object b, String meta_op) {
+	public final Object getBinMetaOp(Object a, Object b, String meta_op) {
 		Object op = getMetaOp(a, meta_op);
 		if (op != null) {
 			return op;
@@ -973,7 +973,7 @@ public class KahluaThread {
 		return getMetaOp(b, meta_op);
 	}
 
-	final Object getRegisterOrConstant(LuaCallFrame callFrame, int index, Prototype prototype) {
+	public final Object getRegisterOrConstant(LuaCallFrame callFrame, int index, Prototype prototype) {
 		int cindex = index - 256;
 		if (cindex < 0) {
 			return callFrame.get(index);
