@@ -20,6 +20,7 @@
  THE SOFTWARE.
  */
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.signature.SignatureWriter;
 import se.krka.kahlua.converter.KahluaConverterManager;
 import se.krka.kahlua.integration.LuaCaller;
@@ -27,13 +28,15 @@ import se.krka.kahlua.integration.LuaReturn;
 import se.krka.kahlua.j2se.J2SEPlatform;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.*;
-import se.krka.kahlua.vm2.KahluaThread2;
-import se.krka.kahlua.vm2.Tool;
+import se.krka.kahlua.vm2.*;
 
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class TestKahluaThread2 implements Runnable {
@@ -77,30 +80,26 @@ public class TestKahluaThread2 implements Runnable {
 //      Tool.pl("Double", (Double)d);
 //      throw new RuntimeException("xxx");
 //    }
-
-    Boolean a = true;
-    Object b = Boolean.FALSE;
-
-    if (b != null && a == b) {
-      Tool.pl(true);
-    }
+//
+//    Boolean a = true;
+//    Object b = Boolean.FALSE;
+//
+//    if (b != null && a == b) {
+//      Tool.pl(true);
+//    }
   }
 
 
   public static void main(String[] av) throws Exception {
-//    testVM();
-    testMaker();
+    testVM();
+//    testLuaBuilder();
 //    test1();
     Tool.pl("Done");
   }
 
 
-  private static void testMaker() throws Exception {
-    Platform plat = J2SEPlatform.getInstance();
-    KahluaTable env = plat.newEnvironment();
-    KahluaThread2 thread = new KahluaThread2(plat, env);
-
-    thread.test_every_lua_code(27);
+  private static void testLuaBuilder() throws Exception {
+    new TestLuaBuild().test_every_lua_code();
   }
 
 
@@ -192,5 +191,81 @@ public class TestKahluaThread2 implements Runnable {
 
   public static void pl(Object o) {
     Tool.pl(o);
+  }
+
+
+  public static class TestLuaBuild extends LuaBuilder {
+
+    public TestLuaBuild() {
+      super("./testsuite/lua/testhelper.lua");
+    }
+
+
+    public void test_every_lua_code() throws Exception {
+      int endIndex = 37;
+
+      Platform platform = J2SEPlatform.getInstance();
+      KahluaTable env = platform.newEnvironment();
+      KahluaThread2 kt2 = new KahluaThread2(platform, env);
+
+      final String line = " -------------------------------------------- ";
+      Prototype p = new Prototype();
+      p.name = "./testsuite/lua/testhelper.lua";
+      p.constants = new Object[]{};
+      p.lines = new int[KahluaThread2.opNamesLen()];
+
+      LuaClosure lc = new LuaClosure(p, env);
+      Coroutine cr = new Coroutine(platform, env, kt2);
+      cr.pushNewCallFrame(lc, null, 0,0,0, false, true);
+
+      Label[] labels = new Label[p.lines.length];
+      this.labels = labels;
+
+      cm.defaultInit();
+      mv = cm.beginMethod("run");
+      ClosureInf ci = new ClosureInf(p, 0, "run");
+      cm.vClosureFunctionHeader(ci);
+
+      Set<String> skip = new HashSet();
+      skip.add("op_jmp");
+      skip.add("op_test");
+      skip.add("op_testset");
+      skip.add("op_closure");
+
+      for (int i=0; i<p.lines.length; ++i) {
+        p.lines[i] = i;
+        labels[i] = new Label();
+      }
+
+      for (int i=0; i<=endIndex; ++i) {
+        pc = i+1;
+        op = ((1)<<6) | ((3)<<14) | ((2)<<23);
+        opcode = i & 0x3F;
+        Label label = labels[i];
+        this.line = p.lines[i];
+
+        String opName = KahluaThread2.opName(i).toLowerCase();
+        if (skip.contains(opName)) {
+          mv.visitLabel(label);
+          Tool.pl("!> SKIP", opName);
+          continue;
+        }
+
+        Tool.pl(">> ", opName, "()");
+        mv.visitLabel(label);
+        mv.visitLineNumber(p.lines[i], label);
+        vDebugInf();
+
+        do_op_code(i, ci);
+        Tool.pl("> ok");
+      }
+
+      cm.vPrint("END / "+ new Date().toString());
+      cm.endMethod();
+
+      LuaScript agent = createJavaAgent();
+      agent.reinit(kt2, cr);
+      agent.run();
+    }
   }
 }

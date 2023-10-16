@@ -44,8 +44,9 @@ public class Tool {
   public static void pl(Object ...o) {
     StringBuilder buf = new StringBuilder();
     getCurrentStack(buf, callFrom);
+    buf.append(" - ");
     for (int i=0; i<o.length; ++i) {
-      buf.append(" - ");
+      buf.append(' ');
       buf.append(o[i]);
     }
     System.out.println(buf.toString());
@@ -60,7 +61,11 @@ public class Tool {
     b.append('(');
     b.append(ss[i].getFileName());
     b.append(':');
-    b.append(ss[i].getLineNumber());
+    int ln = ss[i].getLineNumber();
+    if (ln < 999) b.append(' ');
+    if (ln < 99) b.append(' ');
+    if (ln < 9) b.append(' ');
+    b.append(ln);
     b.append(')');
     return b;
   }

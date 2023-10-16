@@ -24,6 +24,9 @@ package se.krka.kahlua.vm2;
 
 
 import org.objectweb.asm.*;
+import se.krka.kahlua.vm.LuaCallFrame;
+import se.krka.kahlua.vm.LuaClosure;
+import se.krka.kahlua.vm.Prototype;
 
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
@@ -32,9 +35,28 @@ import java.lang.reflect.Method;
 
 import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.Opcodes.*;
-import static se.krka.kahlua.vm2.KahluaThread2.*;
+import static se.krka.kahlua.vm2.ClassMaker.IConst.*;
+import static se.krka.kahlua.vm2.Tool.*;
 
 public class ClassMaker {
+
+  public interface IConst {
+    int rootClosure = 0;
+    int vThis = 0;
+    int vCallframe = 1;
+    int vPlatform = 2;
+    int vClosure = 3;
+    int vPrototype = 4;
+    int vUser = 5;
+
+    Class O = Object.class;
+    Class S = String.class;
+    Class I = int.class;
+    Class F = float.class;
+    Class D = double.class;
+    Class PT = Prototype.class;
+    Class FR = LuaCallFrame.class;
+  }
 
   private ClassWriter cw;
   private FieldVisitor fv;
@@ -46,6 +68,7 @@ public class ClassMaker {
   final String classPath;
   final Class  superClass = LuaScript.class;
   final String superClassName = toClassPath(superClass.getName());
+
 
   /**
    * @param className '.' split class path
@@ -65,20 +88,23 @@ public class ClassMaker {
     cw.visitSource(classPath +".lua", null);
   }
 
-  MethodVisitor beginMethod(String mname) {
+
+  public MethodVisitor beginMethod(String mname) {
     if (mv != null) throw new RuntimeException();
     mv = cw.visitMethod(ACC_PUBLIC, mname, "()V", null, null);
     mv.visitCode();
     return mv;
   }
 
-  void endMethod() {
+
+  public void endMethod() {
     mv.visitInsn(RETURN);
-    mv.visitMaxs(10, 10);
-    //mv.visitMaxs(0 ,0);
+    mv.visitMaxs(0, 0);
     mv.visitEnd();
     mv = null;
+    Tool.pl("endMethod");
   }
+
 
   public Class genClass() {
     if (clazz == null) {
@@ -98,12 +124,14 @@ public class ClassMaker {
     return clazz;
   }
 
+
   public LuaScript newInstance() throws IllegalAccessException,
     InstantiationException, NoSuchMethodException,
     InvocationTargetException {
     Class c = genClass();
     return (LuaScript) c.getDeclaredConstructor().newInstance();
   }
+
 
   public void defaultInit() {
     mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
@@ -117,6 +145,7 @@ public class ClassMaker {
     mv = null;
   }
 
+
   // Execution of methods in members
   void vInvokeFieldFunc(String member, String method, Class ...param) {
     Field f = getField(member);
@@ -127,12 +156,14 @@ public class ClassMaker {
       m.getName(), getMethodSi(m), false);
   }
 
+
   void vInvokeFunc(Class owner, String method, Class ...param) {
     Method m = getMethod(owner, method, param);
 
     mv.visitMethodInsn(INVOKEVIRTUAL, toClassPath(owner),
       m.getName(), getMethodSi(m), false);
   }
+
 
   void vInvokeStatic(Class owner, String method, Class ...param) {
     Method m = getMethod(owner, method, param);
@@ -141,40 +172,49 @@ public class ClassMaker {
       m.getName(), getMethodSi(m), false);
   }
 
+
   void vInt(int a) {
     mv.visitLdcInsn(a);
   }
+
 
   void vDouble(double a) {
     mv.visitLdcInsn(a);
   }
 
+
   void vString(String s) {
     mv.visitLdcInsn(s);
   }
+
 
   void vBoolean(boolean b) {
     mv.visitLdcInsn(b);
   }
 
+
   void vThis() {
     // Zero is This
-    mv.visitVarInsn(ALOAD, 0);
+    mv.visitVarInsn(ALOAD, IConst.vThis);
   }
+
 
   void vIsof(Class s, Label whenIsinstanceof) {
     mv.visitTypeInsn(INSTANCEOF, toClassPath(s.getName()));
     mv.visitJumpInsn(IFNE, whenIsinstanceof);
   }
 
+
   void vCast(Class s) {
     mv.visitTypeInsn(CHECKCAST, toClassPath(s.getName()));
   }
+
 
   void vField(String fname) {
     vThis();
     vField(superClass, fname);
   }
+
 
   void vField(Class owner, String fname) {
     String oclass = toClassPath(owner.getName());
@@ -185,6 +225,7 @@ public class ClassMaker {
 
     mv.visitFieldInsn(GETFIELD, oclass, f.getName(), desc.toString());
   }
+
 
   void vStatic(Field f) {
     Class c = f.getDeclaringClass();
@@ -197,6 +238,7 @@ public class ClassMaker {
     mv.visitFieldInsn(GETSTATIC, oclass, v, desc.toString());
   }
 
+
   void vStatic(Method m) {
     Class c = m.getDeclaringClass();
     String oclass = toClassPath(c.getName());
@@ -208,14 +250,17 @@ public class ClassMaker {
     mv.visitFieldInsn(GETSTATIC, oclass, v, desc.toString());
   }
 
+
   void vGoto(Label l) {
     mv.visitJumpInsn(GOTO, l);
   }
+
 
   void vLabel(Label l, int line) {
     mv.visitLabel(l);
     mv.visitLineNumber(line, l);
   }
+
 
   void vThrow(String errMsg) {
     mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
@@ -226,10 +271,43 @@ public class ClassMaker {
     mv.visitInsn(ATHROW);
   }
 
+
+  public void vPrint(String msg) {
+    mv.visitLdcInsn(msg);
+    vInvokeStatic(Tool.class, "pl", Object.class);
+  }
+
+
+  public void vClosureFunctionHeader(ClosureInf inf) {
+    // final LuaClosure vClosure = newClosure(rootClosure);
+    vThis();
+    vInt(inf.arrIndex);
+    vInvokeFunc(LuaScript.class, "newClosure", I);
+    mv.visitVarInsn(ASTORE, vClosure);
+
+    // final LuaCallFrame vCallframe = newFrame(closure);
+    vThis();
+    mv.visitVarInsn(ALOAD, vClosure);
+    vInvokeFunc(LuaScript.class, "newFrame", LuaClosure.class);
+    mv.visitVarInsn(ASTORE, vCallframe);
+
+    // final Platform vPlatform = this.platform
+    vField("platform");
+    mv.visitVarInsn(ASTORE, vPlatform);
+
+    // final Prototype vPrototype = this.findPrototype(i)
+    vThis();
+    vInt(inf.arrIndex);
+    vInvokeFunc(LuaScript.class, "findPrototype", I);
+    mv.visitVarInsn(ASTORE, vPrototype);
+  }
+
+
   // Get field from Super Class
   Field getField(String n) {
     return getField(superClass, n);
   }
+
 
   Field getField(Class c, String n) {
     try {
@@ -238,6 +316,7 @@ public class ClassMaker {
       throw new RuntimeException(e);
     }
   }
+
 
   Method getMethod(Class c, String m, Class ...param) {
     try {

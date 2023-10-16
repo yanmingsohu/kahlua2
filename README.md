@@ -41,7 +41,7 @@ Now let's working ...
 * [bit](https://github.com/AlberTajuelo/bitop-lua) This is a library that uses lua to simulate bit operations. I have implemented it in Kahlua using java, so this library is only used as a reference.
 * [LuaGB](https://github.com/zeta0134/LuaGB) This is the GameBoy emulator, it's made in Lua
 * [jvm](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html)
-* [Lua byte code](https://abaojin.github.io/2017/01/11/lua-vm-bytecode/)
+* [Lua byte code](https://the-ravi-programming-language.readthedocs.io/en/latest/lua_bytecode_reference.html)
 
 
 # Support

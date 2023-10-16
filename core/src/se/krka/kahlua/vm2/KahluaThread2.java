@@ -22,7 +22,6 @@
 
 package se.krka.kahlua.vm2;
 
-import org.objectweb.asm.signature.SignatureVisitor;
 import se.krka.kahlua.vm.*;
 
 import java.io.PrintStream;
@@ -34,7 +33,6 @@ import java.io.PrintStream;
  */
 public class KahluaThread2 extends KahluaThread {
 
-  public final static LuaClassLoader lcl = new LuaClassLoader();
   final Platform platform;
 
   final static String[] opNames = {
@@ -116,14 +114,11 @@ public class KahluaThread2 extends KahluaThread {
       throw new RuntimeException("tried to call a non-function");
     }
 
-    LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(
-        (LuaClosure) o, null, base + 1, base, nArguments, false, false);
-    callFrame.init();
-
-
     try {
-      LuaBuilder luab = new LuaBuilder(currentCoroutine);
-      luab.makeJavacode();
+      LuaClosure lc = (LuaClosure) o;
+      LuaBuilder luab = new LuaBuilder(lc.prototype.name);
+      luab.makeJavacode(lc.prototype);
+
       LuaScript x = luab.createJavaAgent();
       x.reinit(this, currentCoroutine);
       x.run();
@@ -131,7 +126,6 @@ public class KahluaThread2 extends KahluaThread {
     } catch(Exception e) {
       e.printStackTrace();
     }
-
 
     int nReturnValues = currentCoroutine.getTop() - base;
     currentCoroutine.stackTrace = "";
@@ -144,7 +138,12 @@ public class KahluaThread2 extends KahluaThread {
   }
 
 
-  public void test_every_lua_code(int endIndex) throws Exception {
-    LuaBuilder.test_every_lua_code(platform, endIndex);
+  public static int opNamesLen() {
+    return opNames.length;
+  }
+
+
+  public static String opName(int i) {
+    return opNames[i];
   }
 }

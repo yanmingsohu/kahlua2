@@ -26,63 +26,89 @@ package se.krka.kahlua.vm2;
 import se.krka.kahlua.stdlib.BaseLib;
 import se.krka.kahlua.vm.*;
 
+import java.util.List;
+
 import static se.krka.kahlua.vm.KahluaThread.*;
-import static se.krka.kahlua.vm2.KahluaThread2.metaOpName;
 
 
 public abstract class LuaScript implements Runnable {
 
-  protected LuaCallFrame callFrame;
-  protected LuaClosure closure;
-  protected Prototype prototype;
+
   protected Platform platform;
   protected KahluaThread2 t;
+  protected Coroutine coroutine;
+  protected ClosureInf[] plist;
 
 
   public LuaScript() {
   }
 
+
   public void reinit(KahluaThread2 kt2, Coroutine c) {
     this.t = kt2;
-    callFrame = c.currentCallFrame();
-    closure = callFrame.closure;
-    prototype = closure.prototype;
-    platform = kt2.platform;
+    this.coroutine = c;
+    this.platform = kt2.platform;
   }
+
+
+  protected void setClosureInf(List<ClosureInf> plist) {
+    this.plist = plist.toArray(new ClosureInf[0]);
+  }
+
+
+  protected LuaCallFrame newFrame(LuaClosure cl) {
+    LuaCallFrame cf = coroutine.pushNewCallFrame(cl, null, 0, 0, 0, false, false);
+    cf.init();
+    return cf;
+  }
+
+
+  protected LuaClosure newClosure(int index) {
+    return new LuaClosure(plist[index].prototype, coroutine.environment);
+  }
+
+
+  protected Prototype findPrototype(int index) {
+    return plist[index].prototype;
+  }
+
 
   Object tableGet(Object table, Object key) {
     return t.tableGet(table, key);
   }
 
+
   void tableSet(Object o, Object k, Object v) {
     t.tableSet(o, k, v);
   }
+
 
   Object getRegisterOrConstant(LuaCallFrame c, int i, Prototype p) {
     return t.getRegisterOrConstant(c, i, p);
   }
 
+
   void fail(String msg) {
     throw new RuntimeException(msg);
   }
 
-  Double rawTonumber(Object o) {
+  protected Double rawTonumber(Object o) {
     return KahluaUtil.rawTonumber(o);
   }
 
-  Object getBinMetaOp(Object a, Object b, String meta_op) {
+  protected Object getBinMetaOp(Object a, Object b, String meta_op) {
     return t.getBinMetaOp(a, b, meta_op);
   }
 
-  Object getMetaOp(Object a, String meta) {
+  protected Object getMetaOp(Object a, String meta) {
     return t.getMetaOp(a, meta);
   }
 
-  Object getCompMetaOp(Object a, Object b, String meta_op) {
+  protected Object getCompMetaOp(Object a, Object b, String meta_op) {
     return t.getCompMetaOp(a, b, meta_op);
   }
 
-  Object metaOp(Object a, Object b, String op) {
+  protected Object metaOp(Object a, Object b, String op) {
     Object metafun = getBinMetaOp(a, b, op);
     if (metafun == null) {
       fail("["+ op +"] not defined for operands");
@@ -90,11 +116,11 @@ public abstract class LuaScript implements Runnable {
     return call(metafun, a, b, null);
   }
 
-  Object call(Object func, Object a1, Object a2, Object a3) {
+  protected Object call(Object func, Object a1, Object a2, Object a3) {
     return t.call(func, a1, a2, a3);
   }
 
-  void need_rebuild_op_concat(int a, int b, int c) {
+  void auto_op_concat(int a, int b, int c, LuaCallFrame callFrame) {
     int first = b;
     int last = c;
 
@@ -149,7 +175,9 @@ public abstract class LuaScript implements Runnable {
     callFrame.set(a, res);
   }
 
-  void need_rebuild_op_eq(int a, int b, int c, int opcode) {
+  protected void auto_op_eq(int a, int b, int c, int opcode,
+                  LuaCallFrame callFrame,
+                  Prototype prototype) {
     Object bo = getRegisterOrConstant(callFrame, b, prototype);
     Object co = getRegisterOrConstant(callFrame, c, prototype);
 
@@ -199,7 +227,7 @@ public abstract class LuaScript implements Runnable {
       } else {
         boolean invert = false;
 
-        String meta_op = metaOpName(opcode);
+        String meta_op = t.metaOpName(opcode);
 
         Object metafun = getCompMetaOp(bo, co, meta_op);
 
@@ -237,5 +265,73 @@ public abstract class LuaScript implements Runnable {
         callFrame.pc++;
       }
     }
+  }
+
+  protected void auto_op_call(int a, int b, int c, LuaCallFrame callFrame) {
+    int nArguments2 = b - 1;
+    if (nArguments2 != -1) {
+      callFrame.setTop(a + nArguments2 + 1);
+    } else {
+      nArguments2 = callFrame.getTop() - a - 1;
+    }
+  }
+
+  protected void auto_op_tailcall(int a, int b) {
+  }
+
+  protected void auto_op_return(int a, int b) {
+  }
+
+  protected void auto_op_forprep(int a, int b, LuaCallFrame callFrame) {
+    double iter = KahluaUtil.fromDouble(callFrame.get(a));
+    double step = KahluaUtil.fromDouble(callFrame.get(a + 2));
+    callFrame.set(a, KahluaUtil.toDouble(iter - step));
+    callFrame.pc += b;
+  }
+
+  protected void auto_op_forloop(int a, int b, LuaCallFrame callFrame) {
+    double iter = KahluaUtil.fromDouble(callFrame.get(a));
+    double end = KahluaUtil.fromDouble(callFrame.get(a + 1));
+    double step = KahluaUtil.fromDouble(callFrame.get(a + 2));
+    iter += step;
+    Double iterDouble = KahluaUtil.toDouble(iter);
+    callFrame.set(a, iterDouble);
+
+    if ((step > 0) ? iter <= end : iter >= end) {
+      callFrame.pc += b;
+      callFrame.set(a + 3, iterDouble);
+    } else {
+      callFrame.clearFromIndex(a);
+    }
+  }
+
+  protected void auto_op_tforloop(int a, int c) {
+//    callFrame.setTop(a + 6);
+//    callFrame.stackCopy(a, a + 3, 3);
+//    callFrame.clearFromIndex(a + 3 + c);
+//    callFrame.setPrototypeStacksize();
+//
+//    Object aObj3 = callFrame.get(a + 3);
+//    if (aObj3 != null) {
+//      callFrame.set(a + 2, aObj3);
+//    } else {
+//      callFrame.pc++;
+//    }
+  }
+
+  protected void auto_op_setlist(int a, int b, int c) {
+  }
+
+  protected void auto_op_close(int a, LuaCallFrame callFrame) {
+    callFrame.closeUpvalues(a);
+  }
+
+  protected void auto_op_closure(int a, int b, int pindex,
+                       LuaCallFrame callFrame,
+                       Prototype prototype) {
+  }
+
+  protected void auto_op_vararg(int a, int b, LuaCallFrame callFrame) {
+    callFrame.pushVarargs(a, b);
   }
 }

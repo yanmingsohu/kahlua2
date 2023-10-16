@@ -184,7 +184,7 @@ public class LuaCallFrame {
 		return super.toString();
 	}
 
-    public Platform getPlatform() {
+	public Platform getPlatform() {
         return platform;
     }
 
