@@ -55,6 +55,7 @@ public class ClassMaker {
     Class PT = Prototype.class;
     Class FR = LuaCallFrame.class;
     Class CU = LuaClosure.class;
+    Class LS = LuaScript.class;
 
     String TS = "TRUE";
     String FS = "FALSE";

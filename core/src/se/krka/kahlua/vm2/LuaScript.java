@@ -142,8 +142,8 @@ public abstract class LuaScript implements Runnable {
       // Optimize for multi string concats
       {
         String resStr = KahluaUtil.rawTostring(res);
-        if (resStr != null) {
 
+        if (resStr != null) {
           int nStrings = 0;
           int pos = last;
           while (first <= pos) {
@@ -154,31 +154,31 @@ public abstract class LuaScript implements Runnable {
             }
             nStrings++;
           }
+
           if (nStrings > 0) {
             StringBuffer concatBuffer = new StringBuffer();
 
             int firstString = last - nStrings + 1;
             while (firstString <= last) {
-              concatBuffer.append(KahluaUtil
-                .rawTostring(callFrame
-                  .get(firstString)));
+              Object o = callFrame.get(firstString);
+              concatBuffer.append(KahluaUtil.rawTostring(o));
               firstString++;
             }
+
             concatBuffer.append(resStr);
-
             res = concatBuffer.toString();
-
             last = last - nStrings;
           }
         }
       }
+
       if (first <= last) {
         Object leftConcat = callFrame.get(last);
 
-        Object metafun = getBinMetaOp(leftConcat, res,
-          "__concat");
+        Object metafun = getBinMetaOp(leftConcat, res, "__concat");
         if (metafun == null) {
-          KahluaUtil.fail(("__concat not defined for operands: " + leftConcat + " and " + res));
+          KahluaUtil.fail(("__concat not defined for operands: "
+            + leftConcat + " and " + res));
         }
         res = call(metafun, leftConcat, res, null);
         last--;
@@ -188,6 +188,7 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  //TODO: remove
   protected void auto_op_eq(int a, int b, int c, int opcode,
                   LuaCallFrame callFrame,
                   Prototype prototype) {
@@ -281,6 +282,66 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  protected boolean try_comp_le(Object bo, Object co) {
+    Object metafun = getCompMetaOp(bo, co, "__le");
+    boolean invert = false;
+    boolean resBool;
+
+    /*
+     * Special case: OP_LE uses OP_LT if __le is not
+     * defined. a <= b is then translated to not (b < a)
+     */
+    if (metafun == null) {
+      metafun = getCompMetaOp(bo, co, "__lt");
+
+      // Swap the objects
+      Object tmp = bo;
+      bo = co;
+      co = tmp;
+
+      // Invert a (i.e. add the "not"
+      invert = true;
+    }
+
+    if (metafun == null) {
+      KahluaUtil.fail("__le not defined for operand");
+    }
+
+    Object res = call(metafun, bo, co, null);
+    resBool = KahluaUtil.boolEval(res);
+
+    if (invert) {
+      resBool = !resBool;
+    }
+    return resBool;
+  }
+
+
+  protected boolean try_comp_lt(Object bo, Object co) {
+    Object metafun = getCompMetaOp(bo, co, "__lt");
+
+    if (metafun == null) {
+      KahluaUtil.fail("__le not defined for operand");
+    }
+
+    Object res = call(metafun, bo, co, null);
+    return KahluaUtil.boolEval(res);
+  }
+
+
+  protected boolean try_comp_eq(Object bo, Object co) {
+    Object metafun = getCompMetaOp(bo, co, "__eq");
+    boolean resBool;
+
+    if (metafun == null) {
+      BaseLib.luaEquals(bo, co);
+    }
+
+    Object res = call(metafun, bo, co, null);
+    return KahluaUtil.boolEval(res);
+  }
+
+
   protected void auto_op_call(int a, int b, int c, LuaCallFrame callFrame) {
     int nArguments2 = b - 1;
     if (nArguments2 != -1) {
@@ -325,17 +386,6 @@ public abstract class LuaScript implements Runnable {
 
 
   protected void auto_op_tforloop(int a, int c) {
-//    callFrame.setTop(a + 6);
-//    callFrame.stackCopy(a, a + 3, 3);
-//    callFrame.clearFromIndex(a + 3 + c);
-//    callFrame.setPrototypeStacksize();
-//
-//    Object aObj3 = callFrame.get(a + 3);
-//    if (aObj3 != null) {
-//      callFrame.set(a + 2, aObj3);
-//    } else {
-//      callFrame.pc++;
-//    }
   }
 
 

@@ -44,9 +44,10 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
-    Object c = Double.valueOf(999);
-    Double d = (Double) c;
-    Tool.pl(null, null, c, d);
+    double x = 100;
+    double y = 999;
+    if (x < y)
+      Tool.pl(null, null, x,y);
   }
 
 

@@ -172,28 +172,13 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
 
-  String closureFuncName() {
+  private String closureFuncName() {
     return "closure_"+ (id++);
   }
 
 
-  void op_closure(ClosureInf ci) {
-    int a = getA8(op);
-    int b = getBx(op);
-
-    ClosureInf subci = pushClosure(ci.prototype.prototypes[b], closureFuncName());
-    int pi = subci.arrIndex;
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInt(pi);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_closure", I,I,I,
-      LuaCallFrame.class, Prototype.class);
-
-    Tool.pl("New closure", a, b, pi);
+  public void vDebugInf() {
+    cm.vPrint(KahluaThread2.opName(opcode) +" ( "+ opcode +" ):"+ line);
   }
 
 
@@ -362,7 +347,8 @@ public class LuaBuilder implements ClassMaker.IConst {
       callFrame.set(a + 1, bObj);
       Object key = getRegisterOrConstant(callFrame, c, prototype);
       Object fun = tableGet(bObj, key);
-      callFrame.set(a, fun); */
+      callFrame.set(a, fun);
+    */
 
     cm.vGetStackVar(b);
     mv.visitVarInsn(ASTORE, bObj);
@@ -755,27 +741,171 @@ public class LuaBuilder implements ClassMaker.IConst {
 
   // eq lt le
   void op_eq() {
-    int a = getA8(op);
-    int b = getB9(op);
-    int c = getC9(op);
+    op_cmp(new ICompOp() {
+      public void intComp() {
+        cm.vIf(IFEQ, new IIF() {
+          public void doThen() {
+            cm.vBoolean(true);
+          }
+          public void doElse() {
+            cm.vBoolean(false);
+          }
+        });
+      }
 
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInt(c);
-    cm.vInt(opcode);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_eq", I,I,I,I,
-      LuaCallFrame.class, Prototype.class);
+      public void metaComp(int bo, int co) {
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, bo);
+        mv.visitVarInsn(ALOAD, co);
+        cm.vInvokeFunc(LS, "try_comp_eq", O,O);
+      }
+    });
   }
 
   void op_lt() {
-    op_eq();
+    op_cmp(new ICompOp() {
+      public void intComp() {
+        cm.vIf(IFLT, new IIF() {
+          public void doThen() {
+            cm.vBoolean(true);
+          }
+          public void doElse() {
+            cm.vBoolean(false);
+          }
+        });
+      }
+
+      public void metaComp(int bo, int co) {
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, bo);
+        mv.visitVarInsn(ALOAD, co);
+        cm.vInvokeFunc(LS, "try_comp_lt", O,O);
+      }
+    });
   }
 
   void op_le() {
-    op_eq();
+    op_cmp(new ICompOp() {
+      public void intComp() {
+        cm.vIf(IFLE, new IIF() {
+          public void doThen() {
+            cm.vBoolean(true);
+          }
+          public void doElse() {
+            cm.vBoolean(false);
+          }
+        });
+      }
+
+      public void metaComp(int bo, int co) {
+        cm.vThis();
+        mv.visitVarInsn(ALOAD, bo);
+        mv.visitVarInsn(ALOAD, co);
+        cm.vInvokeFunc(LS, "try_comp_le", O,O);
+      }
+    });
+  }
+
+  void op_cmp(ICompOp cp) {
+    final int a = getA8(op);
+    final int b = getB9(op);
+    final int c = getC9(op);
+
+    final Label jump = labels[pc + 1];
+    final Label njump = new Label();
+    final Label isnum = new Label();
+    final Label isstr = new Label();
+    final Label rcomp = new Label();
+
+    final int tmp = 0;
+    final int bo = vUser +1;
+    final int co = vUser +2;
+    final int azero = vUser +3;
+
+    cm.vBoolean(a == 0);
+    mv.visitVarInsn(ISTORE, azero);
+
+    cm.vGetRegOrConst(b, tmp);
+    mv.visitVarInsn(ASTORE, bo);
+    cm.vGetRegOrConst(c, tmp);
+    mv.visitVarInsn(ASTORE, co);
+
+    // ------- check if double
+
+    mv.visitVarInsn(ALOAD, bo);
+    cm.vIf(Double.class, new IIFwe() {
+      public void doThen() {
+        mv.visitVarInsn(ALOAD, co);
+        cm.vIf(Double.class, new IIFwe() {
+          public void doThen() {
+            cm.vGoto(isnum);
+          }
+        });
+      }
+    });
+
+    // ------- check if string
+
+    mv.visitVarInsn(ALOAD, bo);
+    cm.vIf(String.class, new IIFwe() {
+      public void doThen() {
+        mv.visitVarInsn(ALOAD, co);
+        cm.vIf(String.class, new IIFwe() {
+          public void doThen() {
+            cm.vGoto(isstr);
+          }
+        });
+      }
+    });
+
+    // ------- else
+
+    cp.metaComp(bo, co);
+    cm.vGoto(rcomp);
+
+    // ------- string
+
+    cm.vLabel(isstr, line);
+    mv.visitVarInsn(ALOAD, bo);
+    cm.vCast(String.class);
+    mv.visitVarInsn(ALOAD, co);
+    cm.vCast(String.class);
+    cm.vInvokeFunc(String.class, "compareTo", S);
+
+    cp.intComp();
+    cm.vGoto(rcomp);
+
+    // ------- number
+
+    cm.vLabel(isnum, line);
+    mv.visitVarInsn(ALOAD, bo);
+    cm.vCast(Double.class);
+    cm.vInvokeFunc(Double.class, "doubleValue");
+    mv.visitVarInsn(ALOAD, co);
+    cm.vCast(Double.class);
+    cm.vInvokeFunc(Double.class, "doubleValue");
+    mv.visitInsn(DCMPG);
+
+    cp.intComp();
+    cm.vGoto(rcomp);
+
+    // ------- rcomp
+
+    cm.vLabel(rcomp, line);
+    mv.visitVarInsn(ILOAD, azero);
+    cm.vIf(IF_ICMPEQ, new IIF() {
+      public void doThen() {
+        cm.vGoto(jump);
+      }
+      public void doElse() {
+        cm.vGoto(njump);
+      }
+    });
+    cm.vGoto(njump);
+
+    // ------- no jump
+
+    cm.vLabel(njump, line);
   }
 
   void op_test() {
@@ -878,39 +1008,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     cm.vInvokeFunc(LuaCallFrame.class, "set", I,O);
   }
 
-  void op_call() {
-    int a = getA8(op);
-    int b = getB9(op);
-    int c = getC9(op);
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInt(c);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_call", I,I,I, LuaCallFrame.class);
-  }
-
-  void op_tailcall() {
-    int a = getA8(op);
-    int b = getB9(op);
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_tailcall", I,I);
-  }
-
-  void op_return() {
-    int a = getA8(op);
-    int b = getB9(op) - 1;
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_return", I,I);
-  }
-
   void op_forprep() {
     int a = getA8(op);
     int b = getSBx(op);
@@ -975,7 +1072,59 @@ public class LuaBuilder implements ClassMaker.IConst {
     cm.vInvokeFunc(LuaScript.class, "auto_op_vararg", I,I, LuaCallFrame.class);
   }
 
-  public void vDebugInf() {
-    cm.vPrint(KahluaThread2.opName(opcode) +" ( "+ opcode +" ):"+ line);
+
+  void op_call() {
+    int a = getA8(op);
+    int b = getB9(op);
+    int c = getC9(op);
+
+    cm.vThis();
+    cm.vInt(a);
+    cm.vInt(b);
+    cm.vInt(c);
+    mv.visitVarInsn(ALOAD, vCallframe);
+    cm.vInvokeFunc(LuaScript.class, "auto_op_call", I,I,I, LuaCallFrame.class);
+  }
+
+
+  void op_tailcall() {
+    int a = getA8(op);
+    int b = getB9(op);
+
+    cm.vThis();
+    cm.vInt(a);
+    cm.vInt(b);
+    cm.vInvokeFunc(LuaScript.class, "auto_op_tailcall", I,I);
+  }
+
+
+  void op_return() {
+    int a = getA8(op);
+    int b = getB9(op) - 1;
+
+    cm.vThis();
+    cm.vInt(a);
+    cm.vInt(b);
+    cm.vInvokeFunc(LuaScript.class, "auto_op_return", I,I);
+  }
+
+
+  void op_closure(ClosureInf ci) {
+    int a = getA8(op);
+    int b = getBx(op);
+
+    ClosureInf subci = pushClosure(ci.prototype.prototypes[b], closureFuncName());
+    int pi = subci.arrIndex;
+
+    cm.vThis();
+    cm.vInt(a);
+    cm.vInt(b);
+    cm.vInt(pi);
+    mv.visitVarInsn(ALOAD, vCallframe);
+    mv.visitVarInsn(ALOAD, vPrototype);
+    cm.vInvokeFunc(LuaScript.class, "auto_op_closure", I,I,I,
+      LuaCallFrame.class, Prototype.class);
+
+    Tool.pl("New closure", a, b, pi);
   }
 }
