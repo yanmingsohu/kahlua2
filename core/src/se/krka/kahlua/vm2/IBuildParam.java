@@ -22,24 +22,15 @@
 
 package se.krka.kahlua.vm2;
 
-import se.krka.kahlua.vm.Prototype;
-import se.krka.kahlua.vm.UpValue;
+/**
+ * This method is called by the builder
+ * to create code initialization parameters
+ */
+public interface IBuildParam {
 
-public class ClosureInf {
-
-  final Prototype prototype;
-  final UpValue[] upvalues;
-  final int arrIndex;
-  final String funcName;
-
-
-  public ClosureInf(Prototype prototype,
-                    int arrIndex,
-                    String funcName) {
-    this.prototype = prototype;
-    this.upvalues = new UpValue[prototype.numUpvalues];
-    this.arrIndex = arrIndex;
-    this.funcName = funcName;
-  }
+  /**
+   * Push a var to java stack top
+   */
+  void param1();
 
 }

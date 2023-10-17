@@ -34,6 +34,7 @@ Now let's working ...
 1. [x] Understand JVM byte code
 1. [x] Understand Lua byte code
 1. [ ] Replace interpreter with java code compiler
+1. [ ] Explore java asm best practices
 
 
 # About

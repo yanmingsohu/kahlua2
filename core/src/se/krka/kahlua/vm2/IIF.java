@@ -22,24 +22,10 @@
 
 package se.krka.kahlua.vm2;
 
-import se.krka.kahlua.vm.Prototype;
-import se.krka.kahlua.vm.UpValue;
+public interface IIF {
 
-public class ClosureInf {
+  void doThen();
 
-  final Prototype prototype;
-  final UpValue[] upvalues;
-  final int arrIndex;
-  final String funcName;
-
-
-  public ClosureInf(Prototype prototype,
-                    int arrIndex,
-                    String funcName) {
-    this.prototype = prototype;
-    this.upvalues = new UpValue[prototype.numUpvalues];
-    this.arrIndex = arrIndex;
-    this.funcName = funcName;
-  }
+  void doElse();
 
 }

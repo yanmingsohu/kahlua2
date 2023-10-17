@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2023 Kristofer Karlsson <kristofer.karlsson@gmail.com>
+ Copyright (c) 2023 Yanming <yanmingsohu@gmail.com>
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,7 @@ package se.krka.kahlua.vm2;
 
 
 import org.objectweb.asm.*;
-import se.krka.kahlua.vm.LuaCallFrame;
-import se.krka.kahlua.vm.LuaClosure;
-import se.krka.kahlua.vm.Prototype;
+import se.krka.kahlua.vm.*;
 
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
@@ -56,7 +54,12 @@ public class ClassMaker {
     Class D = double.class;
     Class PT = Prototype.class;
     Class FR = LuaCallFrame.class;
+    Class CU = LuaClosure.class;
+
+    String TS = "TRUE";
+    String FS = "FALSE";
   }
+
 
   private ClassWriter cw;
   private FieldVisitor fv;
@@ -146,14 +149,27 @@ public class ClassMaker {
   }
 
 
-  // Execution of methods in members
-  void vInvokeFieldFunc(String member, String method, Class ...param) {
-    Field f = getField(member);
-    Class t = f.getType();
-    Method m = getMethod(t, method, param);
+  // Get field from Super Class
+  public Field getField(String n) {
+    return getField(superClass, n);
+  }
 
-    mv.visitMethodInsn(INVOKEVIRTUAL, toClassPath(t),
-      m.getName(), getMethodSi(m), false);
+
+  public Field getField(Class c, String n) {
+    try {
+      return c.getDeclaredField(n);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+
+  public Method getMethod(Class c, String m, Class ...param) {
+    try {
+      return c.getDeclaredMethod(m, param);
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 
@@ -161,6 +177,17 @@ public class ClassMaker {
     Method m = getMethod(owner, method, param);
 
     mv.visitMethodInsn(INVOKEVIRTUAL, toClassPath(owner),
+      m.getName(), getMethodSi(m), false);
+  }
+
+
+  // Execution of methods in members
+  void vInvokeFieldFunc(String member, String method, Class ...param) {
+    Field f = getField(member);
+    Class t = f.getType();
+    Method m = getMethod(t, method, param);
+
+    mv.visitMethodInsn(INVOKEVIRTUAL, toClassPath(t),
       m.getName(), getMethodSi(m), false);
   }
 
@@ -193,9 +220,23 @@ public class ClassMaker {
   }
 
 
+  /**
+   * Push Boolean constants to java stack
+   * @param val constants value
+   */
+  void vBooleanObj(boolean val) {
+    vStatic(getField(Boolean.class, (val ? "TRUE" : "FALSE")));
+  }
+
+
   void vThis() {
     // Zero is This
     mv.visitVarInsn(ALOAD, IConst.vThis);
+  }
+
+
+  void vNull() {
+    mv.visitInsn(ACONST_NULL);
   }
 
 
@@ -288,7 +329,7 @@ public class ClassMaker {
     // final LuaCallFrame vCallframe = newFrame(closure);
     vThis();
     mv.visitVarInsn(ALOAD, vClosure);
-    vInvokeFunc(LuaScript.class, "newFrame", LuaClosure.class);
+    vInvokeFunc(LuaScript.class, "newFrame", CU);
     mv.visitVarInsn(ASTORE, vCallframe);
 
     // final Platform vPlatform = this.platform
@@ -306,30 +347,248 @@ public class ClassMaker {
   void vClosureFunctionFoot(ClosureInf inf) {
     vThis();
     mv.visitVarInsn(ALOAD, vCallframe);
-    vInvokeFunc(LuaScript.class, "closureReturn", LuaCallFrame.class);
+    vInvokeFunc(LuaScript.class, "closureReturn", FR);
   }
 
 
-  // Get field from Super Class
-  Field getField(String n) {
-    return getField(superClass, n);
+  void vEnvironment() {
+    mv.visitVarInsn(ALOAD, vClosure);
+    vField(LuaClosure.class, "env");
   }
 
 
-  Field getField(Class c, String n) {
-    try {
-      return c.getDeclaredField(n);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  /**
+   * get var from lua stack[N] to Java stack top
+   * @param i stack var index
+   */
+  void vGetStackVar(int i) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vInt(i);
+    vInvokeFunc(LuaCallFrame.class, "get", I);
   }
 
 
-  Method getMethod(Class c, String m, Class ...param) {
-    try {
-      return c.getDeclaredMethod(m, param);
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException(e);
-    }
+  /**
+   * @param bp Push some var to stack top
+   */
+  void vSetStackVar(int i, IBuildParam bp) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vInt(i);
+    bp.param1();
+    vInvokeFunc(LuaCallFrame.class, "set", I, O);
+  }
+
+
+  void vGetConstants(int i) {
+    mv.visitVarInsn(ALOAD, vPrototype);
+    vField(Prototype.class, "constants");
+    vInt(i);
+    mv.visitInsn(AALOAD);
+  }
+
+
+  void vGetConstants(IBuildParam index) {
+    mv.visitVarInsn(ALOAD, vPrototype);
+    vField(Prototype.class, "constants");
+    index.param1();
+    mv.visitInsn(AALOAD);
+  }
+
+
+  void vClearStack(int from, int to) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    mv.visitLdcInsn(from);
+    mv.visitLdcInsn(to);
+    vInvokeFunc(LuaCallFrame.class, "stackClear", I, I);
+  }
+
+
+  void vCopyRef() {
+    mv.visitInsn(DUP);
+  }
+
+
+  void vPop() {
+    mv.visitInsn(POP);
+  }
+
+
+  /**
+   * get var from lua to Java stack top
+   * @param keyBuilder Push some var to stack top
+   */
+  void vGetGlobalVar(IBuildParam keyBuilder) {
+    vGetTableVar(new IBuildParam2() {
+      public void param1() {
+        vEnvironment();
+      }
+      public void param2() {
+        keyBuilder.param1();
+      }
+    });
+  }
+
+
+  void vGetTableVar(IBuildParam2 p) {
+    vThis();
+    p.param1();
+    p.param2();
+    vInvokeFunc(LuaScript.class, "tableGet", O, O);
+  }
+
+
+  void vSetTableVar(IBuildParam3 p) {
+    vThis();
+    p.param1();
+    p.param2();
+    p.param3();
+    vInvokeFunc(LuaScript.class, "tableSet", O, O, O);
+  }
+
+
+  void vNewTable() {
+    mv.visitVarInsn(ALOAD, vPlatform);
+    vInvokeFunc(Platform.class, "newTable");
+  }
+
+
+  /**
+   * Convert the value at the top of the stack to
+   * primitive double or original object.
+   *
+   * @see KahluaUtil#rawTonumber(Object)
+   */
+  void vToNumber(IToNumber tn) {
+    vCopyRef();
+
+    vIf(Double.class, new IIF() {
+      public void doThen() {
+        vCast(Double.class);
+        vInvokeFunc(Double.class, "doubleValue");
+        tn.success();
+      }
+
+      public void doElse() {
+        vCopyRef();
+
+        vIf(String.class, new IIF() {
+          public void doThen() {
+            vCast(String.class);
+            vInvokeStatic(KahluaUtil.class, "tonumber", S);
+            vInvokeFunc(Double.class, "doubleValue");
+            tn.success();
+          }
+          public void doElse() {
+            tn.nan();
+          }
+        });
+      }
+    });
+  }
+
+
+  /**
+   * @see KahluaThread#getRegisterOrConstant
+   * @param i index to stack or constants
+   * @param varindex This variable will be used for calculations,
+   *                 so it must be reserved in advance
+   */
+  void vGetRegOrConst(int i, int varindex) {
+    final int cindex = vUser + varindex;
+
+    vInt(i);
+    vInt(256);
+    mv.visitInsn(ISUB);
+    mv.visitInsn(DUP);
+    mv.visitVarInsn(ISTORE, cindex);
+    vIf(IFLT, new IIF() {
+      public void doThen() {
+        vGetStackVar(i);
+      }
+      public void doElse() {
+        vGetConstants(() -> {
+          mv.visitVarInsn(ILOAD, cindex);
+        });
+      }
+    });
+  }
+
+
+  void vGetMetaOp(String metaOp, IBuildParam p) {
+    vThis();
+    p.param1();
+    vString(metaOp);
+    vInvokeFunc(LuaScript.class, "getMetaOp", O, S);
+  }
+
+
+  void vCall(IBuildParam4 p) {
+    vThis();
+    p.param1();
+    p.param2();
+    p.param3();
+    p.param4();
+    vInvokeFunc(LuaScript.class, "call", O,O,O,O);
+  }
+
+
+  /**
+   * Read the top (1 or 2) value of the stack and perform judgment operations.
+   * When the conditions are met, doThen() is executed,
+   * otherwise doElse() is executed.
+   * @param ifop This opcode is either IFEQ(v = 0),
+   *             IFNE(i ≠ 0),
+   *             IFLT(i < 0),
+   *             IFGE(i ≥ 0),
+   *             IFGT(i > 0),
+   *             IFLE(i ≤ 0),
+   *             IF_ICMPEQ(i1 = i2),
+   *             IF_ICMPNE(i1 ≠ i2),
+   *             IF_ICMPLT(i1 < i2),
+   *             IF_ICMPGE(i1 ≥ i2),
+   *             IF_ICMPGT(i1 > i2),
+   *             IF_ICMPLE(i1 ≤ i2),
+   *             IF_ACMPEQ(ref1 = ref2),
+   *             IF_ACMPNE(ref1 ≠ ref2),
+   *             IFNULL(ref = null)
+   *             IFNONNULL(ref ≠ null).
+   * @param opfunc
+   */
+  void vIf(int ifop, IIF opfunc) {
+    vIf((_then)->{
+      mv.visitJumpInsn(ifop, _then);
+    }, opfunc);
+  }
+
+
+  /**
+   * if var instanceof c,
+   * You need to execute vCast() yourself to do the conversion
+   */
+  void vIf(Class c, IIF opfunc) {
+    vIf((_then)->{
+      mv.visitTypeInsn(INSTANCEOF, toClassPath(c.getName()));
+      mv.visitJumpInsn(IFNE, _then);
+    }, opfunc);
+  }
+
+
+  void vIf(IIfCheck check, IIF opfunc) {
+    Label _end = new Label();
+    Label _then = new Label();
+    Label _else = new Label();
+
+    check.ifop(_then);
+    vGoto(_else);
+
+    mv.visitLabel(_then);
+    opfunc.doThen();
+    vGoto(_end);
+
+    mv.visitLabel(_else);
+    opfunc.doElse();
+    vGoto(_end);
+
+    mv.visitLabel(_end);
   }
 }

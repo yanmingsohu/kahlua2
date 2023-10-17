@@ -22,24 +22,49 @@
 
 package se.krka.kahlua.vm2;
 
-import se.krka.kahlua.vm.Prototype;
+import org.objectweb.asm.MethodVisitor;
+import se.krka.kahlua.vm.LuaClosure;
 import se.krka.kahlua.vm.UpValue;
 
-public class ClosureInf {
-
-  final Prototype prototype;
-  final UpValue[] upvalues;
-  final int arrIndex;
-  final String funcName;
+import static org.objectweb.asm.Opcodes.*;
 
 
-  public ClosureInf(Prototype prototype,
-                    int arrIndex,
-                    String funcName) {
-    this.prototype = prototype;
-    this.upvalues = new UpValue[prototype.numUpvalues];
-    this.arrIndex = arrIndex;
-    this.funcName = funcName;
+public class VUpvalueOp implements ClassMaker.IConst {
+
+  private final ClassMaker cm;
+  private final MethodVisitor mv;
+  private final int tmpVarIndex;
+
+
+  /**
+   * Used to operate Upvalue objects
+   * @param cm
+   * @param mv
+   * @param upindex index in vClosure array
+   * @param _tmpVarIndex index in heap variable, can be 0
+   */
+  VUpvalueOp(ClassMaker cm, MethodVisitor mv, int upindex, int _tmpVarIndex) {
+    this.cm = cm;
+    this.mv = mv;
+    this.tmpVarIndex = vUser + _tmpVarIndex;
+
+    mv.visitVarInsn(ALOAD, vClosure);
+    cm.vField(LuaClosure.class, "upvalues");
+    mv.visitLdcInsn(upindex);
+    mv.visitInsn(AALOAD);
+    mv.visitVarInsn(ASTORE, tmpVarIndex);
   }
 
+
+  public void getValue() {
+    mv.visitVarInsn(ALOAD, tmpVarIndex);
+    cm.vInvokeFunc(UpValue.class, "getValue");
+  }
+
+
+  public void setValue(IBuildParam p) {
+    mv.visitVarInsn(ALOAD, tmpVarIndex);
+    p.param1();
+    cm.vInvokeFunc(UpValue.class, "setValue", O);
+  }
 }

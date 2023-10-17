@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2023 Kristofer Karlsson <kristofer.karlsson@gmail.com>
+ Copyright (c) 2023 Yanming <yanmingsohu@gmail.com>
  
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -201,27 +201,18 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    cm.vSetStackVar(a, () -> {
+      cm.vGetStackVar(b);
+    });
   }
 
   void op_loadk() {
     int a = getA8(op);
     int b = getBx(op);
 
-    //callFrame.set(a, prototype.constants[b]);
-
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vField(Prototype.class, "constants");
-    cm.vInt(b);
-    mv.visitInsn(AALOAD);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    cm.vSetStackVar(a, () -> {
+      cm.vGetConstants(b);
+    });
   }
 
   // TODO: op is changed on running ???
@@ -229,12 +220,12 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
+
     String v = (b == 0 ? "FALSE" : "TRUE");
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vStatic(cm.getField(Boolean.class, v));
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    cm.vSetStackVar(a, () -> {
+      cm.vBooleanObj(b != 0);
+    });
 
     if (c != 0) {
       cm.vGoto(labels[pc + 1]);
@@ -245,103 +236,67 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    //callFrame.stackClear(a, b);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    mv.visitLdcInsn(a);
-    mv.visitLdcInsn(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "stackClear", I, I);
+    cm.vClearStack(a, b);
   }
 
   void op_getupval() {
     int a = getA8(op);
     int b = getB9(op);
 
-    //callFrame.set(a, closure.upvalues[b].getValue());
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-
-    mv.visitVarInsn(ALOAD, vClosure);
-    cm.vField(LuaClosure.class, "upvalues");
-    mv.visitLdcInsn(b);
-    mv.visitInsn(AALOAD);
-
-    cm.vInvokeFunc(UpValue.class, "getValue");
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    VUpvalueOp up = new VUpvalueOp(cm, mv, b, vUser);
+    cm.vSetStackVar(a, () -> {
+      up.getValue();
+    });
   }
 
   void op_getglobal() {
     int a = getA8(op);
     int b = getBx(op);
 
-    //Object res = tableGet(closure.env, prototype.constants[b]);
-    //callFrame.set(a, res);
-
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vThis();
-
-    mv.visitVarInsn(ALOAD, vClosure);
-    cm.vField(LuaClosure.class, "env");
-
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vField(Prototype.class, "constants");
-    cm.vInt(b);
-    mv.visitInsn(AALOAD);
-
-    cm.vInvokeFunc(LuaScript.class, "tableGet", O, O);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    cm.vSetStackVar(a, () -> {
+      cm.vGetGlobalVar(() -> {
+        cm.vGetConstants(b);
+      });
+    });
   }
 
   void op_gettable() {
-    int a = getA8(op);
-    int b = getB9(op);
-    int c = getC9(op);
+    final int a = getA8(op);
+    final int b = getB9(op);
+    final int c = getC9(op);
+    final int notused = 0;
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vThis();
-
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    //Object bObj = callFrame.get(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-
-    cm.vThis();
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(c);
-    mv.visitVarInsn(ALOAD, vPrototype);
-
-    //Object key = getRegisterOrConstant(callFrame, c, prototype);
-    cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
-
-    //Object res = tableGet(bObj, key);
-    cm.vInvokeFunc(LuaScript.class, "tableGet", O, O);
-
-    //callFrame.set(a, res);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    cm.vSetStackVar(a, () -> {
+      cm.vGetTableVar(new IBuildParam2() {
+        public void param2() {
+          cm.vGetStackVar(b);
+        }
+        public void param1() {
+          cm.vGetRegOrConst(c, notused);
+        }
+      });
+    });
   }
 
   void op_setglobal() {
-    int a = getA8(op);
-    int b = getBx(op);
+    final int a = getA8(op);
+    final int b = getBx(op);
 
     //Object value = callFrame.get(a);
     //Object key = prototype.constants[b];
     //tableSet(closure.env, key, value);
-    cm.vThis();
 
-    mv.visitVarInsn(ALOAD, vClosure);
-    cm.vField(LuaClosure.class, "env");
-
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vField(Prototype.class, "constants");
-    cm.vInt(b);
-    mv.visitInsn(AALOAD);
-
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    cm.vInvokeFunc(LuaScript.class, "tableSet", O, O, O);
+    cm.vSetTableVar(new IBuildParam3() {
+      public void param1() {
+        cm.vEnvironment();
+      }
+      public void param2() {
+        cm.vGetStackVar(a);
+      }
+      public void param3() {
+        cm.vGetConstants(b);
+      }
+    });
   }
 
   void op_setupval() {
@@ -350,16 +305,11 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     //UpValue uv = closure.upvalues[b];
     //uv.setValue(callFrame.get(a));
-    mv.visitVarInsn(ALOAD, vClosure);
-    cm.vField(LuaClosure.class, "upvalues");
-    mv.visitLdcInsn(b);
-    mv.visitInsn(AALOAD);
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-
-    cm.vInvokeFunc(UpValue.class, "setValue", O);
+    VUpvalueOp upop = new VUpvalueOp(cm, mv, b, vUser);
+    upop.setValue(() -> {
+      cm.vGetStackVar(a);
+    });
   }
 
   void op_settable() {
@@ -371,25 +321,20 @@ public class LuaBuilder implements ClassMaker.IConst {
     //Object key = getRegisterOrConstant(callFrame, b, prototype);
     //Object value = getRegisterOrConstant(callFrame, c, prototype);
     //tableSet(aObj, key, value);
-    cm.vThis();
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
+    final int vTmp = 0;
 
-    cm.vThis();
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
-
-    cm.vThis();
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(c);
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
-
-    cm.vInvokeFunc(LuaScript.class, "tableSet", O, O, O);
+    cm.vSetTableVar(new IBuildParam3() {
+      public void param1() {
+        cm.vGetStackVar(a);
+      }
+      public void param2() {
+        cm.vGetRegOrConst(b, vTmp);
+      }
+      public void param3() {
+        cm.vGetRegOrConst(c, vTmp);
+      }
+    });
   }
 
   void op_newtable() {
@@ -397,11 +342,10 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     //KahluaTable t = platform.newTable();
     //callFrame.set(a, t);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, vPlatform);
-    cm.vInvokeFunc(Platform.class, "newTable");
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+
+    cm.vSetStackVar(a, ()->{
+      cm.vNewTable();
+    });
   }
 
   void op_self() {
@@ -409,7 +353,9 @@ public class LuaBuilder implements ClassMaker.IConst {
     int b = getB9(op);
     int c = getC9(op);
 
+    final int tmp = 0;
     final int bObj = vUser + 1;
+
 
     /*
       Object bObj = callFrame.get(b);
@@ -418,62 +364,51 @@ public class LuaBuilder implements ClassMaker.IConst {
       Object fun = tableGet(bObj, key);
       callFrame.set(a, fun); */
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    {
-      mv.visitVarInsn(ALOAD, vCallframe);
-      cm.vInt(b);
-      cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-      mv.visitVarInsn(ASTORE, bObj);
-    }
-    cm.vInt(a+1);
-    mv.visitVarInsn(ALOAD, bObj);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    cm.vGetStackVar(b);
+    mv.visitVarInsn(ASTORE, bObj);
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    {
-      cm.vThis();
+    cm.vSetStackVar(a+1, ()->{
       mv.visitVarInsn(ALOAD, bObj);
-      {
-        cm.vThis();
-        mv.visitVarInsn(ALOAD, vCallframe);
-        cm.vInt(c);
-        mv.visitVarInsn(ALOAD, vPrototype);
-        cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
-      }
-      cm.vInvokeFunc(LuaScript.class, "tableGet", O, O);
-    }
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    });
+
+    cm.vSetStackVar(a, ()->{
+      cm.vGetTableVar(new IBuildParam2() {
+        public void param1() {
+          mv.visitVarInsn(ALOAD, bObj);
+        }
+        public void param2() {
+          cm.vGetRegOrConst(c, tmp);
+        }
+      });
+    });
   }
 
   void op_add() {
-    math_cal("__add", true, ()->{
+    math_cal("__add", true, (bd, cd)->{
       mv.visitInsn(DADD);
     });
   }
 
   void op_sub() {
-    math_cal("__sub", true, ()->{
+    math_cal("__sub", true, (bd, cd)->{
       mv.visitInsn(DSUB);
     });
   }
 
   void op_mul() {
-    math_cal("__mul", true, ()->{
+    math_cal("__mul", true, (bd, cd)->{
       mv.visitInsn(DMUL);
     });
   }
 
   void op_div() {
-    math_cal("__div", true, ()->{
+    math_cal("__div", true, (bd, cd)->{
       mv.visitInsn(DDIV);
     });
   }
 
   void op_pow() {
-    math_cal("__pow", false, ()->{
-      final int bd = vUser +3;
-      final int cd = vUser +4;
+    math_cal("__pow", false, (bd, cd)->{
       mv.visitVarInsn(ALOAD, vPlatform);
       mv.visitVarInsn(ALOAD, bd);
       cm.vInvokeFunc(Double.class, "doubleValue");
@@ -484,10 +419,7 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
   void op_mod() {
-    math_cal("__mod", false, ()->{
-      final int bd = vUser +3;
-      final int cd = vUser +4;
-
+    math_cal("__mod", false, (bd, cd)->{
       Label v2iszero = new Label();
       Label end = new Label();
 
@@ -525,12 +457,12 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
   // add sub mul div mod pow
-  void math_cal(String meta_op, boolean popValued, Runnable primitiveOp) {
+  void math_cal(String meta_op, boolean popValued, IMathOp primitiveOp) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
 
-      /*
+    /*
       Object bo = getRegisterOrConstant(callFrame, b, prototype);
       Object co = getRegisterOrConstant(callFrame, c, prototype);
 
@@ -543,7 +475,9 @@ public class LuaBuilder implements ClassMaker.IConst {
       } else {
         res = bd (+) cd;
       }
-      callFrame.set(a, res);*/
+      callFrame.set(a, res);
+     */
+    final int tmp = 0;
     final int bo = vUser +1;
     final int co = vUser +2;
     final int bd = vUser +3;
@@ -556,18 +490,10 @@ public class LuaBuilder implements ClassMaker.IConst {
     Label primitive = new Label();
 
     {
-      cm.vThis();
-      mv.visitVarInsn(ALOAD, vCallframe);
-      cm.vInt(b);
-      mv.visitVarInsn(ALOAD, vPrototype);
-      cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+      cm.vGetRegOrConst(b, tmp);
       mv.visitVarInsn(ASTORE, bo);
 
-      cm.vThis();
-      mv.visitVarInsn(ALOAD, vCallframe);
-      cm.vInt(c);
-      mv.visitVarInsn(ALOAD, vPrototype);
-      cm.vInvokeFunc(LuaScript.class, "getRegisterOrConstant", FR, I, PT);
+      cm.vGetRegOrConst(c, tmp);
       mv.visitVarInsn(ASTORE, co);
 
       cm.vThis();
@@ -597,7 +523,7 @@ public class LuaBuilder implements ClassMaker.IConst {
         cm.vInvokeFunc(Double.class, "doubleValue");
       }
 
-      primitiveOp.run();
+      primitiveOp.calc(bd, cd);
 
       cm.vInvokeStatic(Double.class, "valueOf", D); // Must TO Double(Object)
       mv.visitVarInsn(ASTORE, res);
@@ -628,7 +554,7 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-      /*
+    /*
       Object aObj = callFrame.get(b);
       Double aDouble = KahluaUtil.rawTonumber(aObj);
       Object res;
@@ -639,50 +565,52 @@ public class LuaBuilder implements ClassMaker.IConst {
         //BaseLib.luaAssert(metafun != null, "__unm not defined for operand");
         res = call(metafun, aObj, null, null);
       }
-      callFrame.set(a, res);*/
-
-    Label save = new Label();
-    Label useDouble = new Label();
+      callFrame.set(a, res);
+    */
 
     final int aObj = vUser +1;
-    final int aDouble = vUser +2;
-    final int res = vUser +3;
+    final int res = vUser +2;
+    final int metafun = vUser +3;
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    mv.visitVarInsn(ASTORE, aObj);
+    cm.vGetStackVar(b);
 
-    cm.vThis();
-    mv.visitVarInsn(ALOAD, aObj);
-    cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
-    mv.visitVarInsn(ASTORE, aDouble);
+    cm.vToNumber(new IToNumber() {
+      public void success() {
+        mv.visitInsn(DNEG);
+        cm.vInvokeStatic(Double.class, "valueOf", D);
+        mv.visitVarInsn(ASTORE, res);
+      }
 
-    mv.visitVarInsn(ALOAD, aDouble);
-    mv.visitJumpInsn(IFNULL, useDouble);
+      public void nan() {
+        mv.visitVarInsn(ASTORE, aObj);
 
-    // use meta op
-    cm.vThis();
-    mv.visitVarInsn(ALOAD, aObj);
-    cm.vString("__unm");
-    cm.vInvokeFunc(LuaScript.class, "getMetaOp", O, S);
-    mv.visitVarInsn(ASTORE, res);
-    cm.vGoto(save);
+        cm.vGetMetaOp("__unm", ()->{
+          mv.visitVarInsn(ALOAD, aObj);
+        });
 
-    // use double
-    cm.vLabel(useDouble, line);
-    mv.visitVarInsn(ALOAD, aDouble);
-    cm.vInvokeFunc(Double.class, "doubleValue");
-    mv.visitInsn(DNEG);
-    cm.vInvokeStatic(Double.class, "valueOf", D);
-    mv.visitVarInsn(ASTORE, res);
+        mv.visitVarInsn(ASTORE, metafun);
 
-    // save
-    cm.vLabel(save, line);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, res);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+        cm.vCall(new IBuildParam4() {
+          public void param1() {
+            mv.visitVarInsn(ALOAD, metafun);
+          }
+          public void param2() {
+            mv.visitVarInsn(ALOAD, aObj);
+          }
+          public void param3() {
+            cm.vNull();
+          }
+          public void param4() {
+            cm.vNull();
+          }
+        });
+        mv.visitVarInsn(ASTORE, res);
+      }
+    });
+
+    cm.vSetStackVar(a, ()->{
+      mv.visitVarInsn(ALOAD, res);
+    });
   }
 
   void op_not() {
@@ -691,47 +619,36 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     //Object aObj = callFrame.get(b);
     //callFrame.set(a, KahluaUtil.toBoolean(!KahluaUtil.boolEval(aObj)));
-    Label setFalse = new Label();
-    Label setTrue = new Label();
-    Label save = new Label();
 
-    final int aObj = vUser +1;
-    final int isnot = vUser +2;
+    cm.vSetStackVar(a, ()->{
+      cm.vGetStackVar(b);
+      cm.vCopyRef();
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    mv.visitVarInsn(ASTORE, aObj);
-
-    mv.visitVarInsn(ALOAD, aObj);
-    mv.visitJumpInsn(IFNULL, setFalse);
-    mv.visitVarInsn(ALOAD, aObj);
-    cm.vStatic(cm.getField(Boolean.class, "FALSE"));
-    mv.visitJumpInsn(IF_ACMPEQ, setFalse);
-    cm.vGoto(setTrue);
-
-    cm.vLabel(setFalse, line);
-    cm.vStatic(cm.getField(Boolean.class, "FALSE"));
-    mv.visitVarInsn(ASTORE, isnot);
-    cm.vGoto(save);
-
-    cm.vLabel(setTrue, line);
-    cm.vStatic(cm.getField(Boolean.class, "TRUE"));
-    mv.visitVarInsn(ASTORE, isnot);
-    cm.vGoto(save);
-
-    cm.vLabel(save, line);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, isnot);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I, O);
+      cm.vIf(IFNULL, new IIF() {
+        public void doThen() {
+          cm.vPop();
+          cm.vBooleanObj(true);
+        }
+        public void doElse() {
+          cm.vStatic(cm.getField(Boolean.class, "FALSE"));
+          cm.vIf(IF_ACMPEQ, new IIF() {
+            public void doThen() {
+              cm.vBooleanObj(true);
+            }
+            public void doElse() {
+              cm.vBooleanObj(false);
+            }
+          });
+        }
+      });
+    });
   }
 
   void op_len() {
     int a = getA8(op);
     int b = getB9(op);
 
-      /*
+    /*
       Object o = callFrame.get(b);
       Object res;
       if (o instanceof KahluaTable) {
@@ -747,81 +664,75 @@ public class LuaBuilder implements ClassMaker.IConst {
         KahluaUtil.luaAssert(f != null, "__len not defined for operand");
         res = call(f, o, null, null);
       }
-      callFrame.set(a, res);*/
-    Label isString = new Label();
-    Label isTable = new Label();
-    Label isMeta = new Label();
-    Label save = new Label();
-    Label throwError = new Label();
+      callFrame.set(a, res);
+     */
 
-    final int obj = vUser +1;
-    final int res = vUser +2;
-    final int tbl = vUser +3;
-
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
+    final Label end = new Label();
+    final int res = vUser +1;
+    final int obj = vUser +2;
+    final int func = vUser +3;
+    cm.vGetStackVar(b);
+    cm.vCopyRef();
     mv.visitVarInsn(ASTORE, obj);
 
+    cm.vIf(KahluaTable.class, new IIFwe() {
+      public void doThen() {
+        mv.visitVarInsn(ALOAD, obj);
+        cm.vCast(KahluaTable.class);
+        cm.vInvokeFunc(KahluaTable.class, "len");
+        mv.visitInsn(I2D);
+        cm.vInvokeStatic(Double.class, "valueOf", D);
+        mv.visitVarInsn(ASTORE, res);
+        cm.vGoto(end);
+      }
+    });
+
     mv.visitVarInsn(ALOAD, obj);
-    cm.vIsof(String.class, isString);
-    mv.visitVarInsn(ALOAD, obj);
-    cm.vIsof(KahluaTable.class, isTable);
-    cm.vGoto(isMeta);
+    cm.vIf(String.class, new IIFwe() {
+      public void doThen() {
+        mv.visitVarInsn(ALOAD, obj);
+        cm.vCast(String.class);
+        cm.vInvokeFunc(String.class, "length");
+        mv.visitInsn(I2D);
+        cm.vInvokeStatic(Double.class, "valueOf", D);
+        mv.visitVarInsn(ASTORE, res);
+        cm.vGoto(end);
+      }
+    });
 
-    cm.vLabel(isString, line);
-    {
+    cm.vGetMetaOp("__len", ()->{
       mv.visitVarInsn(ALOAD, obj);
-      cm.vCast(String.class);
-      cm.vInvokeFunc(String.class, "length");
-      mv.visitInsn(I2D);
-      cm.vInvokeStatic(Double.class, "valueOf", D);
-      mv.visitVarInsn(ASTORE, res);
-    }
-    cm.vGoto(save);
+    });
+    cm.vCopyRef();
 
-    cm.vLabel(isTable, line);
-    {
-      mv.visitVarInsn(ALOAD, obj);
-      cm.vCast(KahluaTable.class);
-      cm.vInvokeFunc(KahluaTable.class, "len");
-      mv.visitInsn(I2D);
-      cm.vInvokeStatic(Double.class, "valueOf", D);
-      mv.visitVarInsn(ASTORE, res);
-    }
-    cm.vGoto(save);
+    mv.visitVarInsn(ASTORE, func);
+    cm.vIf(IFNULL, new IIFwe() {
+      public void doThen() {
+        cm.vThrow("__len not defined for operand");
+      }
+    });
 
-    cm.vLabel(isMeta, line);
-    {
-      cm.vThis();
-      mv.visitVarInsn(ALOAD, obj);
-      cm.vString("__len");
-      cm.vInvokeFunc(LuaScript.class, "getMetaOp", O, S);
-      mv.visitVarInsn(ASTORE, tbl);
+    cm.vCall(new IBuildParam4() {
+      public void param1() {
+        mv.visitVarInsn(ALOAD, func);
+      }
+      public void param2() {
+        mv.visitVarInsn(ALOAD, obj);
+      }
+      public void param3() {
+        cm.vNull();
+      }
+      public void param4() {
+        cm.vNull();
+      }
+    });
+    mv.visitVarInsn(ASTORE, res);
+    cm.vGoto(end);
 
-      mv.visitVarInsn(ALOAD, tbl);
-      mv.visitJumpInsn(IFNULL, throwError);
-
-      cm.vThis();
-      mv.visitVarInsn(ALOAD, 3);
-      mv.visitVarInsn(ALOAD, obj);
-      mv.visitInsn(ACONST_NULL);
-      mv.visitInsn(ACONST_NULL);
-      cm.vInvokeFunc(LuaScript.class, "call", O, O, O, O);
-      mv.visitVarInsn(ASTORE, res);
-    }
-    cm.vGoto(save);
-
-    cm.vLabel(throwError, line);
-    {
-      cm.vThrow("__len not defined for operand");
-    }
-
-    cm.vLabel(save, line);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, res);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I,O);
+    cm.vLabel(end, line);
+    cm.vSetStackVar(a, ()->{
+      mv.visitVarInsn(ALOAD, res);
+    });
   }
 
   void op_concat() {

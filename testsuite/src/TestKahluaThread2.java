@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2023 Kristofer Karlsson <kristofer.karlsson@gmail.com>
+ Copyright (c) 2023 Yanming <yanmingsohu@gmail.com>
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -44,61 +44,16 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
-    final int fi = 999;
-    boolean a= true;
-    boolean b= false;
-    if (a == b) {
-      Tool.pl(fi);
-    }
-//    Double a = 1.0;
-//    Double b = 2.0;
-//    double c = a+b;
-//    Object d = null;
-//    double nn = Double.NaN;
-//
-//    int ipart = (int) (a / b);
-//    double res = a - ipart * b;
-//
-//    Double x = -1.0;
-//    x = -x;
-//
-//    boolean bb = (d != null) && (d != Boolean.FALSE);
-//    Boolean bbb = bb;
-//    Boolean bbc = Boolean.TRUE;
-//
-//    if (a!=null && b !=null) {
-//      if (b > c) {
-//        Tool.pl(c);
-//        d = a + b;
-//        c = a - b;
-//      } else {
-//        Tool.pl(b);
-//        d = c * a.doubleValue();
-//      }
-//    } else {
-//      Tool.pl(a, c, res, null, null);
-//      d = b-c;
-//    }
-//
-//    if (d instanceof String) {
-//      Tool.pl("String", ((String)d).substring(0));
-//    } else if (d instanceof Double) {
-//      Tool.pl("Double", (Double)d);
-//      throw new RuntimeException("xxx");
-//    }
-//
-//    Boolean a = true;
-//    Object b = Boolean.FALSE;
-//
-//    if (b != null && a == b) {
-//      Tool.pl(true);
-//    }
+    Object c = Double.valueOf(999);
+    Double d = (Double) c;
+    Tool.pl(null, null, c, d);
   }
 
 
   public static void main(String[] av) throws Exception {
-    testVM();
-//    testLuaBuilder();
+//    testVM();
+    testLuaBuilder();
+
 //    test1();
     Tool.pl("Done");
   }
