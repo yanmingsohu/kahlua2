@@ -404,6 +404,13 @@ public class ClassMaker {
   }
 
 
+  void vClearStack(int from) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    mv.visitLdcInsn(from);
+    vInvokeFunc(LuaCallFrame.class, "clearFromIndex", I);
+  }
+
+
   void vCopyRef() {
     mv.visitInsn(DUP);
   }
@@ -530,6 +537,56 @@ public class ClassMaker {
     p.param3();
     p.param4();
     vInvokeFunc(LuaScript.class, "call", O,O,O,O);
+  }
+
+
+  void vBoolEval(boolean invert, boolean primitive) {
+    final boolean vTrue = invert ? false : true;
+    vCopyRef();
+
+    vIf(IFNULL, new IIF() {
+      public void doThen() {
+        vPop();
+        if (primitive) {
+          vBoolean(vTrue);
+        } else {
+          vBooleanObj(vTrue);
+        }
+      }
+
+      public void doElse() {
+        vStatic(getField(Boolean.class, "FALSE"));
+
+        vIf(IF_ACMPEQ, new IIF() {
+          public void doThen() {
+            if (primitive) {
+              vBoolean(!vTrue);
+            } else {
+              vBooleanObj(!vTrue);
+            }
+          }
+          public void doElse() {
+            if (primitive) {
+              vBoolean(vTrue);
+            } else {
+              vBooleanObj(vTrue);
+            }
+          }
+        });
+      }
+    });
+  }
+
+
+  void vToPrimitiveDouble(boolean needCast) {
+    if (needCast) vCast(Double.class);
+    vInvokeFunc(Double.class, "doubleValue");
+  }
+
+
+  void vToObjectDouble(boolean isString) {
+    Class p = isString ? String.class : D;
+    vInvokeStatic(Double.class, "valueOf", p);
   }
 
 

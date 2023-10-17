@@ -188,100 +188,6 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  //TODO: remove
-  protected void auto_op_eq(int a, int b, int c, int opcode,
-                  LuaCallFrame callFrame,
-                  Prototype prototype) {
-    Object bo = getRegisterOrConstant(callFrame, b, prototype);
-    Object co = getRegisterOrConstant(callFrame, c, prototype);
-
-    if (bo instanceof Double && co instanceof Double) {
-      double bd_primitive = KahluaUtil.fromDouble(bo);
-      double cd_primitive = KahluaUtil.fromDouble(co);
-
-      if (opcode == OP_EQ) {
-        if ((bd_primitive == cd_primitive) == (a == 0)) {
-          callFrame.pc++;
-        }
-      } else {
-        if (opcode == OP_LT) {
-          if ((bd_primitive < cd_primitive) == (a == 0)) {
-            callFrame.pc++;
-          }
-        } else { // opcode must be OP_LE
-          if ((bd_primitive <= cd_primitive) == (a == 0)) {
-            callFrame.pc++;
-          }
-        }
-      }
-    } else if (bo instanceof String && co instanceof String) {
-      if (opcode == OP_EQ) {
-        if ((bo.equals(co)) == (a == 0)) {
-          callFrame.pc++;
-        }
-      } else {
-        String bs = (String) bo;
-        String cs = (String) co;
-        int cmp = bs.compareTo(cs);
-
-        if (opcode == OP_LT) {
-          if ((cmp < 0) == (a == 0)) {
-            callFrame.pc++;
-          }
-        } else { // opcode must be OP_LE
-          if ((cmp <= 0) == (a == 0)) {
-            callFrame.pc++;
-          }
-        }
-      }
-    } else {
-      boolean resBool;
-      if (bo == co && opcode == OP_EQ) {
-        resBool = true;
-      } else {
-        boolean invert = false;
-
-        String meta_op = t.metaOpName(opcode);
-
-        Object metafun = getCompMetaOp(bo, co, meta_op);
-
-        /*
-         * Special case: OP_LE uses OP_LT if __le is not
-         * defined. a <= b is then translated to not (b < a)
-         */
-        if (metafun == null && opcode == OP_LE) {
-          metafun = getCompMetaOp(bo, co, "__lt");
-
-          // Swap the objects
-          Object tmp = bo;
-          bo = co;
-          co = tmp;
-
-          // Invert a (i.e. add the "not"
-          invert = true;
-        }
-
-        if (metafun == null && opcode == OP_EQ) {
-          resBool = BaseLib.luaEquals(bo, co);
-        } else {
-          if (metafun == null) {
-            KahluaUtil.fail((meta_op + " not defined for operand"));
-          }
-          Object res = call(metafun, bo, co, null);
-          resBool = KahluaUtil.boolEval(res);
-        }
-
-        if (invert) {
-          resBool = !resBool;
-        }
-      }
-      if (resBool == (a == 0)) {
-        callFrame.pc++;
-      }
-    }
-  }
-
-
   protected boolean try_comp_le(Object bo, Object co) {
     Object metafun = getCompMetaOp(bo, co, "__le");
     boolean invert = false;
@@ -360,6 +266,7 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  //TODO: remove
   protected void auto_op_forprep(int a, int b, LuaCallFrame callFrame) {
     double iter = KahluaUtil.fromDouble(callFrame.get(a));
     double step = KahluaUtil.fromDouble(callFrame.get(a + 2));
@@ -368,6 +275,7 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  //TODO: remove
   protected void auto_op_forloop(int a, int b, LuaCallFrame callFrame) {
     double iter = KahluaUtil.fromDouble(callFrame.get(a));
     double end = KahluaUtil.fromDouble(callFrame.get(a + 1));

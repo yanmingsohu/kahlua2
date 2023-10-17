@@ -48,6 +48,9 @@ public class TestKahluaThread2 implements Runnable {
     double y = 999;
     if (x < y)
       Tool.pl(null, null, x,y);
+    boolean a = true;
+    boolean b = !a;
+    Tool.pl(a, b);
   }
 
 
@@ -190,9 +193,10 @@ public class TestKahluaThread2 implements Runnable {
 
       Set<String> skip = new HashSet();
       skip.add("op_jmp");
-      skip.add("op_test");
-      skip.add("op_testset");
+//      skip.add("op_test");
+//      skip.add("op_testset");
       skip.add("op_closure");
+      skip.add("op_forprep");
 
       for (int i=0; i<p.lines.length; ++i) {
         p.lines[i] = i;
@@ -211,6 +215,7 @@ public class TestKahluaThread2 implements Runnable {
           mv.visitLabel(label);
           Tool.pl("!> SKIP", opName);
           continue;
+//          op = (1 + 0x1ffff) << 14;
         }
 
         Tool.pl(">> ", opName, "()");

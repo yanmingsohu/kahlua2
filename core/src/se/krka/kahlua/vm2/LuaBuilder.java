@@ -608,25 +608,7 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     cm.vSetStackVar(a, ()->{
       cm.vGetStackVar(b);
-      cm.vCopyRef();
-
-      cm.vIf(IFNULL, new IIF() {
-        public void doThen() {
-          cm.vPop();
-          cm.vBooleanObj(true);
-        }
-        public void doElse() {
-          cm.vStatic(cm.getField(Boolean.class, "FALSE"));
-          cm.vIf(IF_ACMPEQ, new IIF() {
-            public void doThen() {
-              cm.vBooleanObj(true);
-            }
-            public void doElse() {
-              cm.vBooleanObj(false);
-            }
-          });
-        }
-      });
+      cm.vBoolEval(true, false);
     });
   }
 
@@ -909,50 +891,27 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
   void op_test() {
-    int a = getA8(op);
-    // b = getB9(op);
-    int c = getC9(op);
-    boolean eqt = (c == 0);
+    final int a = getA8(op);
+    final int c = getC9(op);
+    final boolean eqt = (c == 0);
 
-      /*
+    /*
       Object value = callFrame.get(a);
       if (KahluaUtil.boolEval(value) == (c == 0)) {
         callFrame.pc++;
-      }*/
+      }
+     */
     Label jumpto = this.labels[pc + 1];
-    Label end = new Label();
-    Label trueV = new Label();
-    Label falseV = new Label();
-    Label check = new Label();
 
-    final int value = vUser +1;
-
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
-    mv.visitVarInsn(ASTORE, value);
-
-    mv.visitVarInsn(ALOAD, value);
-    mv.visitJumpInsn(IFNULL, falseV);
-    mv.visitVarInsn(ALOAD, value);
-    cm.vStatic(cm.getField(Boolean.class, "FALSE"));
-    mv.visitJumpInsn(IF_ACMPEQ, falseV);
-    cm.vGoto(trueV);
-
-    cm.vLabel(falseV, line);
-    cm.vBoolean(false);
-    cm.vGoto(check);
-
-    cm.vLabel(trueV, line);
-    cm.vBoolean(true);
-    cm.vGoto(check);
-
-    cm.vLabel(check, line);
+    cm.vGetStackVar(a);
+    cm.vBoolEval(false, true);
     cm.vBoolean(eqt);
-    mv.visitJumpInsn(IF_ICMPEQ, jumpto);
-    cm.vGoto(end);
 
-    cm.vLabel(end, line);
+    cm.vIf(IF_ICMPEQ, new IIFwe() {
+      public void doThen() {
+        cm.vGoto(jumpto);
+      }
+    });
   }
 
   void op_testset() {
@@ -961,73 +920,116 @@ public class LuaBuilder implements ClassMaker.IConst {
     int c = getC9(op);
     boolean eqt = (c == 0);
 
-      /*
+    /*
       Object value = callFrame.get(b);
       if (KahluaUtil.boolEval(value) != (c == 0)) {
         callFrame.set(a, value);
       } else {
         callFrame.pc++;
-      } */
+      }
+    */
     Label jumpto = this.labels[pc + 1];
-    Label setvalue = new Label();
-    Label trueV = new Label();
-    Label falseV = new Label();
-    Label check = new Label();
-
     final int value = vUser +1;
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "get", I);
+    cm.vGetStackVar(b);
+    cm.vCopyRef();
     mv.visitVarInsn(ASTORE, value);
-
-    mv.visitVarInsn(ALOAD, value);
-    mv.visitJumpInsn(IFNULL, falseV);
-    mv.visitVarInsn(ALOAD, value);
-    cm.vStatic(cm.getField(Boolean.class, "FALSE"));
-    mv.visitJumpInsn(IF_ACMPEQ, falseV);
-    cm.vGoto(trueV);
-
-    cm.vLabel(falseV, line);
-    cm.vBoolean(false);
-    cm.vGoto(check);
-
-    cm.vLabel(trueV, line);
-    cm.vBoolean(true);
-    cm.vGoto(check);
-
-    cm.vLabel(check, line);
+    cm.vBoolEval(false, true);
     cm.vBoolean(eqt);
-    mv.visitJumpInsn(IF_ICMPEQ, jumpto);
-    cm.vGoto(setvalue);
 
-    cm.vLabel(setvalue, line);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, value);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I,O);
+    cm.vIf(IF_ICMPEQ, new IIF() {
+      public void doThen() {
+        cm.vGoto(jumpto);
+      }
+
+      public void doElse() {
+        cm.vSetStackVar(a, () -> mv.visitVarInsn(ALOAD, value));
+      }
+    });
   }
 
   void op_forprep() {
     int a = getA8(op);
     int b = getSBx(op);
 
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_forprep", I,I, LuaCallFrame.class);
+    final int iter = vUser +1;
+    final int step = vUser +2;
+
+    cm.vGetStackVar(a);
+    cm.vToPrimitiveDouble(true);
+    mv.visitVarInsn(DSTORE, iter);
+
+    cm.vGetStackVar(a + 2);
+    cm.vToPrimitiveDouble(true);
+    mv.visitVarInsn(DSTORE, step);
+
+    cm.vSetStackVar(a, () -> {
+      mv.visitVarInsn(DLOAD, iter);
+      mv.visitVarInsn(DLOAD, step);
+      mv.visitInsn(DSUB);
+      cm.vToObjectDouble(false);
+    });
+
+    cm.vGoto(labels[pc + b]);
   }
 
   void op_forloop() {
     int a = getA8(op);
     int b = getSBx(op);
 
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_forloop", I, I, LuaCallFrame.class);
+    final Label jumpTo = labels[pc + b];
+    final int iter = vUser +1;
+    final int step = vUser +2;
+    final int end  = vUser +3;
+    final int iterDouble = vUser +4;
+
+    cm.vGetStackVar(a);
+    cm.vToPrimitiveDouble(true);
+    mv.visitVarInsn(DSTORE, iter);
+
+    cm.vGetStackVar(a + 1);
+    cm.vToPrimitiveDouble(true);
+    mv.visitVarInsn(DSTORE, end);
+
+    cm.vGetStackVar(a + 2);
+    cm.vToPrimitiveDouble(true);
+    mv.visitVarInsn(DSTORE, step);
+
+    mv.visitVarInsn(DLOAD, iter);
+    mv.visitVarInsn(DLOAD, step);
+    mv.visitInsn(DADD);
+    mv.visitVarInsn(DSTORE, iter);
+
+    cm.vSetStackVar(a, () -> {
+      mv.visitVarInsn(DLOAD, iter);
+      cm.vToObjectDouble(false);
+      cm.vCopyRef();
+      mv.visitVarInsn(DSTORE, iterDouble);
+    });
+
+    final IIF checkloop = new IIF() {
+      public void doThen() {
+        cm.vSetStackVar(a+3, ()-> mv.visitVarInsn(DLOAD, iterDouble));
+        cm.vGoto(jumpTo);
+      }
+      public void doElse() {
+        cm.vClearStack(a);
+      }
+    };
+
+    mv.visitVarInsn(DLOAD, iter);
+    mv.visitVarInsn(DLOAD, end);
+    mv.visitInsn(DCMPG);
+
+    mv.visitVarInsn(DLOAD, step);
+    cm.vIf(IFGT, new IIF() {
+      public void doThen() {
+        cm.vIf(IFLE, checkloop);
+      }
+      public void doElse() {
+        cm.vIf(IFGE, checkloop);
+      }
+    });
   }
 
   void op_tforloop() {

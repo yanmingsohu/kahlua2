@@ -20,7 +20,7 @@ God bless me!
 # Performance
 
 This is the speed of running the game with the original version of the virtual machine,
-You can see that the average frame rate is 1 frame/second, and it is very unstable.
+You can see that the average frame rate is 1~4 frame/second, and it is very unstable.
 
 ![screen1](https://github.com/yanmingsohu/kahlua2/blob/master/screen1.png)
 
