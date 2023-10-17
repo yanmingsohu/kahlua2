@@ -76,9 +76,10 @@ public class LuaBuilder implements ClassMaker.IConst {
     cm.vClosureFunctionHeader(ci);
 
     final int[] opcodes = ci.prototype.code;
-    labels = new Label[opcodes.length];
+    final int labelsLen = opcodes.length;
+    labels = new Label[labelsLen];
 
-    for (int i=0; i<opcodes.length; ++i) {
+    for (int i=0; i<labels.length; ++i) {
       labels[i] = new Label();
     }
 
@@ -94,10 +95,12 @@ public class LuaBuilder implements ClassMaker.IConst {
       mv.visitLabel(label);
       mv.visitLineNumber(line, label);
 
-      Tool.pl("LL ",pc, Integer.toHexString(op), opNames[opcode], line);
+      Tool.pl("LL ",pc, Tool.str4byte(Integer.toHexString(op)),
+          opNames[opcode], line);
       do_op_code(opcode, ci);
     }
 
+    //mv.visitLabel(labels[labelsLen - 1]);
     cm.vClosureFunctionFoot(ci);
     cm.endMethod();
     processSubClosure(startIndex, plist.size());
@@ -1032,14 +1035,105 @@ public class LuaBuilder implements ClassMaker.IConst {
     });
   }
 
-  void op_tforloop() {
-    int a = getA8(op);
-    int c = getC9(op);
 
-    cm.vThis();
-    cm.vInt(a);
+  /**
+   * OP_TFORLOOP,
+   * A C R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
+   * if R(A+3) ~= nil
+   *  then R(A+2)=R(A+3)
+   *  else pc++
+   * ===================================================
+   * func = callFrame.get(a)
+   * s = callFrame.get(a+1)
+   * i = callFrame.get(a+2)
+   * for (; i<=c; ++i) {
+   *    callFrame.set(a + 2, i) ??
+   *    ret = func(s, i);
+   *    callFrame.set(a + 2 + i, ret)
+   * }
+   * x = callFrame.get(a+3)
+   * if (x != null) callFrame.set(a+2, x)
+   * else jump pc+1
+   */
+  void op_tforloop() {
+    final int a = getA8(op);
+    final int c = getC9(op);
+
+    final int func = vUser +1;
+    final int s = vUser +2;
+    final int i = vUser +3;
+    final int a3 = vUser +4;
+    final int ret = vUser +5;
+    final int di = vUser +6;
+
+    cm.vGetStackVar(a);
+    mv.visitVarInsn(ASTORE, func);
+    cm.vGetStackVar(a + 1);
+    mv.visitVarInsn(ASTORE, s);
+    cm.vGetStackVar(a + 2);
+    cm.vToPrimitiveDouble(true);
+    mv.visitInsn(D2I);
+    mv.visitVarInsn(ISTORE, i);
+
+    mv.visitVarInsn(ILOAD, i);
     cm.vInt(c);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_tforloop", I,I);
+    cm.vIf(IF_ICMPLE, new IIFwe() { //TODO: ??? goto loop
+      public void doThen() {
+        mv.visitVarInsn(ILOAD, i);
+        mv.visitInsn(I2D);
+        cm.vToObjectDouble(false);
+        mv.visitVarInsn(ASTORE, di);
+
+        cm.vSetStackVar(a + 2, ()->{
+          mv.visitVarInsn(ALOAD, di);
+        });
+
+        cm.vCall(new IBuildParam4() {
+          public void param1() {
+            mv.visitVarInsn(ALOAD, func);
+          }
+          public void param2() {
+            mv.visitVarInsn(ALOAD, s);
+          }
+          public void param3() {
+            mv.visitVarInsn(ALOAD, di);
+          }
+          public void param4() {
+            cm.vNull();
+          }
+        });
+        mv.visitVarInsn(ASTORE, ret);
+
+        cm.vSetStackVar(new IBuildParam2() {
+          public void param1() {
+            mv.visitVarInsn(ILOAD, i);
+            cm.vInt(a + 2);
+            mv.visitInsn(IADD);
+          }
+          public void param2() {
+            mv.visitVarInsn(ALOAD, ret);
+          }
+        });
+
+        mv.visitVarInsn(ILOAD, i);
+        cm.vInt(1);
+        mv.visitInsn(IADD);
+        mv.visitVarInsn(ISTORE, i);
+      }
+    });
+
+    cm.vGetStackVar(a + 3);
+    cm.vCopyRef();
+    mv.visitVarInsn(ASTORE, a3);
+
+    cm.vIf(IFNONNULL, new IIF() {
+      public void doThen() {
+        cm.vSetStackVar(a + 2, ()-> mv.visitVarInsn(ALOAD, a3));
+      }
+      public void doElse() {
+        cm.vGoto(labels[pc + 1]);
+      }
+    });
   }
 
   void op_setlist() {

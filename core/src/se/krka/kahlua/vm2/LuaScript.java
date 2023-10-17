@@ -266,37 +266,6 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  //TODO: remove
-  protected void auto_op_forprep(int a, int b, LuaCallFrame callFrame) {
-    double iter = KahluaUtil.fromDouble(callFrame.get(a));
-    double step = KahluaUtil.fromDouble(callFrame.get(a + 2));
-    callFrame.set(a, KahluaUtil.toDouble(iter - step));
-    callFrame.pc += b;
-  }
-
-
-  //TODO: remove
-  protected void auto_op_forloop(int a, int b, LuaCallFrame callFrame) {
-    double iter = KahluaUtil.fromDouble(callFrame.get(a));
-    double end = KahluaUtil.fromDouble(callFrame.get(a + 1));
-    double step = KahluaUtil.fromDouble(callFrame.get(a + 2));
-    iter += step;
-    Double iterDouble = KahluaUtil.toDouble(iter);
-    callFrame.set(a, iterDouble);
-
-    if ((step > 0) ? iter <= end : iter >= end) {
-      callFrame.pc += b;
-      callFrame.set(a + 3, iterDouble);
-    } else {
-      callFrame.clearFromIndex(a);
-    }
-  }
-
-
-  protected void auto_op_tforloop(int a, int c) {
-  }
-
-
   protected void auto_op_setlist(int a, int b, int c) {
   }
 

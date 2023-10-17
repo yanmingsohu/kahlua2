@@ -55,8 +55,8 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static void main(String[] av) throws Exception {
-//    testVM();
-    testLuaBuilder();
+    testVM();
+//    testLuaBuilder();
 
 //    test1();
     Tool.pl("Done");

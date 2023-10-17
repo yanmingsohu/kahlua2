@@ -178,4 +178,19 @@ public class Tool {
     }
     return r.toString();
   }
+
+
+  public static String str4byte(String x) {
+    switch (x.length()) {
+      default: return x;
+      case 0: return "00000000";
+      case 1: return "0000000" +x;
+      case 2: return "000000" +x;
+      case 3: return "00000" +x;
+      case 4: return "0000" +x;
+      case 5: return "000" +x;
+      case 6: return "00" +x;
+      case 7: return "0" +x;
+    }
+  }
 }

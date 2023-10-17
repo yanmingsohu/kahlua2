@@ -380,6 +380,14 @@ public class ClassMaker {
   }
 
 
+  void vSetStackVar(IBuildParam2 bp) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    bp.param1();
+    bp.param2();
+    vInvokeFunc(LuaCallFrame.class, "set", I, O);
+  }
+
+
   void vGetConstants(int i) {
     mv.visitVarInsn(ALOAD, vPrototype);
     vField(Prototype.class, "constants");
