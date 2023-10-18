@@ -28,8 +28,6 @@ import se.krka.kahlua.vm.*;
 
 import java.util.List;
 
-import static se.krka.kahlua.vm.KahluaThread.*;
-
 
 public abstract class LuaScript implements Runnable {
 
@@ -247,37 +245,4 @@ public abstract class LuaScript implements Runnable {
     return KahluaUtil.boolEval(res);
   }
 
-
-  protected void auto_op_call(int a, int b, int c, LuaCallFrame callFrame) {
-    int nArguments2 = b - 1;
-    if (nArguments2 != -1) {
-      callFrame.setTop(a + nArguments2 + 1);
-    } else {
-      nArguments2 = callFrame.getTop() - a - 1;
-    }
-  }
-
-
-  protected void auto_op_tailcall(int a, int b) {
-  }
-
-
-  protected void auto_op_return(int a, int b) {
-  }
-
-
-  protected void auto_op_close(int a, LuaCallFrame callFrame) {
-    callFrame.closeUpvalues(a);
-  }
-
-
-  protected void auto_op_closure(int a, int b, int pindex,
-                       LuaCallFrame callFrame,
-                       Prototype prototype) {
-  }
-
-
-  protected void auto_op_vararg(int a, int b, LuaCallFrame callFrame) {
-    callFrame.pushVarargs(a, b);
-  }
 }

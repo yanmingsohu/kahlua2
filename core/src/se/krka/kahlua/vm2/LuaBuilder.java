@@ -73,8 +73,8 @@ public class LuaBuilder implements ClassMaker.IConst {
   private void newClosureFunction(ClosureInf ci) {
     final int startIndex = plist.size();
     mv = cm.beginMethod(ci.funcName);
-    cm.vClosureFunctionHeader(ci);
     State state = new State(ci);
+    cm.vClosureFunctionHeader(state);
 
     while (state.hasNext()) {
       state.readNextOp();
@@ -86,14 +86,15 @@ public class LuaBuilder implements ClassMaker.IConst {
       do_op_code(opcode, state);
     }
 
-    cm.vClosureFunctionFoot(ci);
+    cm.vClosureFunctionFoot(state);
     cm.endMethod(state);
     processSubClosure(startIndex, plist.size());
   }
 
 
   public class State extends StateBase {
-    private final ClosureInf ci;
+    final ClosureInf ci;
+    final Label returnLabel;
     private final int[] opcodes;
     private int npc = 0;
 
@@ -102,15 +103,16 @@ public class LuaBuilder implements ClassMaker.IConst {
       super(mv);
       this.ci = ci;
       opcodes = ci.prototype.code;
-      initLabels();
+      this.returnLabel = initLabels();
     }
 
 
-    private void initLabels() {
-      labels = new Label[opcodes.length +1];
+    private Label initLabels() {
+      labels = new Label[opcodes.length + 1];
       for (int i=0; i<labels.length; ++i) {
         labels[i] = new Label();
       }
+      return labels[ labels.length -1 ];
     }
 
 
@@ -1251,21 +1253,19 @@ public class LuaBuilder implements ClassMaker.IConst {
   void op_close() {
     int a = getA8(op);
 
-    cm.vThis();
-    cm.vInt(a);
     mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_close", I, LuaCallFrame.class);
+    cm.vInt(a);
+    cm.vInvokeFunc(LuaCallFrame.class, "closeUpvalues", I);
   }
 
   void op_vararg() {
     int a = getA8(op);
     int b = getB9(op) - 1;
 
-    cm.vThis();
+    mv.visitVarInsn(ALOAD, vCallframe);
     cm.vInt(a);
     cm.vInt(b);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_vararg", I,I, LuaCallFrame.class);
+    cm.vInvokeFunc(LuaCallFrame.class, "pushVarargs", I);
   }
 
 
@@ -1273,53 +1273,24 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInt(c);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_call", I,I,I, LuaCallFrame.class);
   }
 
 
   void op_tailcall() {
     int a = getA8(op);
     int b = getB9(op);
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_tailcall", I,I);
   }
 
 
   void op_return() {
     int a = getA8(op);
     int b = getB9(op) - 1;
-
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_return", I,I);
   }
 
 
   void op_closure(State state) {
     int a = getA8(op);
     int b = getBx(op);
-
-//    ClosureInf subci = pushClosure(state.ci.prototype.prototypes[b], closureFuncName());
-//    int pi = subci.arrIndex;
-//
-//    cm.vThis();
-//    cm.vInt(a);
-//    cm.vInt(b);
-//    cm.vInt(pi);
-//    mv.visitVarInsn(ALOAD, vCallframe);
-//    mv.visitVarInsn(ALOAD, vPrototype);
-//    cm.vInvokeFunc(LuaScript.class, "auto_op_closure", I,I,I,
-//      LuaCallFrame.class, Prototype.class);
 
     Tool.pl("New closure", a, b);
   }

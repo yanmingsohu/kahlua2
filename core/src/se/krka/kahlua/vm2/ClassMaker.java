@@ -329,7 +329,8 @@ public class ClassMaker {
   }
 
 
-  public void vClosureFunctionHeader(ClosureInf inf) {
+  public void vClosureFunctionHeader(LuaBuilder.State s) {
+    final ClosureInf inf = s.ci;
     // final LuaClosure vClosure = newClosure(rootClosure);
     vThis();
     vInt(inf.arrIndex);
@@ -354,7 +355,8 @@ public class ClassMaker {
   }
 
 
-  void vClosureFunctionFoot(ClosureInf inf) {
+  void vClosureFunctionFoot(LuaBuilder.State s) {
+    mv.visitLabel(s.returnLabel);
     vThis();
     mv.visitVarInsn(ALOAD, vCallframe);
     vInvokeFunc(LuaScript.class, "closureReturn", FR);
