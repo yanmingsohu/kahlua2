@@ -266,10 +266,6 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  protected void auto_op_setlist(int a, int b, int c) {
-  }
-
-
   protected void auto_op_close(int a, LuaCallFrame callFrame) {
     callFrame.closeUpvalues(a);
   }

@@ -101,8 +101,9 @@ public class ClassMaker {
   }
 
 
-  public void endMethod() {
+  public void endMethod(StateBase st) {
     mv.visitInsn(RETURN);
+    st.vAllVariables();
     mv.visitMaxs(0, 0);
     mv.visitEnd();
     mv = null;
@@ -363,8 +364,13 @@ public class ClassMaker {
    * @param i stack var index
    */
   void vGetStackVar(int i) {
+    vGetStackVar(()->vInt(i));
+  }
+
+
+  void vGetStackVar(IBuildParam bp) {
     mv.visitVarInsn(ALOAD, vCallframe);
-    vInt(i);
+    bp.param1();
     vInvokeFunc(LuaCallFrame.class, "get", I);
   }
 
@@ -595,6 +601,16 @@ public class ClassMaker {
   void vToObjectDouble(boolean isString) {
     Class p = isString ? String.class : D;
     vInvokeStatic(Double.class, "valueOf", p);
+  }
+
+
+  void vStore(LocalVar v) {
+    v.store();
+  }
+
+
+  void vLoad(LocalVar v) {
+    v.load();
   }
 
 

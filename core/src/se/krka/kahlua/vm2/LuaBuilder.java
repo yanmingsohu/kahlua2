@@ -74,36 +74,65 @@ public class LuaBuilder implements ClassMaker.IConst {
     final int startIndex = plist.size();
     mv = cm.beginMethod(ci.funcName);
     cm.vClosureFunctionHeader(ci);
+    State state = new State(ci);
 
-    final int[] opcodes = ci.prototype.code;
-    final int labelsLen = opcodes.length;
-    labels = new Label[labelsLen];
+    while (state.hasNext()) {
+      state.readNextOp();
 
-    for (int i=0; i<labels.length; ++i) {
-      labels[i] = new Label();
+      mv.visitLabel(label);
+      mv.visitLineNumber(line, label);
+      vDebugInf();
+
+      do_op_code(opcode, state);
     }
 
-    int npc = 0;
-    while (npc < opcodes.length) {
+    cm.vClosureFunctionFoot(ci);
+    cm.endMethod(state);
+    processSubClosure(startIndex, plist.size());
+  }
+
+
+  public class State extends StateBase {
+    private final ClosureInf ci;
+    private final int[] opcodes;
+    private int npc = 0;
+
+
+    public State(ClosureInf ci) {
+      super(mv);
+      this.ci = ci;
+      opcodes = ci.prototype.code;
+      initLabels();
+    }
+
+
+    private void initLabels() {
+      labels = new Label[opcodes.length +1];
+      for (int i=0; i<labels.length; ++i) {
+        labels[i] = new Label();
+      }
+    }
+
+
+    private int readNextOp() {
       pc = npc++;
       op = opcodes[pc];
       opcode = op & 0x3F;
 
       line = ci.prototype.lines[pc];
       label = labels[pc];
-
-      mv.visitLabel(label);
-      mv.visitLineNumber(line, label);
-
-      Tool.pl("LL ",pc, Tool.str4byte(Integer.toHexString(op)),
-          opNames[opcode], line);
-      do_op_code(opcode, ci);
+      return op;
     }
 
-    //mv.visitLabel(labels[labelsLen - 1]);
-    cm.vClosureFunctionFoot(ci);
-    cm.endMethod();
-    processSubClosure(startIndex, plist.size());
+
+    private boolean hasNext() {
+      return npc < opcodes.length;
+    }
+
+
+    public LocalVar newVar(Class c, String name) {
+      return super.newVar(c, name, label, labels[npc]);
+    }
   }
 
 
@@ -115,7 +144,7 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
 
-  protected void do_op_code(int opcode, ClosureInf ci) {
+  protected void do_op_code(int opcode, State state) {
     switch (opcode) {
       case OP_MOVE: op_move(); break;
       case OP_LOADK: op_loadk(); break;
@@ -148,12 +177,12 @@ public class LuaBuilder implements ClassMaker.IConst {
       case OP_CALL: op_call(); break;
       case OP_TAILCALL: op_tailcall(); break;
       case OP_RETURN: op_return(); break;
-      case OP_FORLOOP: op_forprep(); break;
-      case OP_FORPREP: op_forloop(); break;
+      case OP_FORLOOP: op_forloop(); break;
+      case OP_FORPREP: op_forprep(); break;
       case OP_TFORLOOP: op_tforloop(); break;
-      case OP_SETLIST: op_setlist(); break;
+      case OP_SETLIST: op_setlist(state); break;
       case OP_CLOSE: op_close(); break;
-      case OP_CLOSURE: op_closure(ci); break;
+      case OP_CLOSURE: op_closure(state); break;
       case OP_VARARG: op_vararg(); break;
     }
   }
@@ -181,7 +210,11 @@ public class LuaBuilder implements ClassMaker.IConst {
 
 
   public void vDebugInf() {
-    cm.vPrint(KahluaThread2.opName(opcode) +" ( "+ opcode +" ):"+ line);
+    cm.vPrint(KahluaThread2.opName(opcode)
+      +" ( "+ opcode +" ):"+ line + " SBx:"+ getSBx(op));
+
+    Tool.pl("LL ",pc, Tool.str4byte(Integer.toHexString(op)),
+      opNames[opcode], line);
   }
 
 
@@ -684,18 +717,10 @@ public class LuaBuilder implements ClassMaker.IConst {
     });
 
     cm.vCall(new IBuildParam4() {
-      public void param1() {
-        mv.visitVarInsn(ALOAD, func);
-      }
-      public void param2() {
-        mv.visitVarInsn(ALOAD, obj);
-      }
-      public void param3() {
-        cm.vNull();
-      }
-      public void param4() {
-        cm.vNull();
-      }
+      public void param1() { mv.visitVarInsn(ALOAD, func); }
+      public void param2() { mv.visitVarInsn(ALOAD, obj); }
+      public void param3() { cm.vNull(); }
+      public void param4() { cm.vNull(); }
     });
     mv.visitVarInsn(ASTORE, res);
     cm.vGoto(end);
@@ -1136,17 +1161,92 @@ public class LuaBuilder implements ClassMaker.IConst {
     });
   }
 
-  void op_setlist() {
+
+  /**
+   * SETLIST A B C   R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
+   * A: function
+   * B: elementsCount
+   * C:
+   * @param state
+   */
+  void op_setlist(State state) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
 
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInt(c);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_setlist", I,I,I);
+    state.beginInstruction();
+    final LocalVar count = state.newVar(I, "count");
+    final LocalVar table = state.newVar(O, "table");
+    final LocalVar offset = state.newVar(I, "offset");
+    final LocalVar i = state.newVar(I, "i");
+
+    final Label check = new Label();
+    final Label forend = new Label();
+
+    if (b != 0) {
+      cm.vInt(b);
+      count.store();
+    } else {
+      mv.visitVarInsn(ALOAD, vCallframe);
+      cm.vInvokeFunc(LuaCallFrame.class, "getTop");
+      cm.vInt(a);
+      mv.visitInsn(ISUB);
+      cm.vInt(1);
+      mv.visitInsn(ISUB);
+      count.store();
+    }
+
+    if (c == 0) {
+      c = state.readNextOp();
+    }
+    cm.vInt(c - 1 * KahluaThread2.FIELDS_PER_FLUSH);
+    offset.store();
+
+    cm.vGetStackVar(a);
+    cm.vCast(KahluaTable.class);
+    table.store();
+
+    // init for()
+    cm.vInt(1);
+    i.store();
+    cm.vGoto(check);
+
+    // check for()
+    mv.visitLabel(check);
+    i.load();
+    count.load();
+    cm.vIf(IF_ICMPLE, new IIF() {
+      public void doThen() {
+        table.load();
+        // param1
+        offset.load();
+        i.load();
+        mv.visitInsn(IADD);
+        mv.visitInsn(I2D);
+        cm.vToObjectDouble(false);
+        // param2
+        cm.vGetStackVar(()->{
+          cm.vInt(a);
+          i.load();
+          mv.visitInsn(IADD);
+        });
+        cm.vInvokeFunc(KahluaTable.class, "rawset", O,O);
+      }
+      public void doElse() {
+        cm.vGoto(forend);
+      }
+    });
+    i.load();
+    cm.vInt(1);
+    mv.visitInsn(IADD);
+    i.store();
+    cm.vGoto(check);
+
+    // end for()
+    mv.visitLabel(forend);
+    state.endInstruction();
   }
+
 
   void op_close() {
     int a = getA8(op);
@@ -1205,22 +1305,22 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
 
-  void op_closure(ClosureInf ci) {
+  void op_closure(State state) {
     int a = getA8(op);
     int b = getBx(op);
 
-    ClosureInf subci = pushClosure(ci.prototype.prototypes[b], closureFuncName());
-    int pi = subci.arrIndex;
+//    ClosureInf subci = pushClosure(state.ci.prototype.prototypes[b], closureFuncName());
+//    int pi = subci.arrIndex;
+//
+//    cm.vThis();
+//    cm.vInt(a);
+//    cm.vInt(b);
+//    cm.vInt(pi);
+//    mv.visitVarInsn(ALOAD, vCallframe);
+//    mv.visitVarInsn(ALOAD, vPrototype);
+//    cm.vInvokeFunc(LuaScript.class, "auto_op_closure", I,I,I,
+//      LuaCallFrame.class, Prototype.class);
 
-    cm.vThis();
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInt(pi);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    mv.visitVarInsn(ALOAD, vPrototype);
-    cm.vInvokeFunc(LuaScript.class, "auto_op_closure", I,I,I,
-      LuaCallFrame.class, Prototype.class);
-
-    Tool.pl("New closure", a, b, pi);
+    Tool.pl("New closure", a, b);
   }
 }

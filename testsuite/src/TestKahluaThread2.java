@@ -55,16 +55,16 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static void main(String[] av) throws Exception {
-    testVM();
-//    testLuaBuilder();
-
+//    testVM();
+    testLuaBuilder();
 //    test1();
     Tool.pl("Done");
   }
 
 
   private static void testLuaBuilder() throws Exception {
-    new TestLuaBuild().test_every_lua_code();
+    TestLuaBuild tlb = new TestLuaBuild();
+    tlb.test_every_lua_code();
   }
 
 
@@ -167,69 +167,49 @@ public class TestKahluaThread2 implements Runnable {
 
 
     public void test_every_lua_code() throws Exception {
-      int endIndex = 37;
-
       Platform platform = J2SEPlatform.getInstance();
       KahluaTable env = platform.newEnvironment();
       KahluaThread2 kt2 = new KahluaThread2(platform, env);
 
-      final String line = " -------------------------------------------- ";
       Prototype p = new Prototype();
       p.name = "./testsuite/lua/testhelper.lua";
       p.constants = new Object[]{};
       p.lines = new int[KahluaThread2.opNamesLen()];
 
-      LuaClosure lc = new LuaClosure(p, env);
-      Coroutine cr = new Coroutine(platform, env, kt2);
-      cr.pushNewCallFrame(lc, null, 0,0,0, false, true);
 
-      Label[] labels = new Label[p.lines.length];
-      this.labels = labels;
+      Set<String> useSBx = new HashSet();
+      useSBx.add("op_jmp");
+      useSBx.add("op_test");
+      useSBx.add("op_testset");
+      useSBx.add("op_closure");
+      useSBx.add("op_forprep");
+      useSBx.add("op_forloop");
+      useSBx.add("op_closure");
 
-      cm.defaultInit();
-      mv = cm.beginMethod("run");
-      ClosureInf ci = new ClosureInf(p, 0, "run");
-      cm.vClosureFunctionHeader(ci);
+      this.labels = new Label[p.lines.length];
+      p.code = new int[KahluaThread2.opNamesLen()];
 
-      Set<String> skip = new HashSet();
-      skip.add("op_jmp");
-//      skip.add("op_test");
-//      skip.add("op_testset");
-      skip.add("op_closure");
-      skip.add("op_forprep");
-
-      for (int i=0; i<p.lines.length; ++i) {
+      for (int i=0; i<p.code.length; ++i) {
         p.lines[i] = i;
-        labels[i] = new Label();
-      }
+        this.labels[i] = new Label();
 
-      for (int i=0; i<=endIndex; ++i) {
-        pc = i+1;
-        op = ((1)<<6) | ((3)<<14) | ((2)<<23);
-        opcode = i & 0x3F;
-        Label label = labels[i];
-        this.line = p.lines[i];
+        if (KahluaThread.OP_JMP == i) continue;
+        if (KahluaThread.OP_FORLOOP == i) continue;
+        if (KahluaThread.OP_FORPREP== i) continue;
 
         String opName = KahluaThread2.opName(i).toLowerCase();
-        if (skip.contains(opName)) {
-          mv.visitLabel(label);
-          Tool.pl("!> SKIP", opName);
-          continue;
-//          op = (1 + 0x1ffff) << 14;
+        if (useSBx.contains(opName)) {
+          op = (0x7fff_8000) + (i);
+        } else {
+          op = ((1)<<6) | ((3)<<14) | ((2)<<23) + i;
         }
 
-        Tool.pl(">> ", opName, "()");
-        mv.visitLabel(label);
-        mv.visitLineNumber(p.lines[i], label);
-        vDebugInf();
-
-        do_op_code(i, ci);
-        Tool.pl("> ok");
+        p.code[i] = op;
       }
 
-      cm.vPrint("END / "+ new Date().toString());
-      cm.endMethod();
+      makeJavacode(p);
 
+      Coroutine cr = new Coroutine(platform, env, kt2);
       LuaScript agent = createJavaAgent();
       agent.reinit(kt2, cr);
       agent.run();
