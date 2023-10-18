@@ -44,19 +44,14 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
-    double x = 100;
-    double y = 999;
-    if (x < y)
-      Tool.pl(null, null, x,y);
-    boolean a = true;
-    boolean b = !a;
-    Tool.pl(a, b);
+    int []a = new int[]{};
+    Tool.pl(a[99]);
   }
 
 
   public static void main(String[] av) throws Exception {
-//    testVM();
-    testLuaBuilder();
+    testVM();
+//    testLuaBuilder();
 //    test1();
     Tool.pl("Done");
   }
@@ -145,10 +140,6 @@ public class TestKahluaThread2 implements Runnable {
   }
 
 
-  public static void hello() {
-    System.out.println("hello");
-  }
-
 
   @Override
   public void run() {
@@ -163,7 +154,7 @@ public class TestKahluaThread2 implements Runnable {
   public static class TestLuaBuild extends LuaBuilder {
 
     public TestLuaBuild() {
-      super("./testsuite/lua/testhelper.lua", "./bin");
+      super("TestLuaBuild.test_every_lua_code.lua", "./bin");
     }
 
 

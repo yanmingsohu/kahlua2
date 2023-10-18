@@ -26,41 +26,46 @@ package se.krka.kahlua.vm;
  * @exclude
  */
 public final class UpValue {
-	// For open upvalues
-	private Coroutine coroutine;
 
-    private final int index;
+  // For open upvalues
+  private Coroutine coroutine;
 
-	// For closed upvalues
-	private Object value;
+  private final int index;
 
-    public UpValue(Coroutine coroutine, int index) {
-        this.coroutine = coroutine;
-        this.index = index;
+  // For closed upvalues
+  private Object value;
+
+
+  public UpValue(Coroutine coroutine, int index) {
+    this.coroutine = coroutine;
+    this.index = index;
+  }
+
+
+  public int getIndex() {
+    return index;
+  }
+
+
+  public final Object getValue() {
+    if (coroutine == null) {
+      return value;
     }
+    return coroutine.objectStack[index];
+  }
 
-    public int getIndex() {
-        return index;
+
+  public final void setValue(Object object) {
+    if (coroutine == null) {
+      value = object;
+      return;
     }
-
-    public final Object getValue() {
-		if (coroutine == null) {
-			return value;
-		}
-		return coroutine.objectStack[index];
-	}
+    coroutine.objectStack[index] = object;
+  }
 
 
-	public final void setValue(Object object) {
-		if (coroutine == null) {
-			value = object;
-			return;
-		}
-		coroutine.objectStack[index] = object;
-	}
-
-    public void close() {
-        value = coroutine.objectStack[index];
-        coroutine = null;
-    }
+  public void close() {
+    value = coroutine.objectStack[index];
+    coroutine = null;
+  }
 }

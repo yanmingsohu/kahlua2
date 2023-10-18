@@ -25,21 +25,49 @@ package se.krka.kahlua.vm2;
 import se.krka.kahlua.vm.Prototype;
 import se.krka.kahlua.vm.UpValue;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+
 public class ClosureInf {
 
-  final Prototype prototype;
-  final UpValue[] upvalues;
-  final int arrIndex;
-  final String funcName;
+  public final Prototype prototype;
+  public final UpValue[] upvalues;
+  public final int arrIndex;
+  public final int stackIndex;
+  public final String funcName;
+
+  private Method mc;
 
 
   public ClosureInf(Prototype prototype,
                     int arrIndex,
-                    String funcName) {
+                    String funcName,
+                    int stackIndex) {
     this.prototype = prototype;
     this.upvalues = new UpValue[prototype.numUpvalues];
     this.arrIndex = arrIndex;
     this.funcName = funcName;
+    this.stackIndex = stackIndex;
   }
 
+
+  public void installMethod(LuaScript ls) {
+    try {
+      mc = ls.getClass().getDeclaredMethod(funcName);
+
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+
+  public void call(LuaScript ls) {
+    try {
+      mc.invoke(ls);
+
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

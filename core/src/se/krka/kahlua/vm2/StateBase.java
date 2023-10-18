@@ -61,6 +61,13 @@ public abstract class StateBase implements ClassMaker.IConst {
   }
 
 
+  public void checkIfNotEnd() {
+    if (inFunction) {
+      throw new RuntimeException("Forgot to END");
+    }
+  }
+
+
   public LocalVar newVar(Class c, String name, Label s, Label e) {
     if (!inFunction) {
       throw new RuntimeException("Instruction not started");

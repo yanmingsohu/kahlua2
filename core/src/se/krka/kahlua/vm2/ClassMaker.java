@@ -26,7 +26,9 @@ package se.krka.kahlua.vm2;
 import org.objectweb.asm.*;
 import se.krka.kahlua.vm.*;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -130,8 +132,9 @@ public class ClassMaker {
         FileOutputStream w = new FileOutputStream(file);
         w.write(buf);
         w.close();
-      } catch (Exception e) {
-        e.printStackTrace();
+        Tool.pl("Write class file:", file);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
     }
     return clazz;

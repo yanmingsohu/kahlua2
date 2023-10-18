@@ -25,6 +25,7 @@ package se.krka.kahlua.vm2;
 import se.krka.kahlua.vm.*;
 
 import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
 
 
 /**
@@ -117,7 +118,6 @@ public class KahluaThread2 extends KahluaThread {
 
     try {
       LuaClosure lc = (LuaClosure) o;
-      Tool.pl("Closure:", lc);
       LuaBuilder luab = new LuaBuilder(lc.prototype.name, outputDir);
       luab.makeJavacode(lc.prototype);
 
@@ -125,8 +125,9 @@ public class KahluaThread2 extends KahluaThread {
       x.reinit(this, currentCoroutine);
       x.run();
 
-    } catch(Exception e) {
-      e.printStackTrace();
+    } catch (NoSuchMethodException | InstantiationException
+          | IllegalAccessException | InvocationTargetException e) {
+      throw new RuntimeException(e);
     }
 
     int nReturnValues = currentCoroutine.getTop() - base;

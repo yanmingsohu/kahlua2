@@ -40,6 +40,8 @@ import static se.krka.kahlua.vm2.KahluaThread2.opNames;
  */
 public class LuaBuilder implements ClassMaker.IConst {
 
+  public final static String ROOT_FUNCTION_NAME = "run";
+
   final String classPath;
   final String className;
   protected MethodVisitor mv;
@@ -65,7 +67,7 @@ public class LuaBuilder implements ClassMaker.IConst {
 
   public void makeJavacode(Prototype p) {
     cm.defaultInit();
-    ClosureInf root = pushClosure(p, "run");
+    ClosureInf root = pushClosure(p, ROOT_FUNCTION_NAME, -1);
     newClosureFunction(root);
   }
 
@@ -78,11 +80,7 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     while (state.hasNext()) {
       state.readNextOp();
-
-      mv.visitLabel(label);
-      mv.visitLineNumber(line, label);
       vDebugInf();
-
       do_op_code(opcode, state);
     }
 
@@ -123,6 +121,9 @@ public class LuaBuilder implements ClassMaker.IConst {
 
       line = ci.prototype.lines[pc];
       label = labels[pc];
+
+      mv.visitLabel(label);
+      mv.visitLineNumber(line, label);
       return op;
     }
 
@@ -198,9 +199,9 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
 
-  private ClosureInf pushClosure(Prototype sp, String funcName) {
+  private ClosureInf pushClosure(Prototype sp, String funcName, int stackIndex) {
     int index = plist.size();
-    ClosureInf inf = new ClosureInf(sp, index, funcName);
+    ClosureInf inf = new ClosureInf(sp, index, funcName, stackIndex);
     plist.add(inf);
     return inf;
   }
@@ -1265,7 +1266,7 @@ public class LuaBuilder implements ClassMaker.IConst {
     mv.visitVarInsn(ALOAD, vCallframe);
     cm.vInt(a);
     cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "pushVarargs", I);
+    cm.vInvokeFunc(LuaCallFrame.class, "pushVarargs", I,I);
   }
 
 
@@ -1292,6 +1293,59 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getBx(op);
 
-    Tool.pl("New closure", a, b);
+    Prototype p = state.ci.prototype.prototypes[b];
+    ClosureInf newci = pushClosure(p, closureFuncName(), a);
+
+    state.beginInstruction();
+    LocalVar ci = state.newVar(ClosureInf.class, "ci");
+
+    cm.vField("plist");
+    cm.vInt(newci.arrIndex);
+    mv.visitInsn(AALOAD);
+    cm.vCopyRef();
+    ci.store();
+
+    cm.vThis();
+    cm.vInvokeFunc(ClosureInf.class, "installMethod", LuaScript.class);
+    cm.vSetStackVar(a, ()-> ci.load());
+
+    for (int i=0; i<p.numUpvalues; ++i) {
+      state.readNextOp();
+      final int nb = getB9(op);
+
+      switch (opcode) {
+      case OP_MOVE:
+        // newci.upvalues[i] =
+        ci.load();
+        cm.vField(ClosureInf.class, "upvalues");
+        cm.vInt(i);
+        // callFrame.findUpvalue(b);
+        mv.visitVarInsn(ALOAD, vCallframe);
+        cm.vInt(nb);
+        cm.vInvokeFunc(FR, "findUpvalue", I);
+
+        mv.visitInsn(AASTORE);
+        break;
+
+      case OP_GETUPVAL:
+        // newci.upvalues[i] =
+        ci.load();
+        cm.vField(ClosureInf.class, "upvalues");
+        cm.vInt(i);
+        // closure.upvalues[b];
+        mv.visitVarInsn(ALOAD, vClosure);
+        cm.vField(LuaClosure.class, "upvalues");
+        cm.vInt(nb);
+        mv.visitInsn(AALOAD);
+
+        mv.visitInsn(AASTORE);
+        break;
+
+      default:
+        throw new RuntimeException("bad operate code in op_closure");
+      }
+    }
+
+    state.endInstruction();
   }
 }

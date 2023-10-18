@@ -35,6 +35,7 @@ import static jdk.internal.org.objectweb.asm.Opcodes.*;
 public class LocalVar {
 
   private static final Map<Class, Code> types = new HashMap();
+  private static final Code ObjectCode = new Code(ALOAD, ASTORE);
 
   static {
     types.put(Double.class, new Code(DLOAD, DSTORE));
@@ -45,7 +46,7 @@ public class LocalVar {
     types.put(int.class, new Code(ILOAD, ISTORE));
     types.put(Long.class, new Code(LLOAD, LSTORE));
     types.put(long.class, new Code(LLOAD, LSTORE));
-    types.put(Object.class, new Code(ALOAD, ASTORE));
+    types.put(Object.class, ObjectCode);
     types.put(Boolean.class, new Code(ILOAD, ISTORE));
     types.put(boolean.class, new Code(ILOAD, ISTORE));
   }
@@ -72,7 +73,8 @@ public class LocalVar {
   private static Code findCode(Class c) {
     Code code = types.get(c);
     if (code == null) {
-      throw new RuntimeException("No opcode found for this type:"+ c);
+      //throw new RuntimeException("No opcode found for this type:"+ c);
+      code = ObjectCode;
     }
     return code;
   }
