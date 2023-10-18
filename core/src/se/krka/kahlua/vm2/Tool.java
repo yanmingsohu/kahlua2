@@ -180,6 +180,21 @@ public class Tool {
   }
 
 
+  public static String flatPath(String f) {
+    StringBuilder out = new StringBuilder();
+    for (int i=0; i<f.length(); ++i) {
+      char c = f.charAt(i);
+      switch (c) {
+        default: out.append(c); break;
+        case '_': out.append("__"); break;
+        case '\\':
+        case '/': out.append('_'); break;
+      }
+    }
+    return out.toString();
+  }
+
+
   public static String str4byte(String x) {
     switch (x.length()) {
       default: return x;

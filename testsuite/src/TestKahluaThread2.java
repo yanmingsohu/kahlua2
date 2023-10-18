@@ -73,6 +73,7 @@ public class TestKahluaThread2 implements Runnable {
     Platform plat = J2SEPlatform.getInstance();
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
+    thread.setOutputDir("./bin");
     LuaCaller caller = new LuaCaller(converterManager);
 
     final String filename = "./testsuite/lua/testhelper.lua";
@@ -162,7 +163,7 @@ public class TestKahluaThread2 implements Runnable {
   public static class TestLuaBuild extends LuaBuilder {
 
     public TestLuaBuild() {
-      super("./testsuite/lua/testhelper.lua");
+      super("./testsuite/lua/testhelper.lua", "./bin");
     }
 
 

@@ -72,12 +72,14 @@ public class ClassMaker {
   final String classPath;
   final Class  superClass = LuaScript.class;
   final String superClassName = toClassPath(superClass.getName());
+  final String outputDir;
 
 
   /**
    * @param className '.' split class path
    */
-  public ClassMaker(String className) {
+  public ClassMaker(String className, String outputDir) {
+    this.outputDir = outputDir;
     this.className = className;
     this.classPath = toClassPath(className);
 
@@ -90,6 +92,11 @@ public class ClassMaker {
       null);
 
     cw.visitSource(classPath +".lua", null);
+  }
+
+
+  public ClassMaker(String className) {
+    this(className, null);
   }
 
 
@@ -118,8 +125,9 @@ public class ClassMaker {
       clazz = LuaClassLoader.instance.defineClass(className, buf);
       cw = null;
 
-      if (true) try {
-        FileOutputStream w = new FileOutputStream("./bin/temp-test.class");
+      if (outputDir != null) try {
+        String file = outputDir +"/"+ Tool.flatPath(className) +".class";
+        FileOutputStream w = new FileOutputStream(file);
         w.write(buf);
         w.close();
       } catch (Exception e) {

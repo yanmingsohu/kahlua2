@@ -33,6 +33,7 @@ import java.io.PrintStream;
  */
 public class KahluaThread2 extends KahluaThread {
 
+  private String outputDir;
   final Platform platform;
 
   final static String[] opNames = {
@@ -117,7 +118,7 @@ public class KahluaThread2 extends KahluaThread {
     try {
       LuaClosure lc = (LuaClosure) o;
       Tool.pl("Closure:", lc);
-      LuaBuilder luab = new LuaBuilder(lc.prototype.name);
+      LuaBuilder luab = new LuaBuilder(lc.prototype.name, outputDir);
       luab.makeJavacode(lc.prototype);
 
       LuaScript x = luab.createJavaAgent();
@@ -146,5 +147,10 @@ public class KahluaThread2 extends KahluaThread {
 
   public static String opName(int i) {
     return opNames[i];
+  }
+
+
+  public void setOutputDir(String dir) {
+    this.outputDir = dir;
   }
 }

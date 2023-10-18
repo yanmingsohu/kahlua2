@@ -55,10 +55,10 @@ public class LuaBuilder implements ClassMaker.IConst {
   protected int id = 1;
 
 
-  public LuaBuilder(String _classPath) {
+  public LuaBuilder(String _classPath, String _outDir) {
     this.classPath = _classPath;
     this.className = Tool.formatClassName(classPath);
-    this.cm = new ClassMaker(className);
+    this.cm = new ClassMaker(className, _outDir);
     this.plist = new ArrayList<>(100);
   }
 
