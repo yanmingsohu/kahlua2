@@ -306,10 +306,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     final int a = getA8(op);
     final int b = getBx(op);
 
-    //Object value = callFrame.get(a);
-    //Object key = prototype.constants[b];
-    //tableSet(closure.env, key, value);
-
     cm.vSetTableVar(new IBuildParam3() {
       public void param1() {
         cm.vEnvironment();
@@ -327,9 +323,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    //UpValue uv = closure.upvalues[b];
-    //uv.setValue(callFrame.get(a));
-
     VUpvalueOp upop = new VUpvalueOp(cm, mv, b, vUser);
     upop.setValue(() -> {
       cm.vGetStackVar(a);
@@ -340,11 +333,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
-
-    //Object aObj = callFrame.get(a);
-    //Object key = getRegisterOrConstant(callFrame, b, prototype);
-    //Object value = getRegisterOrConstant(callFrame, c, prototype);
-    //tableSet(aObj, key, value);
 
     final int vTmp = 0;
 
@@ -364,9 +352,6 @@ public class LuaBuilder implements ClassMaker.IConst {
   void op_newtable() {
     int a = getA8(op);
 
-    //KahluaTable t = platform.newTable();
-    //callFrame.set(a, t);
-
     cm.vSetStackVar(a, ()->{
       cm.vNewTable();
     });
@@ -380,14 +365,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     final int tmp = 0;
     final int bObj = vUser + 1;
 
-
-    /*
-      Object bObj = callFrame.get(b);
-      callFrame.set(a + 1, bObj);
-      Object key = getRegisterOrConstant(callFrame, c, prototype);
-      Object fun = tableGet(bObj, key);
-      callFrame.set(a, fun);
-    */
 
     cm.vGetStackVar(b);
     mv.visitVarInsn(ASTORE, bObj);
@@ -487,21 +464,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     int b = getB9(op);
     int c = getC9(op);
 
-    /*
-      Object bo = getRegisterOrConstant(callFrame, b, prototype);
-      Object co = getRegisterOrConstant(callFrame, c, prototype);
-
-      Double bd = KahluaUtil.rawTonumber(bo);
-      Double cd = KahluaUtil.rawTonumber(co);
-      Object res = null;
-
-      if (bd == null || cd == null) {
-        res = metaOp(bo, co, meta_op);
-      } else {
-        res = bd (+) cd;
-      }
-      callFrame.set(a, res);
-     */
     final int tmp = 0;
     final int bo = vUser +1;
     final int co = vUser +2;
@@ -579,20 +541,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    /*
-      Object aObj = callFrame.get(b);
-      Double aDouble = KahluaUtil.rawTonumber(aObj);
-      Object res;
-      if (aDouble != null) {
-        res = KahluaUtil.toDouble(-KahluaUtil.fromDouble(aDouble));
-      } else {
-        Object metafun = getMetaOp(aObj, "__unm");
-        //BaseLib.luaAssert(metafun != null, "__unm not defined for operand");
-        res = call(metafun, aObj, null, null);
-      }
-      callFrame.set(a, res);
-    */
-
     final int aObj = vUser +1;
     final int res = vUser +2;
     final int metafun = vUser +3;
@@ -642,9 +590,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    //Object aObj = callFrame.get(b);
-    //callFrame.set(a, KahluaUtil.toBoolean(!KahluaUtil.boolEval(aObj)));
-
     cm.vSetStackVar(a, ()->{
       cm.vGetStackVar(b);
       cm.vBoolEval(true, false);
@@ -654,25 +599,6 @@ public class LuaBuilder implements ClassMaker.IConst {
   void op_len() {
     int a = getA8(op);
     int b = getB9(op);
-
-    /*
-      Object o = callFrame.get(b);
-      Object res;
-      if (o instanceof KahluaTable) {
-        KahluaTable t = (KahluaTable) o;
-        res = KahluaUtil.toDouble(t.len());
-      }
-      else if (o instanceof String) {
-        String s = (String) o;
-        res = KahluaUtil.toDouble(s.length());
-      }
-      else {
-        Object f = getMetaOp(o, "__len");
-        KahluaUtil.luaAssert(f != null, "__len not defined for operand");
-        res = call(f, o, null, null);
-      }
-      callFrame.set(a, res);
-     */
 
     final Label end = new Label();
     final int res = vUser +1;
@@ -926,12 +852,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     final int c = getC9(op);
     final boolean eqt = (c == 0);
 
-    /*
-      Object value = callFrame.get(a);
-      if (KahluaUtil.boolEval(value) == (c == 0)) {
-        callFrame.pc++;
-      }
-     */
     Label jumpto = this.labels[pc + 1];
 
     cm.vGetStackVar(a);
@@ -951,14 +871,6 @@ public class LuaBuilder implements ClassMaker.IConst {
     int c = getC9(op);
     boolean eqt = (c == 0);
 
-    /*
-      Object value = callFrame.get(b);
-      if (KahluaUtil.boolEval(value) != (c == 0)) {
-        callFrame.set(a, value);
-      } else {
-        callFrame.pc++;
-      }
-    */
     Label jumpto = this.labels[pc + 1];
     final int value = vUser +1;
 
