@@ -276,7 +276,6 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  // TODO: op is changed on running ???
   void op_loadbool() {
     int a = getA8(op);
     int b = getB9(op);
@@ -1326,14 +1325,13 @@ public class LuaBuilder implements IConst {
 
     mv.visitLabel(javafunc);
     {
-      state.vCI.load();
-      cm.vNewFrame(localBase2, returnBase2, nArguments2, false);
+      cm.vNewFrameParams(state.vCI, localBase2, returnBase2, nArguments2, false);
 
       state.vCI.load();
       func.load();
       cm.vCast(JavaFunction.class);
       cm.vInvokeFunc(CI, "call", JavaFunction.class);
-      cm.vPopFrame();
+      // cm.vPopFrame();
     }
     cm.vGoto(end);
 
@@ -1341,11 +1339,10 @@ public class LuaBuilder implements IConst {
     {
       func.load();
       cm.vCast(ClosureInf.class);
-      //cm.vCopyRef();
-      cm.vNewFrame(localBase2, returnBase2, nArguments2, true);
+      func.store();
+      cm.vNewFrameParams(func, localBase2, returnBase2, nArguments2, true);
 
       func.load();
-      cm.vCast(ClosureInf.class);
       cm.vThis();
       cm.vInvokeFunc(CI, "call", LuaScript.class);
     }
@@ -1356,7 +1353,8 @@ public class LuaBuilder implements IConst {
       state.vCI.load();
       func.load();
       cm.vCast(LuaClosure.class);
-      cm.vInvokeFunc(CI, "call", LuaClosure.class);
+      nArguments2.load();
+      cm.vInvokeFunc(CI, "call", LuaClosure.class, I);
     }
     cm.vGoto(end);
 

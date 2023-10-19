@@ -45,15 +45,8 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
-    StringBuilder ab = new StringBuilder();
-    int []a = new int[]{};
-    Tool.pl(a[99]);
-    callFrame.restoreTop = true;
-    String c = "a00" + a.toString() + "b00";
-    int i = 10;
-    i = 300;
-    i = 70000;
-    boolean b = true;
+    Platform p = new J2SEPlatform();
+    p.newTable();
   }
 
 

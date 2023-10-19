@@ -88,8 +88,7 @@ public class KahluaThread2 extends KahluaThread {
 
 
   public KahluaThread2(Platform platform, KahluaTable environment) {
-    super(platform, environment);
-    this.platform = platform;
+    this(System.out, platform, environment);
   }
 
 
@@ -118,7 +117,7 @@ public class KahluaThread2 extends KahluaThread {
       if (f != null) {
         ci.setFrame(f.closure, f);
       } else {
-        ci.newFrame(currentCoroutine, base + 1, base, nArguments, true);
+        ci.frameParams(base + 1, base, nArguments, true);
       }
       ci.call();
       return currentCoroutine.getTop() - base;
@@ -144,6 +143,25 @@ public class KahluaThread2 extends KahluaThread {
 
     int nReturnValues = currentCoroutine.getTop() - base;
     currentCoroutine.stackTrace = "";
+    return nReturnValues;
+  }
+
+
+  public int call(LuaClosure oldc, Coroutine cor, int nArguments) {
+    currentCoroutine = cor;
+    int top = cor.getTop();
+    int base = top - nArguments - 1;
+
+    LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(oldc, null,
+      base + 1, base, nArguments, false, false);
+    callFrame.init();
+
+    luaMainloop();
+
+    int nReturnValues = currentCoroutine.getTop() - base;
+    currentCoroutine.stackTrace = "";
+    currentCoroutine.popCallFrame();
+
     return nReturnValues;
   }
 

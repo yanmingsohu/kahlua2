@@ -137,6 +137,49 @@ public class ClassMaker implements IConst {
   }
 
 
+  public void vClosureFunctionHeader(LuaBuilder.State s) {
+    final ClosureInf inf = s.ci;
+    // final ClosureInf ci = plist[index];
+    vField("plist");
+    vInt(inf.arrIndex);
+    mv.visitInsn(AALOAD);
+    mv.visitVarInsn(ASTORE, vCI);
+
+    // ci.newFrame(this.coroutine)
+    mv.visitVarInsn(ALOAD, vCI);
+    vThis();
+    vField(LuaScript.class, "coroutine");
+    vInvokeFunc(CI, "newFrame", Coroutine.class);
+
+    // final LuaClosure vClosure = ci.getOldClosure();
+    mv.visitVarInsn(ALOAD, vCI);
+    vInvokeFunc(ClosureInf.class, "getOldClosure");
+    mv.visitVarInsn(ASTORE, vClosure);
+
+    // final LuaCallFrame vCallframe = closure.getOldFrame();
+    mv.visitVarInsn(ALOAD, vCI);
+    vInvokeFunc(ClosureInf.class, "getOldFrame");
+    mv.visitVarInsn(ASTORE, vCallframe);
+
+    // final Platform vPlatform = this.platform
+    vField("platform");
+    mv.visitVarInsn(ASTORE, vPlatform);
+
+    // final Prototype vPrototype = ci.prototype
+    mv.visitVarInsn(ALOAD, vCI);
+    vField(ClosureInf.class, "prototype");
+    mv.visitVarInsn(ASTORE, vPrototype);
+  }
+
+
+  void vClosureFunctionFoot(LuaBuilder.State s) {
+    mv.visitLabel(s.returnLabel);
+    vThis();
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vInvokeFunc(LuaScript.class, "closureReturn", FR);
+  }
+
+
   // Get field from Super Class
   public Field getField(String n) {
     return getField(superClass, n);
@@ -166,6 +209,14 @@ public class ClassMaker implements IConst {
 
     mv.visitMethodInsn(INVOKEVIRTUAL, toClassPath(owner),
       m.getName(), getMethodSi(m), false);
+  }
+
+
+  void vInvokeInterface(Class owner, String method, Class ...param) {
+    Method m = getMethod(owner, method, param);
+
+    mv.visitMethodInsn(INVOKEINTERFACE, toClassPath(owner),
+      m.getName(), getMethodSi(m), true);
   }
 
 
@@ -360,43 +411,6 @@ public class ClassMaker implements IConst {
   }
 
 
-  public void vClosureFunctionHeader(LuaBuilder.State s) {
-    final ClosureInf inf = s.ci;
-    // final ClosureInf ci = plist[index];
-    vField("plist");
-    vInt(inf.arrIndex);
-    mv.visitInsn(AALOAD);
-    mv.visitVarInsn(ASTORE, vCI);
-
-    // final LuaClosure vClosure = ci.getOldClosure();
-    mv.visitVarInsn(ALOAD, vCI);
-    vInvokeFunc(ClosureInf.class, "getOldClosure");
-    mv.visitVarInsn(ASTORE, vClosure);
-
-    // final LuaCallFrame vCallframe = closure.getOldFrame();
-    mv.visitVarInsn(ALOAD, vCI);
-    vInvokeFunc(ClosureInf.class, "getOldFrame");
-    mv.visitVarInsn(ASTORE, vCallframe);
-
-    // final Platform vPlatform = this.platform
-    vField("platform");
-    mv.visitVarInsn(ASTORE, vPlatform);
-
-    // final Prototype vPrototype = ci.prototype
-    mv.visitVarInsn(ALOAD, vCI);
-    vField(ClosureInf.class, "prototype");
-    mv.visitVarInsn(ASTORE, vPrototype);
-  }
-
-
-  void vClosureFunctionFoot(LuaBuilder.State s) {
-    mv.visitLabel(s.returnLabel);
-    vThis();
-    mv.visitVarInsn(ALOAD, vCallframe);
-    vInvokeFunc(LuaScript.class, "closureReturn", FR);
-  }
-
-
   void vEnvironment() {
     mv.visitVarInsn(ALOAD, vClosure);
     vField(LuaClosure.class, "env");
@@ -514,7 +528,7 @@ public class ClassMaker implements IConst {
 
   void vNewTable() {
     mv.visitVarInsn(ALOAD, vPlatform);
-    vInvokeFunc(Platform.class, "newTable");
+    vInvokeInterface(Platform.class, "newTable");
   }
 
 
@@ -729,13 +743,14 @@ public class ClassMaker implements IConst {
   }
 
 
-  void vNewFrame(LocalVar lb, LocalVar ret, LocalVar arg, boolean isLua) {
-    vField("coroutine");
+  void vNewFrameParams(LocalVar ci, LocalVar lb, LocalVar ret,
+                       LocalVar arg, boolean isLua) {
+    ci.load();
     lb.load();
     ret.load();
     arg.load();
     vBoolean(isLua);
-    vInvokeFunc(CI, "newFrame", CR,I,I,I,B);
+    vInvokeFunc(CI, "frameParams", I,I,I,B);
   }
 
 

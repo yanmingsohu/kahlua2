@@ -41,6 +41,11 @@ public class ClosureInf {
   private LuaClosure ocl;
   private LuaScript bind;
 
+  private int localBase;
+  private int returnBase;
+  private int nArguments;
+  private boolean isLua;
+
 
   public ClosureInf(Prototype prototype,
                     int arrIndex,
@@ -89,21 +94,46 @@ public class ClosureInf {
     int diff = oframe.returnBase - oframe.localBase;
     oframe.stackCopy(actualReturnBase, diff, nReturnValues);
     oframe.setTop(nReturnValues + diff);
+
+//    if (oframe.restoreTop) {
+//      oframe.setTop(prototype.maxStacksize);
+//    }
   }
 
 
-  public void call(LuaClosure oldc) {
-    throw new RuntimeException("Cannot support LuaClosure call "+ oldc);
+  /**
+   * LuaClosure may be the result of running the old vm.
+   * Their data structures are compatible, and a new version of the
+   * virtual machine can be created to compile and run it.
+   * @param oldc
+   */
+  public void call(LuaClosure oldc, int nArguments) {
+    //throw new RuntimeException("Cannot support LuaClosure call "+ oldc);
+    KahluaThread2 t = new KahluaThread2(bind.platform, bind.coroutine.environment);
+    t.call(oldc, bind.coroutine, nArguments);
   }
 
 
-  public void newFrame(Coroutine c, int lcBase, int rBase, int nArg, boolean isLua) {
+  public void newFrame(Coroutine c) {
     LuaClosure lc = new LuaClosure(prototype, c.environment);
-    LuaCallFrame cf = c.pushNewCallFrame(lc, null, lcBase, rBase, nArg, isLua, false);
+    LuaCallFrame cf = c.pushNewCallFrame(
+        lc, null, localBase, returnBase, nArguments, isLua, false);
     cf.init();
+
+    for (int i=0; i<upvalues.length; ++i) {
+      lc.upvalues[i] = this.upvalues[i];
+    }
 
     this.oframe = cf;
     this.ocl = lc;
+  }
+
+
+  public void frameParams(int lcBase, int rBase, int nArg, boolean isLua) {
+    this.localBase = lcBase;
+    this.returnBase = rBase;
+    this.nArguments = nArg;
+    this.isLua = isLua;
   }
 
 

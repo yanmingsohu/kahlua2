@@ -46,7 +46,7 @@ public abstract class LuaScript implements Runnable {
     this.t = kt2;
     this.coroutine = c;
     this.platform = kt2.platform;
-    this.plist[IConst.rootClosure].newFrame(coroutine, 0, 0, 0, true);
+    this.plist[IConst.rootClosure].frameParams(0, 0, 0, true);
   }
 
 
@@ -159,6 +159,7 @@ public abstract class LuaScript implements Runnable {
 
         Object metafun = getBinMetaOp(leftConcat, res, "__concat");
         if (metafun == null) {
+          printLuaStack();
           KahluaUtil.fail(("__concat not defined for operands: "
             + leftConcat + " and " + res));
         }
@@ -167,6 +168,19 @@ public abstract class LuaScript implements Runnable {
       }
     }
     callFrame.set(a, res);
+  }
+
+
+  private void printLuaStack() {
+    Tool.pl("Lua stack:");
+    Object[] s = coroutine.objectStack;
+    for (int i=0; i<s.length; ++i) {
+      if (s[i] != null) {
+        Tool.pl(i, s[i].getClass(), s[i]);
+      } else {
+        Tool.pl(i, "NULL");
+      }
+    }
   }
 
 
@@ -222,7 +236,7 @@ public abstract class LuaScript implements Runnable {
     boolean resBool;
 
     if (metafun == null) {
-      BaseLib.luaEquals(bo, co);
+      return BaseLib.luaEquals(bo, co);
     }
 
     Object res = call(metafun, bo, co, null);
