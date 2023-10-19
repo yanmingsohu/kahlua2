@@ -555,28 +555,17 @@ public class ClassMaker implements IConst {
 
   /**
    * @see KahluaThread#getRegisterOrConstant
-   * @param i index to stack or constants
+   * @param i index to stack or constants, i is the opcode and will not change at runtime
    * @param varindex This variable will be used for calculations,
    *                 so it must be reserved in advance
    */
   void vGetRegOrConst(int i, int varindex) {
-    final int cindex = vUser + varindex;
-
-    vInt(i);
-    vInt(256);
-    mv.visitInsn(ISUB);
-    mv.visitInsn(DUP);
-    mv.visitVarInsn(ISTORE, cindex);
-    vIf(IFLT, new IIF() {
-      public void doThen() {
-        vGetStackVar(i);
-      }
-      public void doElse() {
-        vGetConstants(() -> {
-          mv.visitVarInsn(ILOAD, cindex);
-        });
-      }
-    });
+    int cindex = i - 256;
+    if (cindex < 0) {
+      vGetStackVar(i);
+    } else {
+      vGetConstants(() -> vInt(cindex));
+    }
   }
 
 
