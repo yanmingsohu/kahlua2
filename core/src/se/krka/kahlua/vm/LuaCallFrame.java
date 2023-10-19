@@ -37,13 +37,13 @@ public class LuaCallFrame {
 	public int pc;
 
 	public int localBase;
-	int returnBase;
+	public int returnBase;
 	public int nArguments;
 
 	boolean fromLua;
 	public boolean canYield;
 	
-	boolean restoreTop;
+	public boolean restoreTop;
 	
 	public final void set(int index, Object o) {
 		/*
