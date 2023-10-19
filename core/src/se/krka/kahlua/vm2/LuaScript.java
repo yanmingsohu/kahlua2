@@ -46,6 +46,7 @@ public abstract class LuaScript implements Runnable {
     this.t = kt2;
     this.coroutine = c;
     this.platform = kt2.platform;
+    this.plist[IConst.rootClosure].newFrame(coroutine, 0, 0, 0, true);
   }
 
 
@@ -54,25 +55,8 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  protected LuaCallFrame newFrame(LuaClosure cl) {
-    LuaCallFrame cf = coroutine.pushNewCallFrame(cl, null, 0, 0, 0, false, false);
-    cf.init();
-    return cf;
-  }
-
-
-  protected LuaClosure newClosure(int index) {
-    return new LuaClosure(plist[index].prototype, coroutine.environment);
-  }
-
-
   protected void closureReturn(LuaCallFrame cf) {
     coroutine.popCallFrame();
-  }
-
-
-  protected Prototype findPrototype(int index) {
-    return plist[index].prototype;
   }
 
 

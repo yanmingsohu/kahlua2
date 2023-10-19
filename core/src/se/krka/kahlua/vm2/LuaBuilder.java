@@ -38,7 +38,7 @@ import static se.krka.kahlua.vm2.KahluaThread2.opNames;
 /**
  * @link https://the-ravi-programming-language.readthedocs.io/en/latest/lua_bytecode_reference.html
  */
-public class LuaBuilder implements ClassMaker.IConst {
+public class LuaBuilder implements IConst {
 
   public final static String ROOT_FUNCTION_NAME = "run";
 
@@ -76,12 +76,16 @@ public class LuaBuilder implements ClassMaker.IConst {
     final int startIndex = plist.size();
     mv = cm.beginMethod(ci.funcName);
     State state = new State(ci);
+
+    mv.visitLabel(state.initLabel);
     cm.vClosureFunctionHeader(state);
+    mv.visitLabel(state.initOverLabel);
 
     while (state.hasNext()) {
       state.readNextOp();
       vDebugInf();
       do_op_code(opcode, state);
+      state.checkIfNotEnd(opNames[opcode]);
     }
 
     cm.vClosureFunctionFoot(state);
@@ -93,15 +97,31 @@ public class LuaBuilder implements ClassMaker.IConst {
   public class State extends StateBase {
     final ClosureInf ci;
     final Label returnLabel;
+    final Label initLabel;
+    final Label initOverLabel;
     private final int[] opcodes;
     private int npc = 0;
+
+    final LocalVar vCallframe;
+    final LocalVar vPlatform;
+    final LocalVar vClosure;
+    final LocalVar vPrototype;
+    final LocalVar vCI;
 
 
     public State(ClosureInf ci) {
       super(mv);
       this.ci = ci;
       opcodes = ci.prototype.code;
+      this.initLabel = new Label();
+      this.initOverLabel = new Label();
       this.returnLabel = initLabels();
+
+      this.vCallframe = internalVar(FR, IConst.vCallframe);
+      this.vPlatform = internalVar(Platform.class, IConst.vPlatform);
+      this.vClosure = internalVar(CU, IConst.vClosure);
+      this.vPrototype = internalVar(PT, IConst.vPrototype);
+      this.vCI = internalVar(CI, IConst.vCI);
     }
 
 
@@ -111,6 +131,14 @@ public class LuaBuilder implements ClassMaker.IConst {
         labels[i] = new Label();
       }
       return labels[ labels.length -1 ];
+    }
+
+
+    private LocalVar internalVar(Class c, int index) {
+      String name = Tool.toLocalVarName(c);
+      LocalVar v = new LocalVar(mv, c, index, name, initLabel, returnLabel);
+      v.lock();
+      return v;
     }
 
 
@@ -161,12 +189,12 @@ public class LuaBuilder implements ClassMaker.IConst {
       case OP_SETTABLE: op_settable(); break;
       case OP_NEWTABLE: op_newtable(); break;
       case OP_SELF: op_self(); break;
-      case OP_ADD: op_add(); break;
-      case OP_SUB: op_sub(); break;
-      case OP_MUL: op_mul(); break;
-      case OP_DIV: op_div(); break;
-      case OP_MOD: op_mod(); break;
-      case OP_POW: op_pow(); break;
+      case OP_ADD: op_add(state); break;
+      case OP_SUB: op_sub(state); break;
+      case OP_MUL: op_mul(state); break;
+      case OP_DIV: op_div(state); break;
+      case OP_MOD: op_mod(state); break;
+      case OP_POW: op_pow(state); break;
       case OP_UNM: op_unm(); break;
       case OP_NOT: op_not(); break;
       case OP_LEN: op_len(); break;
@@ -177,9 +205,9 @@ public class LuaBuilder implements ClassMaker.IConst {
       case OP_LE: op_le(); break;
       case OP_TEST: op_test(); break;
       case OP_TESTSET: op_testset(); break;
-      case OP_CALL: op_call(); break;
-      case OP_TAILCALL: op_tailcall(); break;
-      case OP_RETURN: op_return(); break;
+      case OP_CALL: op_call(state); break;
+      case OP_TAILCALL: op_tailcall(state); break;
+      case OP_RETURN: op_return(state); break;
       case OP_FORLOOP: op_forloop(); break;
       case OP_FORPREP: op_forprep(); break;
       case OP_TFORLOOP: op_tforloop(); break;
@@ -385,66 +413,66 @@ public class LuaBuilder implements ClassMaker.IConst {
     });
   }
 
-  void op_add() {
-    math_cal("__add", true, (bd, cd)->{
+  void op_add(State s) {
+    math_cal(s, "__add", true, (bd, cd)->{
       mv.visitInsn(DADD);
     });
   }
 
-  void op_sub() {
-    math_cal("__sub", true, (bd, cd)->{
+  void op_sub(State s) {
+    math_cal(s, "__sub", true, (bd, cd)->{
       mv.visitInsn(DSUB);
     });
   }
 
-  void op_mul() {
-    math_cal("__mul", true, (bd, cd)->{
+  void op_mul(State s) {
+    math_cal(s, "__mul", true, (bd, cd)->{
       mv.visitInsn(DMUL);
     });
   }
 
-  void op_div() {
-    math_cal("__div", true, (bd, cd)->{
+  void op_div(State s) {
+    math_cal(s, "__div", true, (bd, cd)->{
       mv.visitInsn(DDIV);
     });
   }
 
-  void op_pow() {
-    math_cal("__pow", false, (bd, cd)->{
+  void op_pow(State s) {
+    math_cal(s, "__pow", false, (bd, cd)->{
       mv.visitVarInsn(ALOAD, vPlatform);
-      mv.visitVarInsn(ALOAD, bd);
-      cm.vInvokeFunc(Double.class, "doubleValue");
-      mv.visitVarInsn(ALOAD, cd);
-      cm.vInvokeFunc(Double.class, "doubleValue");
+      bd.load();
+      cm.vToPrimitiveDouble(false);
+      cd.load();
+      cm.vToPrimitiveDouble(false);
       cm.vInvokeFunc(Platform.class, "pow", D, D);
     });
   }
 
-  void op_mod() {
-    math_cal("__mod", false, (bd, cd)->{
+  void op_mod(State s) {
+    math_cal(s, "__mod", false, (bd, cd)->{
       Label v2iszero = new Label();
       Label end = new Label();
 
-      mv.visitVarInsn(ALOAD, cd);
-      cm.vInvokeFunc(Double.class, "doubleValue");
+      cd.load();
+      cm.vToPrimitiveDouble(false);
       cm.vDouble(0);
       mv.visitInsn(DCMPL);
       mv.visitJumpInsn(IFEQ, v2iszero); // if v4 == 0 goto v2iszero
 
       // v4 != 0
-      mv.visitVarInsn(ALOAD, bd);
-      cm.vInvokeFunc(Double.class, "doubleValue");
+      bd.load();
+      cm.vToPrimitiveDouble(false);
       {
-        mv.visitVarInsn(ALOAD, bd);
-        cm.vInvokeFunc(Double.class, "doubleValue");
-        mv.visitVarInsn(ALOAD, cd);
-        cm.vInvokeFunc(Double.class, "doubleValue");
+        bd.load();
+        cm.vToPrimitiveDouble(false);
+        cd.load();
+        cm.vToPrimitiveDouble(false);
         mv.visitInsn(DDIV);
         mv.visitInsn(D2I);
       }
       mv.visitInsn(I2D);
-      mv.visitVarInsn(ALOAD, cd);
-      cm.vInvokeFunc(Double.class, "doubleValue");
+      cd.load();
+      cm.vToPrimitiveDouble(false);
       mv.visitInsn(DMUL);
       mv.visitInsn(DSUB);
 
@@ -459,17 +487,19 @@ public class LuaBuilder implements ClassMaker.IConst {
   }
 
   // add sub mul div mod pow
-  void math_cal(String meta_op, boolean popValued, IMathOp primitiveOp) {
+  void math_cal(State s, String meta_op, boolean popValued, IMathOp primitiveOp) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
 
-    final int tmp = 0;
-    final int bo = vUser +1;
-    final int co = vUser +2;
-    final int bd = vUser +3;
-    final int cd = vUser +4;
-    final int res = vUser +5;
+    s.beginInstruction();
+
+    final LocalVar bo = s.newVar(O, "bo");
+    final LocalVar co = s.newVar(O, "co");
+    final LocalVar bd = s.newVar(O, "bd");
+    final LocalVar cd = s.newVar(O, "cd");
+    final LocalVar res = s.newVar(O, "res");
+    final int tmp = s.nextVarid(-1);
 
     Label saveRes = new Label();
     Label useMetaOp1 = new Label();
@@ -478,63 +508,70 @@ public class LuaBuilder implements ClassMaker.IConst {
 
     {
       cm.vGetRegOrConst(b, tmp);
-      mv.visitVarInsn(ASTORE, bo);
+      bo.store();
 
       cm.vGetRegOrConst(c, tmp);
-      mv.visitVarInsn(ASTORE, co);
+      co.store();
 
       cm.vThis();
-      mv.visitVarInsn(ALOAD, bo);
+      bo.load();
+      //TODO: optimization
       cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
-      mv.visitVarInsn(ASTORE, bd);
+      bd.store();
 
       cm.vThis();
-      mv.visitVarInsn(ALOAD, co);
+      co.load();
       cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
-      mv.visitVarInsn(ASTORE, cd);
+      cd.store();
 
       // if (bd == null || cd == null) then useMetaOp();
-      mv.visitVarInsn(ALOAD, bd);
+      bd.load();
       mv.visitJumpInsn(IFNULL, useMetaOp2);
-      mv.visitVarInsn(ALOAD, cd);
+      cd.load();
       mv.visitJumpInsn(IFNULL, useMetaOp2);
       cm.vGoto(primitive);
+    }
 
-      // primitiveMath();
+    // primitiveMath();
+    {
       cm.vLabel(primitive, line);
 
       if (popValued) {
-        mv.visitVarInsn(ALOAD, bd);
-        cm.vInvokeFunc(Double.class, "doubleValue");
-        mv.visitVarInsn(ALOAD, cd);
-        cm.vInvokeFunc(Double.class, "doubleValue");
+        bd.load();
+        cm.vToPrimitiveDouble(false);
+        cd.load();
+        cm.vToPrimitiveDouble(false);
       }
 
       primitiveOp.calc(bd, cd);
-
-      cm.vInvokeStatic(Double.class, "valueOf", D); // Must TO Double(Object)
-      mv.visitVarInsn(ASTORE, res);
+      // Must TO Double(Object)
+      cm.vToObjectDouble(false);
+      res.store();
       cm.vGoto(saveRes);
+    }
 
-      // useMetaOp()
+    // useMetaOp()
+    {
       cm.vLabel(useMetaOp1, line);
       mv.visitInsn(POP);
 
       cm.vLabel(useMetaOp2, line);
-      cm.vThis();
-      mv.visitVarInsn(ALOAD, bo);
-      mv.visitVarInsn(ALOAD, co);
-      mv.visitLdcInsn(meta_op);
-      cm.vInvokeFunc(LuaScript.class, "metaOp", O, O, S);
-      mv.visitVarInsn(ASTORE, res);
+      cm.vCallMetaOp(meta_op, new IBuildParam2() {
+        public void param1() {
+          bo.load();
+        }
+        public void param2() {
+          co.load();
+        }
+      });
+      res.store();
       cm.vGoto(saveRes);
     }
+
     // saveRes()
     cm.vLabel(saveRes, line);
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    mv.visitVarInsn(ALOAD, res);
-    cm.vInvokeFunc(LuaCallFrame.class, "set", I,O);
+    cm.vSetStackVar(a, ()-> res.load());
+    s.endInstruction();
   }
 
   void op_unm() {
@@ -1102,8 +1139,7 @@ public class LuaBuilder implements ClassMaker.IConst {
       cm.vInt(b);
       count.store();
     } else {
-      mv.visitVarInsn(ALOAD, vCallframe);
-      cm.vInvokeFunc(LuaCallFrame.class, "getTop");
+      cm.vGetTop();
       cm.vInt(a);
       mv.visitInsn(ISUB);
       cm.vInt(1);
@@ -1166,38 +1202,189 @@ public class LuaBuilder implements ClassMaker.IConst {
   void op_close() {
     int a = getA8(op);
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vInvokeFunc(LuaCallFrame.class, "closeUpvalues", I);
+    cm.vCloseLocalUpvlues(()-> cm.vInt(a));
   }
+
 
   void op_vararg() {
     int a = getA8(op);
     int b = getB9(op) - 1;
 
-    mv.visitVarInsn(ALOAD, vCallframe);
-    cm.vInt(a);
-    cm.vInt(b);
-    cm.vInvokeFunc(LuaCallFrame.class, "pushVarargs", I,I);
+    cm.vPushVarargs(new IBuildParam2() {
+      public void param1() {
+        cm.vInt(a);
+      }
+      @Override
+      public void param2() {
+        cm.vInt(b);
+      }
+    });
   }
 
 
-  void op_call() {
+  /**
+   * CALL A B C    R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
+   */
+  void op_call(State state) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
+
+    state.beginInstruction();
+    LocalVar func = state.newVar(O, "function");
+    LocalVar localBase2 = state.newVar(I, "localBase2");
+    LocalVar nArguments2 = state.newVar(I, "nArguments2");
+    LocalVar returnBase2 = state.newVar(I, "returnBase2");
+    LocalVar funcMeta = state.newVar(O, "funcMeta");
+
+    Label javafunc = new Label();
+    Label closure = new Label();
+    Label end = new Label();
+    Label meta = new Label();
+    Label checkType = new Label();
+
+    cm.vGetStackVar(a);
+    func.store();
+
+    state.vCallframe.load();
+    cm.vBoolean(c != 0);
+    cm.vPutField(FR, "restoreTop");
+
+    if (b != 0) {
+      cm.vSetFrameTop(()-> cm.vInt(a+b));
+      cm.vInt(b - 1);
+      nArguments2.store();
+    } else {
+      cm.vGetTop();
+      cm.vInt(a+1);
+      mv.visitInsn(ISUB);
+      nArguments2.store();
+    }
+
+    state.vCallframe.load();
+    cm.vField(FR, "localBase");
+    cm.vCopyRef();
+
+    cm.vInt(a + 1);
+    mv.visitInsn(IADD);
+    localBase2.store(); // localBase2 = base + a + 1;
+
+    cm.vInt(a);
+    mv.visitInsn(IADD);
+    returnBase2.store(); // returnBase2 = base + a;
+
+    mv.visitLabel(checkType);
+    {
+      func.load();
+      cm.vIf(JavaFunction.class, javafunc);
+      func.load();
+      cm.vIf(ClosureInf.class, closure);
+      // else
+      cm.vGoto(meta); //TODO: Possibly an infinite loop
+    }
+
+    mv.visitLabel(meta);
+    {
+      cm.vGetMetaOp("__call", ()-> func.load());
+      cm.vCopyRef();
+      funcMeta.store();
+      cm.vIf(IFNULL, ()-> cm.vThrow("Object did not have __call metatable set"));
+
+      returnBase2.load();
+      localBase2.store();
+      cm.vInt(1);
+      nArguments2.load();
+      mv.visitInsn(IADD);
+      nArguments2.store();
+
+      funcMeta.load();
+      func.store();
+      cm.vGoto(checkType);
+    }
+    cm.vGoto(end);
+
+    mv.visitLabel(javafunc);
+    {
+      state.vCI.load();
+      cm.vNewFrame(localBase2, returnBase2, nArguments2, false);
+
+      state.vCI.load();
+      func.load();
+      cm.vCast(JavaFunction.class);
+      cm.vInvokeFunc(CI, "call", JavaFunction.class);
+      cm.vPopFrame();
+    }
+    cm.vGoto(end);
+
+    mv.visitLabel(closure);
+    {
+      func.load();
+      cm.vCast(ClosureInf.class);
+      //cm.vCopyRef();
+      cm.vNewFrame(localBase2, returnBase2, nArguments2, true);
+
+      func.load();
+      cm.vCast(ClosureInf.class);
+      cm.vThis();
+      cm.vInvokeFunc(CI, "call", LuaScript.class);
+    }
+    cm.vGoto(end);
+
+    mv.visitLabel(end);
+    state.endInstruction();
   }
 
 
-  void op_tailcall() {
+  void op_tailcall(State state) {
     int a = getA8(op);
     int b = getB9(op);
+
+    state.beginInstruction();
+    state.endInstruction();
   }
 
 
-  void op_return() {
+  void op_return(State state) {
     int a = getA8(op);
-    int b = getB9(op) - 1;
+    int b = getB9(op);
+
+    state.beginInstruction();
+    LocalVar vb = state.newVar(I, "b");
+
+    cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
+
+    if (b == 0) {
+      cm.vGetTop();
+      cm.vInt(a);
+      mv.visitInsn(ISUB);
+      vb.store();
+    } else {
+      cm.vInt(b - 1);
+      vb.store();
+    }
+
+    cm.vStackCopy(new IBuildParam3() {
+      public void param1() {
+        cm.vGetBase();
+        cm.vInt(a);
+        mv.visitInsn(IADD);
+      }
+      public void param2() {
+        cm.vReturnBase();
+      }
+      public void param3() {
+        vb.load();
+      }
+    });
+
+    cm.vSetCoroutineTop(()-> {
+      cm.vReturnBase();
+      cm.vInt(b);
+      mv.visitInsn(IADD);
+    });
+
+    cm.vGoto(state.returnLabel);
+    state.endInstruction();
   }
 
 
@@ -1225,37 +1412,25 @@ public class LuaBuilder implements ClassMaker.IConst {
       state.readNextOp();
       final int nb = getB9(op);
 
+      // newci.upvalues[i] =
+      ci.load();
+      cm.vField(ClosureInf.class, "upvalues");
+      cm.vInt(i);
+
       switch (opcode) {
       case OP_MOVE:
-        // newci.upvalues[i] =
-        ci.load();
-        cm.vField(ClosureInf.class, "upvalues");
-        cm.vInt(i);
-        // callFrame.findUpvalue(b);
-        mv.visitVarInsn(ALOAD, vCallframe);
-        cm.vInt(nb);
-        cm.vInvokeFunc(FR, "findUpvalue", I);
-
-        mv.visitInsn(AASTORE);
+        cm.vFindUpvalue(()-> cm.vInt(nb));
         break;
 
       case OP_GETUPVAL:
-        // newci.upvalues[i] =
-        ci.load();
-        cm.vField(ClosureInf.class, "upvalues");
-        cm.vInt(i);
-        // closure.upvalues[b];
-        mv.visitVarInsn(ALOAD, vClosure);
-        cm.vField(LuaClosure.class, "upvalues");
-        cm.vInt(nb);
-        mv.visitInsn(AALOAD);
-
-        mv.visitInsn(AASTORE);
+        cm.vGetUpvalueFromClosure(()-> cm.vInt(nb));
         break;
 
       default:
+        cm.vNull();
         throw new RuntimeException("bad operate code in op_closure");
       }
+      mv.visitInsn(AASTORE);
     }
 
     state.endInstruction();

@@ -46,6 +46,7 @@ public class TestKahluaThread2 implements Runnable {
   public void ___asm() {
     int []a = new int[]{};
     Tool.pl(a[99]);
+    callFrame.restoreTop = true;
   }
 
 

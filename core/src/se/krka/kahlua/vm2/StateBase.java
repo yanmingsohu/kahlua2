@@ -29,7 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 
-public abstract class StateBase implements ClassMaker.IConst {
+public abstract class StateBase implements IConst {
 
   private final MethodVisitor mv;
   private boolean inFunction;
@@ -61,9 +61,9 @@ public abstract class StateBase implements ClassMaker.IConst {
   }
 
 
-  public void checkIfNotEnd() {
+  public void checkIfNotEnd(String message) {
     if (inFunction) {
-      throw new RuntimeException("Forgot to END");
+      throw new RuntimeException("Forgot to END, "+ message);
     }
   }
 
@@ -72,8 +72,7 @@ public abstract class StateBase implements ClassMaker.IConst {
     if (!inFunction) {
       throw new RuntimeException("Instruction not started");
     }
-    LocalVar v = new LocalVar(mv, c, varId + vUser, name, s, e);
-    ++varId;
+    LocalVar v = new LocalVar(mv, c, nextVarid(), name, s, e);
     if (name != null && s != null && e != null) {
       outputVarDebugInf.add(v);
     }
@@ -85,5 +84,18 @@ public abstract class StateBase implements ClassMaker.IConst {
     for (LocalVar lv : outputVarDebugInf) {
       lv.output();
     }
+  }
+
+
+  public int nextVarid() {
+    return nextVarid(vUser);
+  }
+
+
+  public int nextVarid(int offset) {
+    if (offset > 0) {
+      return offset + (varId++);
+    }
+    return (varId++);
   }
 }

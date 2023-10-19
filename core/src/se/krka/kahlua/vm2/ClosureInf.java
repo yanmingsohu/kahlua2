@@ -22,8 +22,7 @@
 
 package se.krka.kahlua.vm2;
 
-import se.krka.kahlua.vm.Prototype;
-import se.krka.kahlua.vm.UpValue;
+import se.krka.kahlua.vm.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -38,6 +37,8 @@ public class ClosureInf {
   public final String funcName;
 
   private Method mc;
+  private LuaCallFrame oframe;
+  private LuaClosure ocl;
 
 
   public ClosureInf(Prototype prototype,
@@ -69,5 +70,37 @@ public class ClosureInf {
     } catch (IllegalAccessException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
+  }
+
+
+  public void call(JavaFunction f) {
+    int nReturnValues = f.call(oframe, oframe.nArguments);
+
+    int top = oframe.getTop();
+    int actualReturnBase = top - nReturnValues;
+
+    int diff = oframe.returnBase - oframe.localBase;
+    oframe.stackCopy(actualReturnBase, diff, nReturnValues);
+    oframe.setTop(nReturnValues + diff);
+  }
+
+
+  public void newFrame(Coroutine c, int lcBase, int rBase, int nArg, boolean isLua) {
+    LuaClosure lc = new LuaClosure(prototype, c.environment);
+    LuaCallFrame cf = c.pushNewCallFrame(lc, null, lcBase, rBase, nArg, isLua, false);
+    cf.init();
+
+    this.oframe = cf;
+    this.ocl = lc;
+  }
+
+
+  public LuaCallFrame getOldFrame() {
+    return oframe;
+  }
+
+
+  public LuaClosure getOldClosure() {
+    return ocl;
   }
 }

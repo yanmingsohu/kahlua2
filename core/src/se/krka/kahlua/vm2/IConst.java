@@ -22,49 +22,37 @@
 
 package se.krka.kahlua.vm2;
 
-import org.objectweb.asm.MethodVisitor;
+
+import se.krka.kahlua.vm.Coroutine;
+import se.krka.kahlua.vm.LuaCallFrame;
 import se.krka.kahlua.vm.LuaClosure;
-import se.krka.kahlua.vm.UpValue;
-
-import static org.objectweb.asm.Opcodes.*;
+import se.krka.kahlua.vm.Prototype;
 
 
-public class VUpvalueOp implements IConst {
+public interface IConst {
+  int rootClosure = 0;
+  int vThis = 0; // must be 0
+  int vCallframe = 1;
+  int vPlatform = 2;
+  int vClosure = 3;
+  int vPrototype = 4;
+  int vCI = 5;
 
-  private final ClassMaker cm;
-  private final MethodVisitor mv;
-  private final int tmpVarIndex;
+  int vUser = 6;
 
+  Class O = Object.class;
+  Class S = String.class;
+  Class I = int.class;
+  Class F = float.class;
+  Class D = double.class;
+  Class B = boolean.class;
+  Class PT = Prototype.class;
+  Class FR = LuaCallFrame.class;
+  Class CU = LuaClosure.class;
+  Class LS = LuaScript.class;
+  Class CR = Coroutine.class;
+  Class CI = ClosureInf.class;
 
-  /**
-   * Used to operate Upvalue objects
-   * @param cm
-   * @param mv
-   * @param upindex index in vClosure array
-   * @param _tmpVarIndex index in heap variable, can be 0
-   */
-  VUpvalueOp(ClassMaker cm, MethodVisitor mv, int upindex, int _tmpVarIndex) {
-    this.cm = cm;
-    this.mv = mv;
-    this.tmpVarIndex = vUser + _tmpVarIndex;
-
-    mv.visitVarInsn(ALOAD, vClosure);
-    cm.vField(LuaClosure.class, "upvalues");
-    mv.visitLdcInsn(upindex);
-    mv.visitInsn(AALOAD);
-    mv.visitVarInsn(ASTORE, tmpVarIndex);
-  }
-
-
-  public void getValue() {
-    mv.visitVarInsn(ALOAD, tmpVarIndex);
-    cm.vInvokeFunc(UpValue.class, "getValue");
-  }
-
-
-  public void setValue(IBuildParam p) {
-    mv.visitVarInsn(ALOAD, tmpVarIndex);
-    p.param1();
-    cm.vInvokeFunc(UpValue.class, "setValue", O);
-  }
+  String TS = "TRUE";
+  String FS = "FALSE";
 }

@@ -24,6 +24,6 @@ package se.krka.kahlua.vm2;
 
 public interface IMathOp {
 
-  void calc(int bd, int cd);
+  void calc(LocalVar bd, LocalVar cd);
 
 }

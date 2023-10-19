@@ -55,6 +55,7 @@ public class LocalVar {
   private final int index;
   private final Code code;
   private final Class type;
+  private boolean readonly;
   String name;
   Label s, e;
 
@@ -92,6 +93,7 @@ public class LocalVar {
    * store stack top value to var(on index)
    */
   public void store() {
+    if (readonly) throw new RuntimeException("Is read only");
     mv.visitVarInsn(code.savecode, index);
   }
 
@@ -100,6 +102,11 @@ public class LocalVar {
     StringBuilder buf = new StringBuilder();
     Tool.typeName(buf, type);
     mv.visitLocalVariable(name, buf.toString(), null, s, e, index);
+  }
+
+
+  void lock() {
+    this.readonly = true;
   }
 
 

@@ -26,7 +26,6 @@ package se.krka.kahlua.vm2;
 import org.objectweb.asm.*;
 import se.krka.kahlua.vm.*;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -35,33 +34,9 @@ import java.lang.reflect.Method;
 
 import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.Opcodes.*;
-import static se.krka.kahlua.vm2.ClassMaker.IConst.*;
 import static se.krka.kahlua.vm2.Tool.*;
 
-public class ClassMaker {
-
-  public interface IConst {
-    int rootClosure = 0;
-    int vThis = 0;
-    int vCallframe = 1;
-    int vPlatform = 2;
-    int vClosure = 3;
-    int vPrototype = 4;
-    int vUser = 5;
-
-    Class O = Object.class;
-    Class S = String.class;
-    Class I = int.class;
-    Class F = float.class;
-    Class D = double.class;
-    Class PT = Prototype.class;
-    Class FR = LuaCallFrame.class;
-    Class CU = LuaClosure.class;
-    Class LS = LuaScript.class;
-
-    String TS = "TRUE";
-    String FS = "FALSE";
-  }
+public class ClassMaker implements IConst {
 
 
   private ClassWriter cw;
@@ -281,6 +256,17 @@ public class ClassMaker {
   }
 
 
+  void vPutField(Class owner, String fname) {
+    String oclass = toClassPath(owner.getName());
+
+    Field f = getField(owner, fname);
+    StringBuilder desc = new StringBuilder();
+    typeName(desc, f.getType());
+
+    mv.visitFieldInsn(PUTFIELD, oclass, f.getName(), desc.toString());
+  }
+
+
   void vStatic(Field f) {
     Class c = f.getDeclaringClass();
     String oclass = toClassPath(c.getName());
@@ -334,26 +320,29 @@ public class ClassMaker {
 
   public void vClosureFunctionHeader(LuaBuilder.State s) {
     final ClosureInf inf = s.ci;
-    // final LuaClosure vClosure = newClosure(rootClosure);
-    vThis();
+    // final ClosureInf ci = plist[index];
+    vField("plist");
     vInt(inf.arrIndex);
-    vInvokeFunc(LuaScript.class, "newClosure", I);
+    mv.visitInsn(AALOAD);
+    mv.visitVarInsn(ASTORE, vCI);
+
+    // final LuaClosure vClosure = ci.getOldClosure();
+    mv.visitVarInsn(ALOAD, vCI);
+    vInvokeFunc(ClosureInf.class, "getOldClosure");
     mv.visitVarInsn(ASTORE, vClosure);
 
-    // final LuaCallFrame vCallframe = newFrame(closure);
-    vThis();
-    mv.visitVarInsn(ALOAD, vClosure);
-    vInvokeFunc(LuaScript.class, "newFrame", CU);
+    // final LuaCallFrame vCallframe = closure.getOldFrame();
+    mv.visitVarInsn(ALOAD, vCI);
+    vInvokeFunc(ClosureInf.class, "getOldFrame");
     mv.visitVarInsn(ASTORE, vCallframe);
 
     // final Platform vPlatform = this.platform
     vField("platform");
     mv.visitVarInsn(ASTORE, vPlatform);
 
-    // final Prototype vPrototype = this.findPrototype(i)
-    vThis();
-    vInt(inf.arrIndex);
-    vInvokeFunc(LuaScript.class, "findPrototype", I);
+    // final Prototype vPrototype = ci.prototype
+    mv.visitVarInsn(ALOAD, vCI);
+    vField(ClosureInf.class, "prototype");
     mv.visitVarInsn(ASTORE, vPrototype);
   }
 
@@ -557,6 +546,15 @@ public class ClassMaker {
   }
 
 
+  void vCallMetaOp(String metaOp, IBuildParam2 p) {
+    vThis();
+    p.param1();
+    p.param2();
+    mv.visitLdcInsn(metaOp);
+    vInvokeFunc(LuaScript.class, "metaOp", O, O, S);
+  }
+
+
   void vCall(IBuildParam4 p) {
     vThis();
     p.param1();
@@ -617,6 +615,111 @@ public class ClassMaker {
   }
 
 
+  /**
+   * get stack top index to java stack
+   */
+  void vGetTop() {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vInvokeFunc(FR, "getTop");
+  }
+
+
+  /**
+   * get stack base index to java stack
+   */
+  void vGetBase() {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vField(FR, "localBase");
+  }
+
+
+  void vCloseLocalUpvlues(IBuildParam p) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    p.param1();
+    vInvokeFunc(LuaCallFrame.class, "closeUpvalues", I);
+  }
+
+
+  // coroutine.closeUpvalues(base);
+  void vCloseCoroutineUpvalues(IBuildParam p) {
+    vField("coroutine");
+    p.param1();
+    vInvokeFunc(Coroutine.class, "closeUpvalues", I);
+  }
+
+
+  // coroutine.stackCopy(a, returnBase, b);
+  void vStackCopy(IBuildParam3 p) {
+    vField("coroutine");
+    p.param1();
+    p.param2();
+    p.param3();
+    vInvokeFunc(Coroutine.class, "stackCopy", I,I,I);
+  }
+
+
+  // currentCoroutine.setTop(b);
+  void vSetCoroutineTop(IBuildParam p) {
+    vField("coroutine");
+    p.param1();
+    vInvokeFunc(Coroutine.class, "setTop", I);
+  }
+
+
+  void vSetFrameTop(IBuildParam p) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    p.param1();
+    vInvokeFunc(FR, "setTop", I);
+  }
+
+
+  void vPushVarargs(IBuildParam2 p) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    p.param1();
+    p.param2();
+    vInvokeFunc(LuaCallFrame.class, "pushVarargs", I,I);
+  }
+
+
+  // callFrame.findUpvalue(b);
+  void vFindUpvalue(IBuildParam p) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    p.param1();
+    vInvokeFunc(FR, "findUpvalue", I);
+  }
+
+
+  // closure.upvalues[b];
+  void vGetUpvalueFromClosure(IBuildParam p) {
+    mv.visitVarInsn(ALOAD, vClosure);
+    vField(LuaClosure.class, "upvalues");
+    p.param1();
+    mv.visitInsn(AALOAD);
+  }
+
+
+  void vNewFrame(LocalVar lb, LocalVar ret, LocalVar arg, boolean isLua) {
+    vField("coroutine");
+    lb.load();
+    ret.load();
+    arg.load();
+    vBoolean(isLua);
+    vInvokeFunc(CI, "newFrame", CR,I,I,I,B);
+  }
+
+
+  void vPopFrame() {
+    vField("coroutine");
+    vInvokeFunc(CR, "popCallFrame");
+  }
+
+
+  void vReturnBase() {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vField(FR, "returnBase");
+  }
+
+
   void vStore(LocalVar v) {
     v.store();
   }
@@ -656,6 +759,18 @@ public class ClassMaker {
   }
 
 
+  void vIf(int ifop, IIFot opfunc) {
+    vIf(ifop, new IIF() {
+      public void doThen() {
+        opfunc.doThen();
+      }
+      public void doElse() {
+        // do nothing
+      }
+    });
+  }
+
+
   /**
    * if var instanceof c,
    * You need to execute vCast() yourself to do the conversion
@@ -665,6 +780,12 @@ public class ClassMaker {
       mv.visitTypeInsn(INSTANCEOF, toClassPath(c.getName()));
       mv.visitJumpInsn(IFNE, _then);
     }, opfunc);
+  }
+
+
+  void vIf(Class c, Label jump) {
+    mv.visitTypeInsn(INSTANCEOF, toClassPath(c.getName()));
+    mv.visitJumpInsn(IFNE, jump);
   }
 
 

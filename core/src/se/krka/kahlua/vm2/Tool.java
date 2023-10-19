@@ -131,6 +131,11 @@ public class Tool {
   }
 
 
+  public static String toLocalVarName(Class c) {
+    return c.getSimpleName();
+  }
+
+
   public static String formatClassName(String path) {
     StringBuilder r = new StringBuilder();
     int state = 0;
