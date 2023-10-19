@@ -65,9 +65,9 @@ public class LocalVar {
     this.type = whatType;
     this.index = index;
     this.mv = mv;
-    this.name = name;
     this.s = s;
     this.e = e;
+    this.name = name;
   }
 
 

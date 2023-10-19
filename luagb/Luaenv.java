@@ -8,6 +8,7 @@ import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaThread;
 import se.krka.kahlua.vm.LuaClosure;
+import se.krka.kahlua.vm2.KahluaThread2;
 
 import javax.swing.*;
 import java.awt.*;
@@ -24,13 +25,12 @@ import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 
 
 public class Luaenv {
-  
-	private final KahluaConverterManager converterManager = new KahluaConverterManager();
-	private final J2SEPlatform platform = new J2SEPlatform();
-	private final KahluaTable env = platform.newEnvironment();
-	private final KahluaThread thread = new KahluaThread(platform, env);
-	private final LuaCaller caller = new LuaCaller(converterManager);
-	private final LuaJavaClassExposer exposer = new LuaJavaClassExposer(converterManager, platform, env);
+
+	private final J2SEPlatform platform;
+	private final KahluaTable env;
+	private final KahluaThread thread;
+	private final LuaCaller caller;
+	private final LuaJavaClassExposer exposer;
 	private final String baseDir = "./luagb/";
 
 	private Map<String, Object> libCache;
@@ -52,6 +52,14 @@ public class Luaenv {
 	}
 
 	private Luaenv() {
+		KahluaConverterManager converterManager = new KahluaConverterManager();
+		platform = new J2SEPlatform();
+		env = platform.newEnvironment();
+		thread = new KahluaThread(platform, env);
+		caller = new LuaCaller(converterManager);
+		exposer = new LuaJavaClassExposer(converterManager, platform, env);
+		//thread.setOutputDir("./bin");
+
 		libCache = new HashMap<>();
 		buf = new BufferedImage(Width, Height, TYPE_INT_RGB);
 		lastt = System.currentTimeMillis();

@@ -188,6 +188,17 @@ public class ClassMaker implements IConst {
   }
 
 
+  void vInvokeConstructor(Class owner, IBuildParam p, Class ...param) {
+    Method m = getMethod(owner, CONSTRUCTOR, param);
+    String classPath = toClassPath(owner);
+
+    mv.visitTypeInsn(NEW, classPath);
+    vCopyRef();
+    p.param1(); // All params !!!
+    mv.visitMethodInsn(INVOKESPECIAL, classPath, CONSTRUCTOR, getMethodSi(m), false);
+  }
+
+
   void vInt(int a) {
     mv.visitLdcInsn(a);
   }
@@ -204,7 +215,12 @@ public class ClassMaker implements IConst {
 
 
   void vBoolean(boolean b) {
-    mv.visitLdcInsn(b);
+    //mv.visitLdcInsn(b);
+    if (b) {
+      mv.visitInsn(ICONST_1);
+    } else {
+      mv.visitInsn(ICONST_0);
+    }
   }
 
 
@@ -303,12 +319,38 @@ public class ClassMaker implements IConst {
 
 
   void vThrow(String errMsg) {
-    mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
-    mv.visitInsn(DUP);
-    mv.visitLdcInsn(errMsg);
-    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException",
-      "<init>", "(Ljava/lang/String;)V", false);
+    vThrow(()-> mv.visitLdcInsn(errMsg));
+  }
+
+
+  void vThrow(IBuildParam p) {
+    final String RE = "java/lang/RuntimeException";
+    mv.visitTypeInsn(NEW, RE);
+    vCopyRef();
+    p.param1();
+    mv.visitMethodInsn(INVOKESPECIAL, RE, CONSTRUCTOR, "(Ljava/lang/String;)V", false);
     mv.visitInsn(ATHROW);
+  }
+
+
+  void vConcatString(Object ...oa) {
+    final String SB = "java/lang/StringBuilder";
+    mv.visitTypeInsn(NEW, SB);
+    vCopyRef();
+    mv.visitMethodInsn(INVOKESPECIAL, SB, CONSTRUCTOR, "()V", false);
+
+    for (Object o : oa) {
+      if (o instanceof LocalVar) {
+        vCopyRef();
+        ((LocalVar)o).load();
+        vInvokeFunc(StringBuilder.class, "append", Object.class);
+      } else {
+        vCopyRef();
+        vString(String.valueOf(o));
+        vInvokeFunc(StringBuilder.class, "append", String.class);
+      }
+    }
+    vInvokeFunc(StringBuilder.class, "toString");
   }
 
 

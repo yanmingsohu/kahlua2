@@ -89,9 +89,9 @@ public class Tool {
 
   public static void typeName(StringBuilder b, Type t) {
     if (t instanceof Class) {
-      Class c = (Class) t;
+      final Class c = (Class) t;
       if (c.isPrimitive()) {
-        b.append(Character.toUpperCase(t.getTypeName().charAt(0)));
+        b.append(primitiveName(c));
         return;
       } else if (c.isArray()) {
         b.append(toClassPath(c));
@@ -101,6 +101,21 @@ public class Tool {
     b.append('L');
     b.append(toClassPath(t.getTypeName()));
     b.append(';');
+  }
+
+
+  public static char primitiveName(Class c) {
+    if (c == void.class)    return ('V');
+    if (c == boolean.class) return ('Z');
+    if (c == int.class)     return ('I');
+    if (c == double.class)  return ('D');
+    if (c == byte.class)    return ('B');
+    if (c == char.class)    return ('C');
+    if (c == short.class)   return ('S');
+    if (c == long.class)    return ('J');
+    if (c == float.class)   return ('F');
+    //b.append(Character.toUpperCase(t.getTypeName().charAt(0)));
+    throw new RuntimeException("Not primitive "+ c);
   }
 
 
@@ -132,7 +147,8 @@ public class Tool {
 
 
   public static String toLocalVarName(Class c) {
-    return c.getSimpleName();
+    String name = c.getSimpleName();
+    return "_"+ Character.toLowerCase(name.charAt(0)) + name.substring(1);
   }
 
 

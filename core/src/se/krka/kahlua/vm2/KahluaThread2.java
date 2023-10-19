@@ -112,6 +112,18 @@ public class KahluaThread2 extends KahluaThread {
       return callJava((JavaFunction) o, base + 1, base, nArguments);
     }
 
+    if (o instanceof ClosureInf) {
+      ClosureInf ci = (ClosureInf)o;
+      LuaCallFrame f = currentCoroutine.currentCallFrame();
+      if (f != null) {
+        ci.setFrame(f.closure, f);
+      } else {
+        ci.newFrame(currentCoroutine, base + 1, base, nArguments, true);
+      }
+      ci.call();
+      return currentCoroutine.getTop() - base;
+    }
+
     if (!(o instanceof LuaClosure)) {
       throw new RuntimeException("tried to call a non-function");
     }

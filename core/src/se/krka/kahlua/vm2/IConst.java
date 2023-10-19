@@ -55,4 +55,5 @@ public interface IConst {
 
   String TS = "TRUE";
   String FS = "FALSE";
+  String CONSTRUCTOR = "<init>";
 }

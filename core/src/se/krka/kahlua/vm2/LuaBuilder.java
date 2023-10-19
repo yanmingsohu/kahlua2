@@ -164,6 +164,16 @@ public class LuaBuilder implements IConst {
     public LocalVar newVar(Class c, String name) {
       return super.newVar(c, name, label, labels[npc]);
     }
+
+
+    public void vAllVariables() {
+      super.vAllVariables();
+      vCallframe.output();
+      vPlatform.output();
+      vClosure.output();
+      vPrototype.output();
+      vCI.output();
+    }
   }
 
 
@@ -241,8 +251,7 @@ public class LuaBuilder implements IConst {
 
 
   public void vDebugInf() {
-    cm.vPrint(KahluaThread2.opName(opcode)
-      +" ( "+ opcode +" ):"+ line + " SBx:"+ getSBx(op));
+    cm.vPrint(classPath +":"+ line +" "+ KahluaThread2.opName(opcode));
 
     Tool.pl("LL ",pc, Tool.str4byte(Integer.toHexString(op)),
       opNames[opcode], line);
@@ -339,10 +348,10 @@ public class LuaBuilder implements IConst {
         cm.vEnvironment();
       }
       public void param2() {
-        cm.vGetStackVar(a);
+        cm.vGetConstants(b);
       }
       public void param3() {
-        cm.vGetConstants(b);
+        cm.vGetStackVar(a);
       }
     });
   }
@@ -1236,12 +1245,14 @@ public class LuaBuilder implements IConst {
     LocalVar nArguments2 = state.newVar(I, "nArguments2");
     LocalVar returnBase2 = state.newVar(I, "returnBase2");
     LocalVar funcMeta = state.newVar(O, "funcMeta");
+    LocalVar errMsg = state.newVar(String.class, "errMsg");
 
     Label javafunc = new Label();
     Label closure = new Label();
     Label end = new Label();
     Label meta = new Label();
     Label checkType = new Label();
+    Label oldClosure = new Label();
 
     cm.vGetStackVar(a);
     func.store();
@@ -1279,6 +1290,8 @@ public class LuaBuilder implements IConst {
       cm.vIf(JavaFunction.class, javafunc);
       func.load();
       cm.vIf(ClosureInf.class, closure);
+      func.load();
+      cm.vIf(LuaClosure.class, oldClosure);
       // else
       cm.vGoto(meta); //TODO: Possibly an infinite loop
     }
@@ -1288,7 +1301,15 @@ public class LuaBuilder implements IConst {
       cm.vGetMetaOp("__call", ()-> func.load());
       cm.vCopyRef();
       funcMeta.store();
-      cm.vIf(IFNULL, ()-> cm.vThrow("Object did not have __call metatable set"));
+
+      cm.vIf(IFNULL, ()-> {
+        cm.vGetStackVar(a);
+        func.store();
+        cm.vConcatString("Object ", func, " did not have __call metatable set");
+        errMsg.store();
+
+        cm.vThrow(()-> errMsg.load());
+      });
 
       returnBase2.load();
       localBase2.store();
@@ -1327,6 +1348,15 @@ public class LuaBuilder implements IConst {
       cm.vCast(ClosureInf.class);
       cm.vThis();
       cm.vInvokeFunc(CI, "call", LuaScript.class);
+    }
+    cm.vGoto(end);
+
+    mv.visitLabel(oldClosure);
+    {
+      state.vCI.load();
+      func.load();
+      cm.vCast(LuaClosure.class);
+      cm.vInvokeFunc(CI, "call", LuaClosure.class);
     }
     cm.vGoto(end);
 

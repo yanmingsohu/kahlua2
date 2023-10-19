@@ -39,6 +39,7 @@ public class ClosureInf {
   private Method mc;
   private LuaCallFrame oframe;
   private LuaClosure ocl;
+  private LuaScript bind;
 
 
   public ClosureInf(Prototype prototype,
@@ -56,6 +57,7 @@ public class ClosureInf {
   public void installMethod(LuaScript ls) {
     try {
       mc = ls.getClass().getDeclaredMethod(funcName);
+      bind = ls;
 
     } catch (NoSuchMethodException e) {
       throw new RuntimeException(e);
@@ -73,6 +75,11 @@ public class ClosureInf {
   }
 
 
+  public void call() {
+    call(bind);
+  }
+
+
   public void call(JavaFunction f) {
     int nReturnValues = f.call(oframe, oframe.nArguments);
 
@@ -85,11 +92,22 @@ public class ClosureInf {
   }
 
 
+  public void call(LuaClosure oldc) {
+    throw new RuntimeException("Cannot support LuaClosure call "+ oldc);
+  }
+
+
   public void newFrame(Coroutine c, int lcBase, int rBase, int nArg, boolean isLua) {
     LuaClosure lc = new LuaClosure(prototype, c.environment);
     LuaCallFrame cf = c.pushNewCallFrame(lc, null, lcBase, rBase, nArg, isLua, false);
     cf.init();
 
+    this.oframe = cf;
+    this.ocl = lc;
+  }
+
+
+  public void setFrame(LuaClosure lc, LuaCallFrame cf) {
     this.oframe = cf;
     this.ocl = lc;
   }

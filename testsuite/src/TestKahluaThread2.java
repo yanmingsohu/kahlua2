@@ -30,6 +30,7 @@ import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.*;
 import se.krka.kahlua.vm2.*;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -44,16 +45,23 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
+    StringBuilder ab = new StringBuilder();
     int []a = new int[]{};
     Tool.pl(a[99]);
     callFrame.restoreTop = true;
+    String c = "a00" + a.toString() + "b00";
+    int i = 10;
+    i = 300;
+    i = 70000;
+    boolean b = true;
   }
 
 
   public static void main(String[] av) throws Exception {
-    testVM();
+//    testVM();
 //    testLuaBuilder();
 //    test1();
+    testAllLua();
     Tool.pl("Done");
   }
 
@@ -61,6 +69,13 @@ public class TestKahluaThread2 implements Runnable {
   private static void testLuaBuilder() throws Exception {
     TestLuaBuild tlb = new TestLuaBuild();
     tlb.test_every_lua_code();
+  }
+
+
+  private static void testAllLua() throws Exception {
+    File dir = new File("./testsuite/lua");
+    File files1 = new File(dir, "array.lua");
+    Test.testDir(dir, files1);
   }
 
 
@@ -78,6 +93,7 @@ public class TestKahluaThread2 implements Runnable {
     LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
 
     printError(ret);
+    Test.verifyCorrectStack(thread);
   }
 
 
@@ -208,4 +224,5 @@ public class TestKahluaThread2 implements Runnable {
       agent.run();
     }
   }
+
 }

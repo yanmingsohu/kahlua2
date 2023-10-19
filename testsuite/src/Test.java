@@ -24,18 +24,33 @@ import se.krka.kahlua.j2se.J2SEPlatform;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.stdlib.OsLib;
 import se.krka.kahlua.vm.*;
+import se.krka.kahlua.vm2.KahluaThread2;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
+
 
 public class Test {
+
+	static final boolean USE_NEW_THREAD = true;
+
+
+	static KahluaThread newThread() {
+		Platform pl = J2SEPlatform.getInstance();
+		PrintStream out = System.out;
+
+		if (USE_NEW_THREAD) {
+			KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
+			thread.setOutputDir("./bin");
+			return thread;
+		} else {
+			return new KahluaThread(out, pl, pl.newEnvironment());
+		}
+	}
+
+
 	private static KahluaThread getThread(File dir) throws FileNotFoundException, IOException {
-        Platform platform = new J2SEPlatform();
-        KahluaThread thread = new KahluaThread(System.out, platform, platform.newEnvironment());
+        Platform platform = J2SEPlatform.getInstance();
+        KahluaThread thread = newThread();
 		OsLib.register(platform, thread.getEnvironment());
 		LuaCompiler.register(thread.getEnvironment());
 
@@ -65,18 +80,8 @@ public class Test {
 		return thread;
 	}
 	
-	public static void main(String[] args) throws FileNotFoundException, IOException {
+	public static void main(String[] args) throws Exception {
 		File dir = new File(args[0]);
-
-		KahluaThread thread = getThread(dir);
-		
-		Object runTest = thread.getEnvironment().rawget("testCall");
-		KahluaUtil.luaAssert(runTest != null, "Could not find testCall");
-		Object generateReportClosure = thread.getEnvironment().rawget("generatereport");
-		KahluaUtil.luaAssert(generateReportClosure != null, "Could not find generatereport");
-		Object mergeTestsClosure = thread.getEnvironment().rawget("mergetests");
-		KahluaUtil.luaAssert(mergeTestsClosure != null, "Could not find mergetests");
-
 		File[] children = null;
 		for (int i = 1; i < args.length; i++) {
 			if (args[i].length() > 0) {
@@ -95,6 +100,20 @@ public class Test {
 		if (children == null) {
 			children = dir.listFiles();
 		}
+		testDir(dir, children);
+	}
+
+	public static void testDir(File dir, File ...children) throws Exception {
+		KahluaThread thread = getThread(dir);
+		
+		Object runTest = thread.getEnvironment().rawget("testCall");
+		KahluaUtil.luaAssert(runTest != null, "Could not find testCall");
+		Object generateReportClosure = thread.getEnvironment().rawget("generatereport");
+		KahluaUtil.luaAssert(generateReportClosure != null, "Could not find generatereport");
+		Object mergeTestsClosure = thread.getEnvironment().rawget("mergetests");
+		KahluaUtil.luaAssert(mergeTestsClosure != null, "Could not find mergetests");
+
+
 
 		KahluaTable testsuites = thread.getPlatform().newTable();
 		for (int i = 0; i < children.length; i++) {
@@ -147,7 +166,7 @@ public class Test {
 		}
 	}
 
-	private static void verifyCorrectStack(KahluaThread thread) {
+	public static void verifyCorrectStack(KahluaThread thread) {
 		KahluaUtil.luaAssert(thread.currentCoroutine.getCallframeTop() == 0, "");
 		KahluaUtil.luaAssert(thread.currentCoroutine != null, "coroutine is missing");
 		KahluaUtil.luaAssert(thread.currentCoroutine.getThread() != null, "coroutine is missing thread " + thread.currentCoroutine);
