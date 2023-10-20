@@ -1236,7 +1236,6 @@ public class LuaBuilder implements IConst {
       public void param1() {
         cm.vInt(a);
       }
-      @Override
       public void param2() {
         cm.vInt(b);
       }
@@ -1244,9 +1243,6 @@ public class LuaBuilder implements IConst {
   }
 
 
-  /**
-   * CALL A B C    R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
-   */
   void op_call(State state) {
     int a = getA8(op);
     int b = getB9(op);
@@ -1258,7 +1254,8 @@ public class LuaBuilder implements IConst {
     LocalVar nArguments2 = state.newVar(I, "nArguments2");
     LocalVar returnBase2 = state.newVar(I, "returnBase2");
     LocalVar funcMeta = state.newVar(O, "funcMeta");
-    LocalVar errMsg = state.newVar(String.class, "errMsg");
+    LocalVar errMsg = state.newVar(S, "errMsg");
+    LocalVar clazz = state.newVar(Class.class, "class");
 
     Label javafunc = new Label();
     Label closure = new Label();
@@ -1296,6 +1293,11 @@ public class LuaBuilder implements IConst {
     cm.vInt(a);
     mv.visitInsn(IADD);
     returnBase2.store(); // returnBase2 = base + a;
+
+    func.load();
+    cm.vInvokeFunc(Object.class, "getClass");
+    clazz.store();
+    cm.vPrint("CallFunction:", clazz, func);
 
     cm.vBlock(checkType, meta, ()-> {
       func.load();
@@ -1337,7 +1339,8 @@ public class LuaBuilder implements IConst {
       state.vCI.load();
       func.load();
       cm.vCast(JavaFunction.class);
-      cm.vInvokeFunc(CI, "call", JavaFunction.class);
+      cm.vField("coroutine");
+      cm.vInvokeFunc(CI, "call", JavaFunction.class, CR);
       // cm.vPopFrame();
     });
 

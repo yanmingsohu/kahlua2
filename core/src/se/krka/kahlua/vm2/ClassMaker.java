@@ -409,6 +409,12 @@ public class ClassMaker implements IConst {
   }
 
 
+  public void vPrint(Object ...o) {
+    vObjectArray(o);
+    vInvokeStatic(Tool.class, "pl", Object[].class);
+  }
+
+
   void vEnvironment() {
     mv.visitVarInsn(ALOAD, vClosure);
     vField(LuaClosure.class, "env");
@@ -890,6 +896,23 @@ public class ClassMaker implements IConst {
       vInt(i);
       vInt(ia[i]);
       mv.visitInsn(IASTORE);
+    }
+  }
+
+
+  void vObjectArray(Object ...oa) {
+    vInt(oa.length);
+    mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+
+    for (int i=0; i<oa.length; ++i) {
+      vCopyRef();
+      vInt(i);
+      if (oa[i] instanceof LocalVar) {
+        ((LocalVar)oa[i]).load();
+      } else {
+        vString(String.valueOf(oa[i]));
+      }
+      mv.visitInsn(AASTORE);
     }
   }
 }

@@ -230,5 +230,4 @@ public abstract class LuaScript implements Runnable {
     return KahluaUtil.boolEval(res);
   }
 
-
 }

@@ -23,13 +23,9 @@
 package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.signature.SignatureVisitor;
-import se.krka.kahlua.vm.Coroutine;
-import se.krka.kahlua.vm.LuaCallFrame;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.List;
-import java.util.stream.Stream;
 
 
 public class Tool {
@@ -38,7 +34,7 @@ public class Tool {
   public static final char sp = ' ';
   public static final char ent = '\n';
   public static final String nil = "nil";
-  public static final String point = " -> ";
+  public static final String point = " -- ";
   public static final String spoint = " +> ";
 
 
@@ -276,52 +272,51 @@ public class Tool {
 
 
   public static void objectArray2String(StringBuilder out, Object[] s) {
-    objectArray2String(out, s, (i)-> false);
+    objectArray2String(out, s, 0, (i)-> false);
   }
 
 
   /**
    * This function is crazy
    */
-  public static void objectArray2String(StringBuilder out, Object[] s, ISelect st) {
+  public static void objectArray2String(StringBuilder out, Object[] s, int base, ISelect st) {
     int ns = 0;
     int ne = 0;
     int nstate = 0;
 
-    for (int i=0;i < s.length; ++i) {
+    for (int i=0; i+base < s.length; ++i) {
       final boolean isCh = st.isChoise(i);
       final boolean nEnd = (i+1 >= s.length);
-      String pt = isCh ? spoint : point;
+      final Object obj = s[i + base];
+      final String pt = isCh ? spoint : point;
 
-      if ((nstate == 1) && isCh && (s[i] == null)) {
+      if ((nstate == 1) && isCh && (obj == null)) {
         if (ns != i) {
           out.append(ent).append(str8len(ns)).append("~");
         }
-        out.append(ent).append(str8len(i))
-           .append(spoint).append(nil);
+        out.append(ent).append(str8len(i)).append(spoint).append(nil);
         ns = i+1;
         ne = i+1;
         continue;
       }
 
-      if ((nstate == 1) && ( (s[i] != null) || nEnd )) {
+      if ((nstate == 1) && ( (obj != null) || nEnd )) {
         nstate = 0;
 
         if (s[i] == null) ne = i;
 
         if (ns == ne) {
-          out.append(ent).append(str8len(ns))
-             .append(point).append(nil);
+          out.append(ent).append(str8len(ns)).append(point).append(nil);
         } else {
           out.append(ent).append(str8len(ns)).append("~\n")
              .append(Tool.str8len(ne)).append(point).append(nil);
         }
       }
 
-      if (s[i] != null) {
-        String addr = Integer.toHexString( System.identityHashCode(s[i]) );
-        String desc = s[i].getClass().getName() +"@"+ addr;
-        String str  = s[i].toString();
+      if (obj != null) {
+        String addr = Integer.toHexString( System.identityHashCode(obj) );
+        String desc = obj.getClass().getName() +"@"+ addr;
+        String str  = obj.toString();
 
         out.append(ent).append(str8len(i)).append(pt).append(desc);
         if (! desc.equals(str)) {

@@ -151,7 +151,7 @@ public class DebugInf implements IConst {
     }
 
     cm.vPrint(msg);
-    cm.vPrint(" -- "+ opDesc());
+    cm.vPrint("[ "+ opDesc() +" ]");
   }
 
 
@@ -356,7 +356,7 @@ public class DebugInf implements IConst {
     StringBuilder out = new StringBuilder(100);
     out.append("Lua stack(").append(s.length).append(") [L");
     out.append(f.localBase).append(" R").append(f.returnBase).append("]");
-    Tool.objectArray2String(out, s, selectInt(i));
+    Tool.objectArray2String(out, s, f.localBase, selectInt(i));
     Tool.pl(out, "\n");
   }
 
@@ -368,7 +368,7 @@ public class DebugInf implements IConst {
     Object[] s = p.constants;
     StringBuilder out = new StringBuilder(100);
     out.append("Lua consts(").append(s.length).append(')');
-    Tool.objectArray2String(out, s, selectInt(i));
+    Tool.objectArray2String(out, s, 0, selectInt(i));
     Tool.pl(out, "\n");
   }
 

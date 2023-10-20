@@ -85,7 +85,9 @@ public class ClosureInf {
   }
 
 
-  public void call(JavaFunction f) {
+  public void call(JavaFunction f, Coroutine c) {
+    newFrame(c);
+
     int nReturnValues = f.call(oframe, oframe.nArguments);
 
     int top = oframe.getTop();
@@ -95,9 +97,9 @@ public class ClosureInf {
     oframe.stackCopy(actualReturnBase, diff, nReturnValues);
     oframe.setTop(nReturnValues + diff);
 
-//    if (oframe.restoreTop) {
-//      oframe.setTop(prototype.maxStacksize);
-//    }
+    c.popCallFrame();
+//    this.oframe = c.currentCallFrame();
+//    this.ocl = oframe.closure;
   }
 
 
@@ -108,8 +110,8 @@ public class ClosureInf {
    * @param oldc
    */
   public void call(LuaClosure oldc, int nArguments) {
-    //throw new RuntimeException("Cannot support LuaClosure call "+ oldc);
-    KahluaThread2 t = new KahluaThread2(bind.platform, bind.coroutine.environment);
+    KahluaThread2 t = new KahluaThread2(bind.platform,
+                                        bind.coroutine.environment);
     t.call(oldc, bind.coroutine, nArguments);
   }
 
@@ -118,6 +120,7 @@ public class ClosureInf {
     LuaClosure lc = new LuaClosure(prototype, c.environment);
     LuaCallFrame cf = c.pushNewCallFrame(
         lc, null, localBase, returnBase, nArguments, isLua, false);
+
     cf.init();
 
     for (int i=0; i<upvalues.length; ++i) {
