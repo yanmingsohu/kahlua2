@@ -22,10 +22,17 @@
 
 package se.krka.kahlua.vm2;
 
+import se.krka.kahlua.vm.Coroutine;
+import se.krka.kahlua.vm.LuaCallFrame;
+import se.krka.kahlua.vm.Prototype;
+
 import static se.krka.kahlua.vm2.KahluaThread2.*;
 
 
-public class DebugInf {
+public class DebugInf implements IConst {
+
+  private final static int NotReg = -1;
+  private final static int NotConst = -1;
 
   final static String[] opNames = {
     /*  0 */  "OP_MOVE"
@@ -143,13 +150,105 @@ public class DebugInf {
         break;
     }
 
-    cm.vPrint(msg +"\n -- "+ opDesc());
-
+    cm.vPrint(msg);
+    cm.vPrint(" -- "+ opDesc());
   }
 
 
-  public void stack() {
+  public void stackAll() {
     cm.vPrintLuaStack();
+    cm.vPrintConsts();
+  }
+
+
+  /**
+   * Stack offset not calculated
+   */
+  public void stack() {
+    final int a = getA8(op);
+    final int b = getB9(op);
+    final int c = getC9(op);
+    final int bx = getBx(op);
+
+    switch (opcode) {
+      case OP_MOVE:
+      case OP_UNM:
+      case OP_NOT:
+      case OP_LEN:
+      case OP_TESTSET:
+        cm.vPrintLuaStack(a, b);
+        break;
+
+      case OP_LOADK:
+        cm.vPrintConsts(bx);
+        //nobreak;
+
+      case OP_LOADBOOL:
+      case OP_LOADNIL:
+      case OP_SETUPVAL:
+      case OP_GETUPVAL: //UpValue
+      case OP_NEWTABLE:
+      case OP_TEST:
+      case OP_CALL:
+      case OP_TAILCALL:
+      case OP_RETURN:
+      case OP_FORLOOP:
+      case OP_FORPREP:
+      case OP_TFORLOOP:
+      case OP_SETLIST:
+      case OP_CLOSURE:
+      case OP_VARARG:
+      case OP_CLOSE:
+        cm.vPrintLuaStack(a);
+        break;
+
+      case OP_GETTABLE:
+      case OP_SELF:
+        cm.vPrintConsts(RKK(c));
+        cm.vPrintLuaStack(a, b, RKR(c));
+        break;
+
+      case OP_SETTABLE:
+      case OP_ADD:
+      case OP_SUB:
+      case OP_MUL:
+      case OP_DIV:
+      case OP_MOD:
+      case OP_POW:
+        cm.vPrintConsts(RKK(b), RKK(c));
+        cm.vPrintLuaStack(a, RKR(b), RKR(c));
+        break;
+
+      case OP_CONCAT:
+        cm.vPrintLuaStack(a, b, c);
+        break;
+
+      case OP_JMP:
+        break;
+
+      case OP_EQ:
+      case OP_LT:
+      case OP_LE:
+        cm.vPrintConsts(RKK(b), RKK(c));
+        cm.vPrintLuaStack(RKR(b), RKR(c));
+        break;
+
+      case OP_GETGLOBAL:
+      case OP_SETGLOBAL:
+        cm.vPrintConsts(bx);
+        cm.vPrintLuaStack(a);
+        break;
+    }
+  }
+
+
+  private int RKR(int i) {
+    return i<LuaConstVarBegin ? i : NotReg;
+  }
+
+
+  private int RKK(int i) {
+    return i<LuaConstVarBegin ? NotConst : i-LuaConstVarBegin;
   }
 
 
@@ -159,92 +258,128 @@ public class DebugInf {
 
 
   public String opDesc() {
-    return opDesc(opcode);
-  }
+    final int a = getA8(op);
+    final int b = getB9(op);
+    final int c = getC9(op);
+    final int bx = getBx(op);
+    final int sbx = getSBx(op);
 
-
-  public String opDesc(int opcode) {
     switch (opcode) {
       case OP_MOVE:
-        return "MOVE A B     R(A) := R(B)";
+        return String.format("MOVE  A B     R(A:%d) := R(B:%d)", a, b);
       case OP_LOADK:
-        return "LOADK A Bx    R(A) := Kst(Bx)";
+        return String.format("LOADK A Bx    R(A:%d) := Kst(Bx:%d)", a, b);
       case OP_LOADBOOL:
-        return "LOADBOOL A B C    R(A) := (Bool)B; if (C) pc++";
+        return String.format("LDBOL A B C   R(A:%d) := (Bool)B:%d; if (C:%d) pc++", a, b, c);
       case OP_LOADNIL:
-        return "LOADNIL A B     R(A), R(A+1), ..., R(A+B) := nil";
+        return String.format("LDNIL A B     R(A:%d), R(A:%d+1), ..., R(A:%d+B:%d) := nil", a, a, a, b);
       case OP_GETUPVAL:
-        return "GETUPVAL  A B     R(A) := UpValue[B]";
+        return String.format("GTUVL A B     R(A:%d) := UpValue[B:%d]", a, b);
       case OP_GETTABLE:
-        return "GETTABLE A B C   R(A) := R(B)[RK(C)]";
+        return String.format("GTTBE A B C   R(A:%d) := R(B:%d)[RK(C:%d)]", a, b, c);
       case OP_SETUPVAL:
-        return "SETUPVAL  A B     UpValue[B] := R(A)";
+        return String.format("STUVL A B     UpValue[B:%d] := R(A:%d)", b, a);
       case OP_SETTABLE:
-        return "SETTABLE A B C   R(A)[RK(B)] := RK(C)";
+        return String.format("STTBL A B C   R(A:%d)[RK(B:%d)] := RK(C:%d)", a, b, c);
       case OP_NEWTABLE:
-        return "NEWTABLE A B C   R(A) := {} (size = B,C)";
+        return String.format("NETBL A B C   R(A:%d) := {} (size = B:%d,C:%d)", a, b, c);
       case OP_SELF:
-        return "SELF  A B C   R(A+1) := R(B); R(A) := R(B)[RK(C)]";
+        return String.format("SELF  A B C   R(A:%d+1) := R(B:%d); R(A:%d) := R(B:%d)[RK(C:%d)]", a, b, a, b, c);
       case OP_ADD:
-        return "ADD   A B C   R(A) := RK(B) + RK(C)";
+        return String.format("ADD   A B C   R(A:%d) := RK(B:%d) + RK(C:%d)", a, b, c);
       case OP_SUB:
-        return "SUB   A B C   R(A) := RK(B) - RK(C)";
+        return String.format("SUB   A B C   R(A:%d) := RK(B:%d) - RK(C:%d)", a, b, c);
       case OP_MUL:
-        return "MUL   A B C   R(A) := RK(B) * RK(C)";
+        return String.format("MUL   A B C   R(A:%d) := RK(B:%d) * RK(C:%d)", a, b, c);
       case OP_DIV:
-        return "DIV   A B C   R(A) := RK(B) / RK(C)";
+        return String.format("DIV   A B C   R(A:%d) := RK(B:%d) / RK(C:%d)", a, b, c);
       case OP_MOD:
-        return "MOD   A B C   R(A) := RK(B) % RK(C)";
+        return String.format("MOD   A B C   R(A:%d) := RK(B:%d) % RK(C:%d)", a, b, c);
       case OP_POW:
-        return "POW   A B C   R(A) := RK(B) ^ RK(C)";
+        return String.format("POW   A B C   R(A:%d) := RK(B:%d) ^ RK(C:%d)", a,b,c);
       case OP_UNM:
-        return "UNM   A B     R(A) := -R(B)";
+        return String.format("UNM   A B     R(A:%d) := -R(B:%d)", a,b);
       case OP_NOT:
-        return "NOT   A B     R(A) := not R(B)";
+        return String.format("NOT   A B     R(A:%d) := not R(B:%d)", a,b);
       case OP_LEN:
-        return "LEN A B     R(A) := length of R(B)";
+        return String.format("LEN   A B     R(A:%d) := length of R(B:%d)", a, b);
       case OP_CONCAT:
-        return "CONCAT A B C   R(A) := R(B).. ... ..R(C)";
+        return String.format("CONCT A B C   R(A:%d) := R(B:%d).. ... ..R(C:%d)", a, b, c);
       case OP_JMP:
-        return "JMP A sBx   pc+=sBx; if (A) close all upvalues >= R(A - 1)";
+        return String.format("JMP   A sBx   pc+=sBx:%d; if (A:%d) close all upvalues >= R(A:%d - 1)", sbx, a, a);
       case OP_EQ:
-        return "EQ  A B C if ((RK(B) == RK(C)) ~= A) then PC++";
+        return String.format("EQ    A B C   if ((RK(B:%d) == RK(C:%d)) ~= A:%d) then PC++", b, c, a);
       case OP_LT:
-        return "LT  A B C if ((RK(B) <  RK(C)) ~= A) then PC++";
+        return String.format("LT    A B C   if ((RK(B:%d) <  RK(C:%d)) ~= A:%d) then PC++", b, c, a);
       case OP_LE:
-        return "LE  A B C if ((RK(B) <= RK(C)) ~= A) then PC++";
+        return String.format("LE    A B C   if ((RK(B:%d) <= RK(C:%d)) ~= A:%d) then PC++", b, c, a);
       case OP_TEST:
-        return "TEST        A C     if (boolean(R(A)) != C) then PC++";
+        return String.format("TEST  A C     if (boolean(R(A:%d)) != C:%d) then PC++", a, c);
       case OP_TESTSET:
-        return "TESTSET     A B C   if (boolean(R(B)) != C) then PC++ else R(A) := R(B)";
+        return String.format("TESSE A B C   if (boolean(R(B:%d)) != C:%d) then PC++ else R(A:%d) := R(B:%d)", b, c, a, b);
       case OP_CALL:
-        return "CALL A B C    R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))";
+        return String.format("CALL  A B C   R(A:%d), ... ,R(A:%d+C:%d-2) := R(A:%d)(R(A:%d+1), ... ,R(A:%d+B:%d-1))", a, a, c, a, a, a, b);
       case OP_TAILCALL:
-        return "TAILCALL  A B C return R(A)(R(A+1), ... ,R(A+B-1))";
+        return String.format("TCALL A B C   return R(A:%d)(R(A:%d+1), ... ,R(A:%d+B:%d-1))", a, a, a, b);
       case OP_RETURN:
-        return "RETURN  A B return R(A), ... ,R(A+B-2)";
+        return String.format("RETUN A B     return R(A:%d), ... ,R(A:%d+B:%d-2)", a,a,b);
       case OP_FORLOOP:
-        return "FORLOOP    A sBx   R(A)+=R(A+2);\n" +
-               "                   if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }";
+        return String.format("FOLOP A sBx   R(A:%d)+=R(A:%d+2); If R(A:%d) <?= R(A:%d+1) then { pc+=sBx:%d; R(A:%d+3)=R(A:%d) }", a,a,a, a,sbx,a,a);
       case OP_FORPREP:
-        return "FORPREP    A sBx   R(A)-=R(A+2); pc+=sBx";
+        return String.format("FOPRP A sBx   R(A:%d)-=R(A:%d+2); pc+=sBx:%d", a,a,sbx);
       case OP_TFORLOOP:
-        return "TFORLOOP    A sBx      if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }";
+        return String.format("TFRLP A sBx   if R(A:%d+1) ~= nil then { R(A:%d)=R(A:%d+1); pc += sBx:%d }", a,a,a,sbx);
       case OP_SETLIST:
-        return "SETLIST A B C   R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B";
+        return String.format("SEIST A B C   R(A:%d)[(C:%d-1)*FPF+i] := R(A:%d+i), 1 <= i <= B:%d", a,c,a,b);
       case OP_CLOSURE:
-        return "CLOSURE A Bx    R(A) := closure(KPROTO[Bx])";
+        return String.format("CLSRE A Bx    R(A:%d) := closure(KPROTO[Bx:%d])", a,bx);
       case OP_VARARG:
-        return "VARARG  A B R(A), R(A+1), ..., R(A+B-1) = vararg";
+        return String.format("VARAG A B     R(A:%d), R(A:%d+1), ..., R(A:%d+B:%d-1) = vararg", a,a,a,b);
 
       case OP_GETGLOBAL:
-        return "GETGLOBAL A B   R(A) := ENV(B) || CONST(B)";
+        return String.format("GTGBL A Bx    R(A:%d) := ENV(CONST(Bx:%d))", a,bx);
       case OP_SETGLOBAL:
-        return "SETGLOBAL A B   ENV(CONST(B)) = R(A)";
-        case OP_CLOSE:
-        return "CLOSE close all upvalues >= R[A]";
+        return String.format("STGBL A Bx    ENV(CONST(Bx:%d)) = R(A:%d)", bx, a);
+      case OP_CLOSE:
+        return String.format("CLOSE A       close all upvalues >= R[A:%d]", a);
 
     }
     return "UNKNOW";
   }
+
+
+  /**
+   * @see ClassMaker#vPrintLuaStack(int...)
+   */
+  public static void printLuaStack(Coroutine coroutine, LuaCallFrame f, int ...i) {
+    Object[] s = coroutine.objectStack;
+    StringBuilder out = new StringBuilder(100);
+    out.append("Lua stack(").append(s.length).append(") [L");
+    out.append(f.localBase).append(" R").append(f.returnBase).append("]");
+    Tool.objectArray2String(out, s, selectInt(i));
+    Tool.pl(out, "\n");
+  }
+
+
+  /**
+   * @see ClassMaker#vPrintConsts(int...)
+   */
+  public static void printLuaConsts(Prototype p, int ...i) {
+    Object[] s = p.constants;
+    StringBuilder out = new StringBuilder(100);
+    out.append("Lua consts(").append(s.length).append(')');
+    Tool.objectArray2String(out, s, selectInt(i));
+    Tool.pl(out, "\n");
+  }
+
+
+  private static ISelect selectInt(int ...is) {
+    return i -> {
+      for (int x : is) {
+        if (x == i) return true;
+      }
+      return false;
+    };
+  }
+
 }

@@ -131,6 +131,6 @@ public class KahluaTableImpl implements KahluaTable {
 
 	@Override
     public String toString() {
-        return "table 0x" + System.identityHashCode(this);
+        return "table 0x" + Integer.toHexString(System.identityHashCode(this));
     }
 }

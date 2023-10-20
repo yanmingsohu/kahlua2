@@ -24,6 +24,7 @@ package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.signature.SignatureVisitor;
 import se.krka.kahlua.vm.Coroutine;
+import se.krka.kahlua.vm.LuaCallFrame;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -38,6 +39,7 @@ public class Tool {
   public static final char ent = '\n';
   public static final String nil = "nil";
   public static final String point = " -> ";
+  public static final String spoint = " +> ";
 
 
   public static void pl(Object o) {
@@ -274,53 +276,67 @@ public class Tool {
 
 
   public static void objectArray2String(StringBuilder out, Object[] s) {
+    objectArray2String(out, s, (i)-> false);
+  }
+
+
+  /**
+   * This function is crazy
+   */
+  public static void objectArray2String(StringBuilder out, Object[] s, ISelect st) {
     int ns = 0;
     int ne = 0;
     int nstate = 0;
-    int i = 0;
 
-    for (;;) {
-      if ((nstate == 1) && ((s[i] != null) || (i+1 >= s.length))) {
+    for (int i=0;i < s.length; ++i) {
+      final boolean isCh = st.isChoise(i);
+      final boolean nEnd = (i+1 >= s.length);
+      String pt = isCh ? spoint : point;
+
+      if ((nstate == 1) && isCh && (s[i] == null)) {
+        if (ns != i) {
+          out.append(ent).append(str8len(ns)).append("~");
+        }
+        out.append(ent).append(str8len(i))
+           .append(spoint).append(nil);
+        ns = i+1;
+        ne = i+1;
+        continue;
+      }
+
+      if ((nstate == 1) && ( (s[i] != null) || nEnd )) {
         nstate = 0;
+
         if (s[i] == null) ne = i;
+
         if (ns == ne) {
           out.append(ent).append(str8len(ns))
-            .append(point).append(nil);
+             .append(point).append(nil);
         } else {
           out.append(ent).append(str8len(ns)).append("~\n")
-            .append(Tool.str8len(ne)).append(point).append(nil);
+             .append(Tool.str8len(ne)).append(point).append(nil);
         }
       }
 
       if (s[i] != null) {
-        String desc = s[i].getClass().getName() +"@"+ Integer.toHexString(s[i].hashCode());
-        String str = s[i].toString();
+        String addr = Integer.toHexString( System.identityHashCode(s[i]) );
+        String desc = s[i].getClass().getName() +"@"+ addr;
+        String str  = s[i].toString();
 
-        out.append(ent).append(str8len(i)).append(point).append(desc);
+        out.append(ent).append(str8len(i)).append(pt).append(desc);
         if (! desc.equals(str)) {
-          out.append(sp).append('"').append(s[i].toString()).append('"');
+          out.append(sp).append('"').append(str).append('"');
         }
       } else {
-        //out.append(nil);
         if (nstate == 0) {
           nstate = 1;
           ns = i;
           ne = i;
-        } else if (nstate == 1) {
+        }
+        else if (nstate == 1) {
           ne = i;
         }
       }
-
-      if (++i >= s.length) break;
     }
-  }
-
-
-  public static void printLuaStack(Coroutine coroutine) {
-    Object[] s = coroutine.objectStack;
-    StringBuilder out = new StringBuilder(100);
-    out.append("Lua stack(").append(s.length).append("):");
-    Tool.objectArray2String(out, s);
-    Tool.pl(out, "\n");
   }
 }

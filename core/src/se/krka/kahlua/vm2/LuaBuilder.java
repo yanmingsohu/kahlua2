@@ -62,7 +62,7 @@ public class LuaBuilder implements IConst {
     this.classPath = _classPath;
     this.className = Tool.formatClassName(classPath);
     this.cm = new ClassMaker(className, _outDir);
-    this.plist = new ArrayList<>(100);
+    this.plist = new ArrayList<>(30);
   }
 
 
@@ -93,6 +93,10 @@ public class LuaBuilder implements IConst {
       }
       do_op_code(opcode, state);
       state.checkIfNotEnd(DebugInf.opNames[opcode]);
+    }
+
+    if (debug) {
+      di.stackAll();
     }
 
     cm.vClosureFunctionFoot(state);
@@ -319,6 +323,23 @@ public class LuaBuilder implements IConst {
     });
   }
 
+  void op_setglobal() {
+    final int a = getA8(op);
+    final int b = getBx(op);
+
+    cm.vSetTableVar(new IBuildParam3() {
+      public void param1() {
+        cm.vEnvironment();
+      }
+      public void param2() {
+        cm.vGetConstants(b);
+      }
+      public void param3() {
+        cm.vGetStackVar(a);
+      }
+    });
+  }
+
   void op_gettable() {
     final int a = getA8(op);
     final int b = getB9(op);
@@ -334,23 +355,6 @@ public class LuaBuilder implements IConst {
           cm.vGetRegOrConst(c, notused);
         }
       });
-    });
-  }
-
-  void op_setglobal() {
-    final int a = getA8(op);
-    final int b = getBx(op);
-
-    cm.vSetTableVar(new IBuildParam3() {
-      public void param1() {
-        cm.vEnvironment();
-      }
-      public void param2() {
-        cm.vGetConstants(b);
-      }
-      public void param3() {
-        cm.vGetStackVar(a);
-      }
     });
   }
 
@@ -1408,7 +1412,7 @@ public class LuaBuilder implements IConst {
 
     cm.vSetCoroutineTop(()-> {
       cm.vReturnBase();
-      cm.vInt(b);
+      vb.load();
       mv.visitInsn(IADD);
     });
 

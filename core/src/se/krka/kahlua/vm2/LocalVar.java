@@ -71,6 +71,11 @@ public class LocalVar {
   }
 
 
+  LocalVar(MethodVisitor mv, Class whatType, int index) {
+    this(mv, whatType, index, "local_"+ index, null, null);
+  }
+
+
   private static Code findCode(Class c) {
     Code code = types.get(c);
     if (code == null) {

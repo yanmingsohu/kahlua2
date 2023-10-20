@@ -59,6 +59,9 @@ public class KahluaThread2 extends KahluaThread {
     if (o == null) {
       throw new RuntimeException("tried to call nil");
     }
+    if (debug) {
+      Tool.pl("(base:", base, "nArg:", nArguments, "Func:", o, outputDir, ")");
+    }
 
     if (o instanceof JavaFunction) {
       return callJava((JavaFunction) o, base + 1, base, nArguments);
@@ -105,11 +108,16 @@ public class KahluaThread2 extends KahluaThread {
     currentCoroutine = cor;
     int top = cor.getTop();
     int base = top - nArguments - 1;
+    int localBase = base +1;
+    int returnBase = base;
 
     LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(oldc, null,
-      base + 1, base, nArguments, false, false);
+      localBase, returnBase, nArguments, false, false);
     callFrame.init();
 
+    if (debug) {
+      Tool.pl("Call old thread", localBase, returnBase, nArguments);
+    }
     luaMainloop();
 
     int nReturnValues = currentCoroutine.getTop() - base;

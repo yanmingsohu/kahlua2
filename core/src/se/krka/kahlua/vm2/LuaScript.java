@@ -117,8 +117,7 @@ public abstract class LuaScript implements Runnable {
   protected void auto_op_concat(int a, int b, int c, LuaCallFrame callFrame) {
     int first = b;
     int last = c;
-
-    printLuaStack();
+    //Tool.pl("concat", a, b, c, callFrame.localBase);
 
     Object res = callFrame.get(last);
     last--;
@@ -232,7 +231,4 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  protected void printLuaStack() {
-    Tool.printLuaStack(coroutine);
-  }
 }

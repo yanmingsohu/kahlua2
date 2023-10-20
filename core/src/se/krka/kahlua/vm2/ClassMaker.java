@@ -392,11 +392,9 @@ public class ClassMaker implements IConst {
 
     for (Object o : oa) {
       if (o instanceof LocalVar) {
-        vCopyRef();
         ((LocalVar)o).load();
         vInvokeFunc(StringBuilder.class, "append", Object.class);
       } else {
-        vCopyRef();
         vString(String.valueOf(o));
         vInvokeFunc(StringBuilder.class, "append", String.class);
       }
@@ -574,7 +572,7 @@ public class ClassMaker implements IConst {
    *                 so it must be reserved in advance
    */
   void vGetRegOrConst(int i, int varindex) {
-    int cindex = i - 256;
+    final int cindex = i - LuaConstVarBegin;
     if (cindex < 0) {
       vGetStackVar(i);
     } else {
@@ -657,6 +655,11 @@ public class ClassMaker implements IConst {
   void vToObjectDouble(boolean isString) {
     Class p = isString ? String.class : D;
     vInvokeStatic(Double.class, "valueOf", p);
+  }
+
+
+  void vToInteger() {
+    vInvokeStatic(Integer.class, "valueOf", I);
   }
 
 
@@ -862,8 +865,31 @@ public class ClassMaker implements IConst {
   }
 
 
-  void vPrintLuaStack() {
+  void vPrintLuaStack(int ...i) {
     vThis();
-    vInvokeFunc(LuaScript.class, "printLuaStack");
+    vField(LuaScript.class, "coroutine");
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vIntArray(i);
+    vInvokeStatic(DebugInf.class, "printLuaStack", CR, FR, int[].class);
+  }
+
+
+  void vPrintConsts(int ...i) {
+    mv.visitVarInsn(ALOAD, vPrototype);
+    vIntArray(i);
+    vInvokeStatic(DebugInf.class, "printLuaConsts", PT, int[].class);
+  }
+
+
+  void vIntArray(int ...ia) {
+    vInt(ia.length);
+    mv.visitIntInsn(NEWARRAY, T_INT);
+
+    for (int i=0; i<ia.length; ++i) {
+      vCopyRef();
+      vInt(i);
+      vInt(ia[i]);
+      mv.visitInsn(IASTORE);
+    }
   }
 }

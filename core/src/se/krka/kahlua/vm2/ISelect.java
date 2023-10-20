@@ -22,40 +22,8 @@
 
 package se.krka.kahlua.vm2;
 
+public interface ISelect {
 
-import se.krka.kahlua.vm.Coroutine;
-import se.krka.kahlua.vm.LuaCallFrame;
-import se.krka.kahlua.vm.LuaClosure;
-import se.krka.kahlua.vm.Prototype;
+  boolean isChoise(int i);
 
-
-public interface IConst {
-  int rootClosure = 0;
-  int LuaConstVarBegin = 256;
-
-  int vThis = 0; // must be 0
-  int vCallframe = 1;
-  int vPlatform = 2;
-  int vClosure = 3;
-  int vPrototype = 4;
-  int vCI = 5;
-
-  int vUser = 6;
-
-  Class O = Object.class;
-  Class S = String.class;
-  Class I = int.class;
-  Class F = float.class;
-  Class D = double.class;
-  Class B = boolean.class;
-  Class PT = Prototype.class;
-  Class FR = LuaCallFrame.class;
-  Class CU = LuaClosure.class;
-  Class LS = LuaScript.class;
-  Class CR = Coroutine.class;
-  Class CI = ClosureInf.class;
-
-  String TS = "TRUE";
-  String FS = "FALSE";
-  String CONSTRUCTOR = "<init>";
 }

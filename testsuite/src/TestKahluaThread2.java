@@ -45,8 +45,10 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public void ___asm() {
-    Platform p = new J2SEPlatform();
-    p.newTable();
+    int[] is = new int[10];
+    is[0] = 99;
+    is[1] = 90;
+    is[2] = 89;
   }
 
 
