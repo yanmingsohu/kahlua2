@@ -92,7 +92,6 @@ public class LuaBuilder implements IConst {
         di.build();
       }
       do_op_code(opcode, state);
-      state.checkIfNotEnd(DebugInf.opNames[opcode]);
     }
 
     if (debug) {
@@ -167,6 +166,11 @@ public class LuaBuilder implements IConst {
     }
 
 
+    private Label jump1() {
+      return labels[npc + 1];
+    }
+
+
     private boolean hasNext() {
       return npc < opcodes.length;
     }
@@ -197,6 +201,7 @@ public class LuaBuilder implements IConst {
 
 
   protected void do_op_code(int opcode, State state) {
+    state.resetVarIndex();
     switch (opcode) {
       case OP_MOVE: op_move(); break;
       case OP_LOADK: op_loadk(); break;
@@ -503,8 +508,6 @@ public class LuaBuilder implements IConst {
     int b = getB9(op);
     int c = getC9(op);
 
-    s.beginInstruction();
-
     final LocalVar bo = s.newVar(O, "bo");
     final LocalVar co = s.newVar(O, "co");
     final LocalVar bd = s.newVar(O, "bd");
@@ -582,7 +585,6 @@ public class LuaBuilder implements IConst {
     // saveRes()
     cm.vLabel(saveRes, line);
     cm.vSetStackVar(a, ()-> res.load());
-    s.endInstruction();
   }
 
   void op_unm() {
@@ -1148,7 +1150,6 @@ public class LuaBuilder implements IConst {
     int b = getB9(op);
     int c = getC9(op);
 
-    state.beginInstruction();
     final LocalVar count = state.newVar(I, "count");
     final LocalVar table = state.newVar(O, "table");
     final LocalVar offset = state.newVar(I, "offset");
@@ -1217,7 +1218,6 @@ public class LuaBuilder implements IConst {
 
     // end for()
     mv.visitLabel(forend);
-    state.endInstruction();
   }
 
 
@@ -1248,7 +1248,6 @@ public class LuaBuilder implements IConst {
     int b = getB9(op);
     int c = getC9(op);
 
-    state.beginInstruction();
     LocalVar func = state.newVar(O, "function");
     LocalVar nArguments2 = state.newVar(I, "nArguments2");
     LocalVar clazz = state.newVar(Class.class, "class");
@@ -1285,8 +1284,6 @@ public class LuaBuilder implements IConst {
     nArguments2.load();
     cm.vInt(a);
     cm.vInvokeFunc(LuaScript.class, "call", CI,FR,O,I,I);
-
-    state.endInstruction();
   }
 
 
@@ -1294,9 +1291,7 @@ public class LuaBuilder implements IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    state.beginInstruction();
     cm.vThrow("Not implements");
-    state.endInstruction();
   }
 
 
@@ -1307,7 +1302,6 @@ public class LuaBuilder implements IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    state.beginInstruction();
     LocalVar vb = state.newVar(I, "b");
 
     cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
@@ -1343,7 +1337,6 @@ public class LuaBuilder implements IConst {
     });
 
     cm.vGoto(state.returnLabel);
-    state.endInstruction();
   }
 
 
@@ -1354,7 +1347,6 @@ public class LuaBuilder implements IConst {
     Prototype p = state.ci.prototype.prototypes[b];
     ClosureInf newci = pushClosure(p, closureFuncName(), a);
 
-    state.beginInstruction();
     LocalVar ci = state.newVar(ClosureInf.class, "ci");
 
     cm.vField("plist");
@@ -1391,7 +1383,5 @@ public class LuaBuilder implements IConst {
       }
       mv.visitInsn(AASTORE);
     }
-
-    state.endInstruction();
   }
 }

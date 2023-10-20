@@ -32,7 +32,6 @@ import java.util.List;
 public abstract class StateBase implements IConst {
 
   private final MethodVisitor mv;
-  private boolean inFunction;
   private int varId = -1;
   private List<LocalVar> outputVarDebugInf;
 
@@ -43,35 +42,12 @@ public abstract class StateBase implements IConst {
   }
 
 
-  public void beginInstruction() {
-    if (inFunction) {
-      throw new RuntimeException("The previous instruction did not end");
-    }
-    inFunction = true;
+  public void resetVarIndex() {
     varId = 1;
   }
 
 
-  public void endInstruction() {
-    if (!inFunction) {
-      throw new RuntimeException("Instruction not started");
-    }
-    inFunction = false;
-    varId = -1;
-  }
-
-
-  public void checkIfNotEnd(String message) {
-    if (inFunction) {
-      throw new RuntimeException("Forgot to END, "+ message);
-    }
-  }
-
-
   public LocalVar newVar(Class c, String name, Label s, Label e) {
-    if (!inFunction) {
-      throw new RuntimeException("Instruction not started");
-    }
     LocalVar v = new LocalVar(mv, c, nextVarid(), name, s, e);
     if (name != null && s != null && e != null) {
       outputVarDebugInf.add(v);
