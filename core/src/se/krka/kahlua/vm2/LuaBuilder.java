@@ -1250,19 +1250,8 @@ public class LuaBuilder implements IConst {
 
     state.beginInstruction();
     LocalVar func = state.newVar(O, "function");
-    LocalVar localBase2 = state.newVar(I, "localBase2");
     LocalVar nArguments2 = state.newVar(I, "nArguments2");
-    LocalVar returnBase2 = state.newVar(I, "returnBase2");
-    LocalVar funcMeta = state.newVar(O, "funcMeta");
-    LocalVar errMsg = state.newVar(S, "errMsg");
     LocalVar clazz = state.newVar(Class.class, "class");
-
-    Label javafunc = new Label();
-    Label closure = new Label();
-    Label end = new Label();
-    Label meta = new Label();
-    Label checkType = new Label();
-    Label oldClosure = new Label();
 
     cm.vGetStackVar(a);
     func.store();
@@ -1282,88 +1271,21 @@ public class LuaBuilder implements IConst {
       nArguments2.store();
     }
 
+    if (debug) {
+      func.load();
+      cm.vInvokeFunc(Object.class, "getClass");
+      clazz.store();
+      cm.vPrint("CallFunction:", clazz, func);
+    }
+
+    cm.vThis();
+    state.vCI.load();
     state.vCallframe.load();
-    cm.vField(FR, "localBase");
-    cm.vCopyRef();
-
-    cm.vInt(a + 1);
-    mv.visitInsn(IADD);
-    localBase2.store(); // localBase2 = base + a + 1;
-
-    cm.vInt(a);
-    mv.visitInsn(IADD);
-    returnBase2.store(); // returnBase2 = base + a;
-
     func.load();
-    cm.vInvokeFunc(Object.class, "getClass");
-    clazz.store();
-    cm.vPrint("CallFunction:", clazz, func);
+    nArguments2.load();
+    cm.vInt(a);
+    cm.vInvokeFunc(LuaScript.class, "call", CI,FR,O,I,I);
 
-    cm.vBlock(checkType, meta, ()-> {
-      func.load();
-      cm.vIf(JavaFunction.class, javafunc);
-      func.load();
-      cm.vIf(ClosureInf.class, closure);
-      func.load();
-      cm.vIf(LuaClosure.class, oldClosure);
-    });
-
-    cm.vBlock(meta, checkType, ()-> {
-      cm.vGetMetaOp("__call", ()-> func.load());
-      cm.vCopyRef();
-      funcMeta.store();
-
-      cm.vIf(IFNULL, ()-> {
-        cm.vGetStackVar(a);
-        func.store();
-        cm.vConcatString("Object ", func, " did not have __call metatable set");
-        errMsg.store();
-
-        cm.vThrow(()-> errMsg.load());
-      });
-
-      returnBase2.load();
-      localBase2.store();
-      cm.vInt(1);
-      nArguments2.load();
-      mv.visitInsn(IADD);
-      nArguments2.store();
-
-      funcMeta.load();
-      func.store();
-    });
-
-    cm.vBlock(javafunc, end, ()-> {
-      cm.vNewFrameParams(state.vCI, localBase2, returnBase2, nArguments2, false);
-
-      state.vCI.load();
-      func.load();
-      cm.vCast(JavaFunction.class);
-      cm.vField("coroutine");
-      cm.vInvokeFunc(CI, "call", JavaFunction.class, CR);
-      // cm.vPopFrame();
-    });
-
-    cm.vBlock(closure, end, ()-> {
-      func.load();
-      cm.vCast(ClosureInf.class);
-      func.store();
-      cm.vNewFrameParams(func, localBase2, returnBase2, nArguments2, true);
-
-      func.load();
-      cm.vThis();
-      cm.vInvokeFunc(CI, "call", LuaScript.class);
-    });
-
-    cm.vBlock(oldClosure, end, ()-> {
-      state.vCI.load();
-      func.load();
-      cm.vCast(LuaClosure.class);
-      nArguments2.load();
-      cm.vInvokeFunc(CI, "call", LuaClosure.class, I);
-    });
-
-    mv.visitLabel(end);
     state.endInstruction();
   }
 
@@ -1373,6 +1295,7 @@ public class LuaBuilder implements IConst {
     int b = getB9(op);
 
     state.beginInstruction();
+    cm.vThrow("Not implements");
     state.endInstruction();
   }
 

@@ -272,66 +272,13 @@ public class Tool {
 
 
   public static void objectArray2String(StringBuilder out, Object[] s) {
-    objectArray2String(out, s, 0, (i)-> false);
+    new Array2String(out, s);
   }
 
 
-  /**
-   * This function is crazy
-   */
   public static void objectArray2String(StringBuilder out, Object[] s, int base, ISelect st) {
-    int ns = 0;
-    int ne = 0;
-    int nstate = 0;
-
-    for (int i=0; i+base < s.length; ++i) {
-      final boolean isCh = st.isChoise(i);
-      final boolean nEnd = (i+1 >= s.length);
-      final Object obj = s[i + base];
-      final String pt = isCh ? spoint : point;
-
-      if ((nstate == 1) && isCh && (obj == null)) {
-        if (ns != i) {
-          out.append(ent).append(str8len(ns)).append("~");
-        }
-        out.append(ent).append(str8len(i)).append(spoint).append(nil);
-        ns = i+1;
-        ne = i+1;
-        continue;
-      }
-
-      if ((nstate == 1) && ( (obj != null) || nEnd )) {
-        nstate = 0;
-
-        if (s[i] == null) ne = i;
-
-        if (ns == ne) {
-          out.append(ent).append(str8len(ns)).append(point).append(nil);
-        } else {
-          out.append(ent).append(str8len(ns)).append("~\n")
-             .append(Tool.str8len(ne)).append(point).append(nil);
-        }
-      }
-
-      if (obj != null) {
-        String addr = Integer.toHexString( System.identityHashCode(obj) );
-        String desc = obj.getClass().getName() +"@"+ addr;
-        String str  = obj.toString();
-
-        out.append(ent).append(str8len(i)).append(pt).append(desc);
-        if (! desc.equals(str)) {
-          out.append(sp).append('"').append(str).append('"');
-        }
-      } else {
-        if (nstate == 0) {
-          nstate = 1;
-          ns = i;
-          ne = i;
-        }
-        else if (nstate == 1) {
-          ne = i;
-        }
-      }
-    }
+    new Array2String(out, s, base, st);
   }
+
+
 }

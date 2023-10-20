@@ -230,4 +230,44 @@ public abstract class LuaScript implements Runnable {
     return KahluaUtil.boolEval(res);
   }
 
+
+  public void call(ClosureInf ci, LuaCallFrame fr, Object function,
+                   int nArguments2, int argBase) {
+    int localBase2 = fr.localBase + argBase + 1;
+    int returnBase2 = fr.localBase + argBase;
+    LuaClosure old = fr.closure;
+
+    do {
+      if (function instanceof JavaFunction) {
+        ci.frameParams(localBase2, returnBase2, nArguments2, false);
+        ci.call((JavaFunction) function, coroutine);
+        break;
+      }
+      else if (function instanceof ClosureInf) {
+        ClosureInf newCI = (ClosureInf) function;
+        newCI.frameParams(localBase2, returnBase2, nArguments2, true);
+        newCI.call();
+        break;
+      }
+      else if (function instanceof LuaClosure) {
+        ci.call((LuaClosure) function, nArguments2);
+        break;
+      }
+
+      Object funcMeta = this.getMetaOp(function, "__call");
+      if (funcMeta == null) {
+        String errMsg = "Object " + function + " did not have __call metatable set";
+        throw new RuntimeException(errMsg);
+      }
+
+      ++nArguments2;
+      localBase2 = returnBase2;
+      function = funcMeta;
+    } while(true);
+
+    if (fr.closure == null) {
+      Tool.pl("fr.closure is null !!!!??????????????????????????????");
+      fr.closure = old;
+    }
+  }
 }

@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -67,10 +68,21 @@ public class TestKahluaThread2 implements Runnable {
   }
 
 
+  private static File[] from(File dir, String ...names) {
+    File[] ret = new File[names.length];
+    for (int i=0; i<names.length; ++i) {
+      ret[i] = new File(dir, names[i]);
+    }
+    return ret;
+  }
+
+
   private static void testAllLua() throws Exception {
     File dir = new File("./testsuite/lua");
-    File files1 = new File(dir, "array.lua");
-    Test.testDir(dir, files1);
+
+    Test.testDir(dir, from(dir, new String[]{
+      "boolean.lua",
+    }));
   }
 
 
