@@ -293,7 +293,7 @@ public class Tool {
       }
 
       if (s[i] != null) {
-        String desc = s[i].getClass() +"@"+ Integer.toHexString(s[i].hashCode());
+        String desc = s[i].getClass().getName() +"@"+ Integer.toHexString(s[i].hashCode());
         String str = s[i].toString();
 
         out.append(ent).append(str8len(i)).append(point).append(desc);

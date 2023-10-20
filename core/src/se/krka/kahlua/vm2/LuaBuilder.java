@@ -33,7 +33,7 @@ import java.util.List;
 
 import static org.objectweb.asm.Opcodes.*;
 import static se.krka.kahlua.vm.KahluaThread.*;
-import static se.krka.kahlua.vm2.KahluaThread2.opNames;
+
 
 /**
  * @link https://the-ravi-programming-language.readthedocs.io/en/latest/lua_bytecode_reference.html
@@ -78,6 +78,7 @@ public class LuaBuilder implements IConst {
     mv = cm.beginMethod(ci.funcName);
     State state = new State(ci);
 
+    DebugInf di = new DebugInf(cm, classPath);
     mv.visitLabel(state.initLabel);
     cm.vClosureFunctionHeader(state);
     mv.visitLabel(state.initOverLabel);
@@ -85,10 +86,13 @@ public class LuaBuilder implements IConst {
     while (state.hasNext()) {
       state.readNextOp();
       if (debug) {
-        vDebugInf();
+        di.stack();
+        di.update(line, opcode, op, pc);
+        di.opArg();
+        di.build();
       }
       do_op_code(opcode, state);
-      state.checkIfNotEnd(opNames[opcode]);
+      state.checkIfNotEnd(DebugInf.opNames[opcode]);
     }
 
     cm.vClosureFunctionFoot(state);
@@ -250,58 +254,6 @@ public class LuaBuilder implements IConst {
 
   private String closureFuncName() {
     return "closure_"+ (id++);
-  }
-
-
-  public void vDebugInf() {
-    String msg = classPath +":"+ line +" "+ KahluaThread2.opName(opcode);
-    switch (opcode) {
-      default:
-        msg += "{ A:"+ getA8(op) +" B:"+ getB9(op) +" C:"+ getC9(op) + " }";
-        break;
-
-      case OP_MOVE:
-      case OP_LOADNIL:
-      case OP_GETUPVAL:
-      case OP_SETUPVAL:
-      case OP_UNM:
-      case OP_NOT:
-      case OP_LEN:
-      case OP_TAILCALL:
-      case OP_RETURN:
-      case OP_CLOSURE:
-      case OP_VARARG:
-        msg += "{ A:"+ getA8(op) +" B:"+ getB9(op) +" }";
-        break;
-
-      case OP_NEWTABLE:
-      case OP_CLOSE:
-        msg += "{ A:"+ getA8(op) +" }";
-
-      case OP_LOADK:
-      case OP_GETGLOBAL:
-      case OP_SETGLOBAL:
-        msg += "{ A:"+ getA8(op) +" Bx:" + getBx(op) +" }";
-        break;
-
-      case OP_FORPREP:
-      case OP_FORLOOP:
-        msg += "{ A:"+ getA8(op) +" SBx:" + getSBx(op) +" }";
-        break;
-
-      case OP_JMP:
-        msg += "{ SBx:" + getSBx(op) +" }";
-        break;
-
-      case OP_TFORLOOP:
-        msg += "{ A:"+ getA8(op) +" C:"+ getC9(op) + " }";
-        break;
-    }
-
-    cm.vPrint(msg);
-    cm.vPrintLuaStack();
-
-    Tool.pl("LL ",pc, Tool.num8len(op), opNames[opcode], line);
   }
 
 

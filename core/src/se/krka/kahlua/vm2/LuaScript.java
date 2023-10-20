@@ -118,7 +118,6 @@ public abstract class LuaScript implements Runnable {
     int first = b;
     int last = c;
 
-    Tool.pl(a, b, c, " --- ");
     printLuaStack();
 
     Object res = callFrame.get(last);

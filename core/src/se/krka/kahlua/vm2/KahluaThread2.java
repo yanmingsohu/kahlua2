@@ -38,54 +38,6 @@ public class KahluaThread2 extends KahluaThread {
   final Platform platform;
   public boolean debug;
 
-  final static String[] opNames = {
-    /*  0 */  "OP_MOVE"
-    /*  1 */ ,"OP_LOADK"
-    /*  2 */ ,"OP_LOADBOOL"
-    /*  3 */ ,"OP_LOADNIL"
-    /*  4 */ ,"OP_GETUPVAL"
-    /*  5 */ ,"OP_GETGLOBAL"
-
-    /*  6 */ ,"OP_GETTABLE"
-    /*  7 */ ,"OP_SETGLOBAL"
-    /*  8 */ ,"OP_SETUPVAL"
-    /*  9 */ ,"OP_SETTABLE"
-    /* 10 */ ,"OP_NEWTABLE"
-
-    /* 11 */ ,"OP_SELF"
-    /* 12 */ ,"OP_ADD"
-    /* 13 */ ,"OP_SUB"
-    /* 14 */ ,"OP_MUL"
-    /* 15 */ ,"OP_DIV"
-
-    /* 16 */ ,"OP_MOD"
-    /* 17 */ ,"OP_POW"
-    /* 18 */ ,"OP_UNM"
-    /* 19 */ ,"OP_NOT"
-    /* 20 */ ,"OP_LEN"
-
-    /* 21 */ ,"OP_CONCAT"
-    /* 22 */ ,"OP_JMP"
-    /* 23 */ ,"OP_EQ"
-    /* 24 */ ,"OP_LT"
-    /* 25 */ ,"OP_LE"
-
-    /* 26 */ ,"OP_TEST"
-    /* 27 */ ,"OP_TESTSET"
-    /* 28 */ ,"OP_CALL"
-    /* 29 */ ,"OP_TAILCALL"
-    /* 30 */ ,"OP_RETURN"
-
-    /* 31 */ ,"OP_FORLOOP"
-    /* 32 */ ,"OP_FORPREP"
-    /* 33 */ ,"OP_TFORLOOP"
-    /* 34 */ ,"OP_SETLIST"
-    /* 35 */ ,"OP_CLOSE"
-
-    /* 36 */ ,"OP_CLOSURE"
-    /* 37 */ ,"OP_VARARG"
-  };
-
 
 
   public KahluaThread2(Platform platform, KahluaTable environment) {
@@ -174,12 +126,12 @@ public class KahluaThread2 extends KahluaThread {
 
 
   public static int opNamesLen() {
-    return opNames.length;
+    return DebugInf.opNames.length;
   }
 
 
   public static String opName(int i) {
-    return opNames[i];
+    return DebugInf.opNames[i];
   }
 
 
