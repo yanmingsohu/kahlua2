@@ -853,4 +853,17 @@ public class ClassMaker implements IConst {
 
     mv.visitLabel(_end);
   }
+
+
+  void vBlock(Label define, Label end, IBuildParam p) {
+    mv.visitLabel(define);
+    p.param1();
+    vGoto(end);
+  }
+
+
+  void vPrintLuaStack() {
+    vThis();
+    vInvokeFunc(LuaScript.class, "printLuaStack");
+  }
 }

@@ -23,13 +23,21 @@
 package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.signature.SignatureVisitor;
+import se.krka.kahlua.vm.Coroutine;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.List;
+import java.util.stream.Stream;
 
 
 public class Tool {
-  public final static int callFrom = 2;
+
+  public static final int callFrom = 2;
+  public static final char sp = ' ';
+  public static final char ent = '\n';
+  public static final String nil = "nil";
+  public static final String point = " -> ";
 
 
   public static void pl(Object o) {
@@ -46,7 +54,7 @@ public class Tool {
     getCurrentStack(buf, callFrom);
     buf.append(" - ");
     for (int i=0; i<o.length; ++i) {
-      buf.append(' ');
+      buf.append(sp);
       buf.append(o[i]);
     }
     System.out.println(buf.toString());
@@ -62,13 +70,22 @@ public class Tool {
     b.append(ss[i].getFileName());
     b.append(':');
     int ln = ss[i].getLineNumber();
-    if (ln < 999) b.append(' ');
-    if (ln < 99) b.append(' ');
-    if (ln < 9) b.append(' ');
+    if (ln < 999) b.append(sp);
+    if (ln < 99) b.append(sp);
+    if (ln < 9) b.append(sp);
     b.append(ln);
     b.append(')');
+
+    //StackWalker.getInstance().walk(Tool::getFrame);
     return b;
   }
+
+
+//  public static List<StackWalker.StackFrame>
+//  getFrame(Stream<StackWalker.StackFrame> sfs) {
+//    Tool.pl(sfs);
+//    return null;
+//  }
 
 
   public static void typeName(SignatureVisitor w, Type t) {
@@ -216,7 +233,7 @@ public class Tool {
   }
 
 
-  public static String str4byte(String x) {
+  public static String num8len(String x) {
     switch (x.length()) {
       default: return x;
       case 0: return "00000000";
@@ -228,5 +245,82 @@ public class Tool {
       case 6: return "00" +x;
       case 7: return "0" +x;
     }
+  }
+
+
+  public static String str8len(String x) {
+    switch (x.length()) {
+      default: return x;
+      case 0: return "        ";
+      case 1: return "       " +x;
+      case 2: return "      " +x;
+      case 3: return "     " +x;
+      case 4: return "    " +x;
+      case 5: return "   " +x;
+      case 6: return "  " +x;
+      case 7: return " " +x;
+    }
+  }
+
+
+  public static String str8len(int x) {
+    return str8len(x +"");
+  }
+
+
+  public static String num8len(int i) {
+    return num8len(Integer.toHexString(i));
+  }
+
+
+  public static void objectArray2String(StringBuilder out, Object[] s) {
+    int ns = 0;
+    int ne = 0;
+    int nstate = 0;
+    int i = 0;
+
+    for (;;) {
+      if ((nstate == 1) && ((s[i] != null) || (i+1 >= s.length))) {
+        nstate = 0;
+        if (s[i] == null) ne = i;
+        if (ns == ne) {
+          out.append(ent).append(str8len(ns))
+            .append(point).append(nil);
+        } else {
+          out.append(ent).append(str8len(ns)).append("~\n")
+            .append(Tool.str8len(ne)).append(point).append(nil);
+        }
+      }
+
+      if (s[i] != null) {
+        String desc = s[i].getClass() +"@"+ Integer.toHexString(s[i].hashCode());
+        String str = s[i].toString();
+
+        out.append(ent).append(str8len(i)).append(point).append(desc);
+        if (! desc.equals(str)) {
+          out.append(sp).append('"').append(s[i].toString()).append('"');
+        }
+      } else {
+        //out.append(nil);
+        if (nstate == 0) {
+          nstate = 1;
+          ns = i;
+          ne = i;
+        } else if (nstate == 1) {
+          ne = i;
+        }
+      }
+
+      if (++i >= s.length) break;
+    }
+  }
+
+
+  public static void printLuaStack(Coroutine coroutine) {
+    Object[] s = coroutine.objectStack;
+    StringBuilder out = new StringBuilder(100);
+    out.append("Lua stack(").append(s.length).append("):");
+    Tool.objectArray2String(out, s);
+    Tool.pl(out, "\n");
   }
 }

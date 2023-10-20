@@ -41,6 +41,7 @@ public class Test {
 		if (USE_NEW_THREAD) {
 			KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
 			thread.setOutputDir("./bin");
+			thread.debug = true;
 			return thread;
 		} else {
 			return new KahluaThread(out, pl, pl.newEnvironment());

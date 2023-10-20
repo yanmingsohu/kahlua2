@@ -55,6 +55,7 @@ public class LuaBuilder implements IConst {
   protected int op;
   protected int line;
   protected int id = 1;
+  public boolean debug;
 
 
   public LuaBuilder(String _classPath, String _outDir) {
@@ -83,7 +84,9 @@ public class LuaBuilder implements IConst {
 
     while (state.hasNext()) {
       state.readNextOp();
-      vDebugInf();
+      if (debug) {
+        vDebugInf();
+      }
       do_op_code(opcode, state);
       state.checkIfNotEnd(opNames[opcode]);
     }
@@ -251,10 +254,54 @@ public class LuaBuilder implements IConst {
 
 
   public void vDebugInf() {
-    cm.vPrint(classPath +":"+ line +" "+ KahluaThread2.opName(opcode));
+    String msg = classPath +":"+ line +" "+ KahluaThread2.opName(opcode);
+    switch (opcode) {
+      default:
+        msg += "{ A:"+ getA8(op) +" B:"+ getB9(op) +" C:"+ getC9(op) + " }";
+        break;
 
-    Tool.pl("LL ",pc, Tool.str4byte(Integer.toHexString(op)),
-      opNames[opcode], line);
+      case OP_MOVE:
+      case OP_LOADNIL:
+      case OP_GETUPVAL:
+      case OP_SETUPVAL:
+      case OP_UNM:
+      case OP_NOT:
+      case OP_LEN:
+      case OP_TAILCALL:
+      case OP_RETURN:
+      case OP_CLOSURE:
+      case OP_VARARG:
+        msg += "{ A:"+ getA8(op) +" B:"+ getB9(op) +" }";
+        break;
+
+      case OP_NEWTABLE:
+      case OP_CLOSE:
+        msg += "{ A:"+ getA8(op) +" }";
+
+      case OP_LOADK:
+      case OP_GETGLOBAL:
+      case OP_SETGLOBAL:
+        msg += "{ A:"+ getA8(op) +" Bx:" + getBx(op) +" }";
+        break;
+
+      case OP_FORPREP:
+      case OP_FORLOOP:
+        msg += "{ A:"+ getA8(op) +" SBx:" + getSBx(op) +" }";
+        break;
+
+      case OP_JMP:
+        msg += "{ SBx:" + getSBx(op) +" }";
+        break;
+
+      case OP_TFORLOOP:
+        msg += "{ A:"+ getA8(op) +" C:"+ getC9(op) + " }";
+        break;
+    }
+
+    cm.vPrint(msg);
+    cm.vPrintLuaStack();
+
+    Tool.pl("LL ",pc, Tool.num8len(op), opNames[opcode], line);
   }
 
 
@@ -723,7 +770,10 @@ public class LuaBuilder implements IConst {
     cm.vGoto(this.labels[i]);
   }
 
-  // eq lt le
+
+  /**
+   * EQ  A B C if ((RK(B) == RK(C)) ~= A) then PC++
+   */
   void op_eq() {
     op_cmp(new ICompOp() {
       public void intComp() {
@@ -746,6 +796,10 @@ public class LuaBuilder implements IConst {
     });
   }
 
+
+  /**
+   * LT  A B C if ((RK(B) <  RK(C)) ~= A) then PC++
+   */
   void op_lt() {
     op_cmp(new ICompOp() {
       public void intComp() {
@@ -768,6 +822,10 @@ public class LuaBuilder implements IConst {
     });
   }
 
+
+  /**
+   * LE  A B C if ((RK(B) <= RK(C)) ~= A) then PC++
+   */
   void op_le() {
     op_cmp(new ICompOp() {
       public void intComp() {
@@ -1283,20 +1341,16 @@ public class LuaBuilder implements IConst {
     mv.visitInsn(IADD);
     returnBase2.store(); // returnBase2 = base + a;
 
-    mv.visitLabel(checkType);
-    {
+    cm.vBlock(checkType, meta, ()-> {
       func.load();
       cm.vIf(JavaFunction.class, javafunc);
       func.load();
       cm.vIf(ClosureInf.class, closure);
       func.load();
       cm.vIf(LuaClosure.class, oldClosure);
-      // else
-      cm.vGoto(meta); //TODO: Possibly an infinite loop
-    }
+    });
 
-    mv.visitLabel(meta);
-    {
+    cm.vBlock(meta, checkType, ()-> {
       cm.vGetMetaOp("__call", ()-> func.load());
       cm.vCopyRef();
       funcMeta.store();
@@ -1319,12 +1373,9 @@ public class LuaBuilder implements IConst {
 
       funcMeta.load();
       func.store();
-      cm.vGoto(checkType);
-    }
-    cm.vGoto(end);
+    });
 
-    mv.visitLabel(javafunc);
-    {
+    cm.vBlock(javafunc, end, ()-> {
       cm.vNewFrameParams(state.vCI, localBase2, returnBase2, nArguments2, false);
 
       state.vCI.load();
@@ -1332,11 +1383,9 @@ public class LuaBuilder implements IConst {
       cm.vCast(JavaFunction.class);
       cm.vInvokeFunc(CI, "call", JavaFunction.class);
       // cm.vPopFrame();
-    }
-    cm.vGoto(end);
+    });
 
-    mv.visitLabel(closure);
-    {
+    cm.vBlock(closure, end, ()-> {
       func.load();
       cm.vCast(ClosureInf.class);
       func.store();
@@ -1345,18 +1394,15 @@ public class LuaBuilder implements IConst {
       func.load();
       cm.vThis();
       cm.vInvokeFunc(CI, "call", LuaScript.class);
-    }
-    cm.vGoto(end);
+    });
 
-    mv.visitLabel(oldClosure);
-    {
+    cm.vBlock(oldClosure, end, ()-> {
       state.vCI.load();
       func.load();
       cm.vCast(LuaClosure.class);
       nArguments2.load();
       cm.vInvokeFunc(CI, "call", LuaClosure.class, I);
-    }
-    cm.vGoto(end);
+    });
 
     mv.visitLabel(end);
     state.endInstruction();
@@ -1372,6 +1418,9 @@ public class LuaBuilder implements IConst {
   }
 
 
+  /**
+   * RETURN  A B return R(A), ... ,R(A+B-2)
+   */
   void op_return(State state) {
     int a = getA8(op);
     int b = getB9(op);

@@ -36,6 +36,7 @@ public class KahluaThread2 extends KahluaThread {
 
   private String outputDir;
   final Platform platform;
+  public boolean debug;
 
   final static String[] opNames = {
     /*  0 */  "OP_MOVE"
@@ -130,6 +131,7 @@ public class KahluaThread2 extends KahluaThread {
     try {
       LuaClosure lc = (LuaClosure) o;
       LuaBuilder luab = new LuaBuilder(lc.prototype.name, outputDir);
+      luab.debug = debug;
       luab.makeJavacode(lc.prototype);
 
       LuaScript x = luab.createJavaAgent();
