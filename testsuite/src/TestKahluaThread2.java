@@ -191,7 +191,7 @@ public class TestKahluaThread2 implements Runnable {
       p.name = "./testsuite/lua/testhelper.lua";
       p.constants = new Object[]{};
       p.lines = new int[KahluaThread2.opNamesLen()];
-
+      ComputStack cs = new ComputStack(0,0,0,0);
 
       Set<String> useSBx = new HashSet();
       useSBx.add("op_jmp");
@@ -227,7 +227,7 @@ public class TestKahluaThread2 implements Runnable {
 
       Coroutine cr = new Coroutine(platform, env, kt2);
       LuaScript agent = createJavaAgent();
-      agent.reinit(kt2, cr);
+      agent.reinit(kt2, cr, cs);
       agent.run();
     }
   }

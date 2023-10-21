@@ -90,13 +90,15 @@ public class ClosureInf {
     this.oframe = cs.pushFrame(c, prototype);
     this.ocl = oframe.closure;
     this.ocl.upvalues = this.upvalues;
-    //cf.init();
-//
-//    for (int i=0; i<upvalues.length; ++i) {
-//      this.ocl.upvalues[i] = this.upvalues[i];
-//    }
 
-//    Tool.pl("(0==", cs, ')');
+    //TODO: remove this code
+    //cf.init();
+    //
+    //    for (int i=0; i<upvalues.length; ++i) {
+    //      this.ocl.upvalues[i] = this.upvalues[i];
+    //    }
+
+    //    Tool.pl("(0==", cs, ')');
   }
 
 

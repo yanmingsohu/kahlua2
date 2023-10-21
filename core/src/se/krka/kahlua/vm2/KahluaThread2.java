@@ -67,12 +67,14 @@ public class KahluaThread2 extends KahluaThread {
 
     if (o instanceof ClosureInf) {
       ClosureInf ci = (ClosureInf)o;
-      LuaCallFrame f = currentCoroutine.currentCallFrame();
-      if (f != null) {
-        ci.setFrame(f.closure, f);
-      } else {
-        ci.frameParams(cs);
-      }
+      //TODO: remove this code
+      //      LuaCallFrame f = currentCoroutine.currentCallFrame();
+      //      if (f != null) {
+      //        ci.setFrame(f.closure, f);
+      //      } else {
+      //
+      //      }
+      ci.frameParams(cs);
       ci.call();
       return cs.returnValues(currentCoroutine);
     }
@@ -88,7 +90,7 @@ public class KahluaThread2 extends KahluaThread {
       luab.makeJavacode(lc.prototype);
 
       LuaScript x = luab.createJavaAgent();
-      x.reinit(this, currentCoroutine);
+      x.reinit(this, currentCoroutine, cs);
       x.run(); //TODO: Add thread running strategy
 
     } catch (NoSuchMethodException | InstantiationException

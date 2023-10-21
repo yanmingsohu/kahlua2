@@ -177,14 +177,14 @@ public class ClassMaker implements IConst {
     s.vPrototype.lock();
 
     if (s.debug) {
-      vPrint(">>>> vClosureFunctionHeader inited", s.vCI);
+      vPrint(">>>> vClosureFunctionHeader", s.vCI);
     }
   }
 
 
   void vClosureFunctionFoot(LuaBuilder.State s) {
     if (s.debug) {
-      vPrint(">>>> vClosureFunctionFoot begin", s.vCI);
+      vPrint("<<<< vClosureFunctionFoot", s.vCI);
     }
     //coroutine.popCallFrame();
     vField("coroutine");
@@ -251,17 +251,24 @@ public class ClassMaker implements IConst {
   }
 
 
+  /**
+   * Call class constructor
+   * @param owner
+   * @param p  Not one but All params !!!
+   * @param param
+   */
   void vInvokeConstructor(Class owner, IBuildParam p, Class ...param) {
     Method m = getMethod(owner, CONSTRUCTOR, param);
     String classPath = toClassPath(owner);
 
     mv.visitTypeInsn(NEW, classPath);
     vCopyRef();
-    p.param1(); // All params !!!
+    p.param1();
     mv.visitMethodInsn(INVOKESPECIAL, classPath, CONSTRUCTOR, getMethodSi(m), false);
   }
 
 
+  //TODO: optimization
   void vInt(int a) {
     mv.visitLdcInsn(a);
   }
@@ -278,7 +285,6 @@ public class ClassMaker implements IConst {
 
 
   void vBoolean(boolean b) {
-    //mv.visitLdcInsn(b);
     if (b) {
       mv.visitInsn(ICONST_1);
     } else {
@@ -699,6 +705,12 @@ public class ClassMaker implements IConst {
   }
 
 
+  void vReturnBase() {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vField(FR, "returnBase");
+  }
+
+
   void vCloseLocalUpvlues(IBuildParam p) {
     mv.visitVarInsn(ALOAD, vCallframe);
     p.param1();
@@ -779,12 +791,6 @@ public class ClassMaker implements IConst {
   void vPopFrame() {
     vField("coroutine");
     vInvokeFunc(CR, "popCallFrame");
-  }
-
-
-  void vReturnBase() {
-    mv.visitVarInsn(ALOAD, vCallframe);
-    vField(FR, "returnBase");
   }
 
 
