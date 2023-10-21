@@ -734,10 +734,12 @@ public class ClassMaker implements IConst {
 
 
   void vPushVarargs(IBuildParam2 p) {
+    vThis();
+    mv.visitVarInsn(ALOAD, vPrototype);
     mv.visitVarInsn(ALOAD, vCallframe);
     p.param1();
     p.param2();
-    vInvokeFunc(LuaCallFrame.class, "pushVarargs", I,I);
+    vInvokeFunc(LuaScript.class, "pushVarargs", PT,FR,I,I);
   }
 
 

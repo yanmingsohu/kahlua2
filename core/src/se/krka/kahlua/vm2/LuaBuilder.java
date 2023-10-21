@@ -1312,7 +1312,8 @@ public class LuaBuilder implements IConst {
 
     LocalVar vb = state.newVar(I, "b");
 
-    //cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
+    // This will fix the reference, making it a constant
+    cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
 
     if (b == 0) {
       cm.vGetTop();

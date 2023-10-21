@@ -266,10 +266,6 @@ public abstract class LuaScript implements Runnable {
       );
       function = funcMeta;
     }
-
-    if (fr.closure == null) {
-      Tool.pl("!!! fr.closure is null ", orgFunction, fr);
-    }
   }
 
 
@@ -296,5 +292,24 @@ public abstract class LuaScript implements Runnable {
   private void call(LuaClosure c, ComputStack cs) {
     KahluaThread2 t = new KahluaThread2(platform, coroutine.environment);
     t.call(c, coroutine, cs.nArguments);
+  }
+
+
+  protected void pushVarargs(Prototype prototype, LuaCallFrame fr, int index, int n) {
+    int nParams = prototype.numParams;
+    int nVarargs = fr.nArguments - nParams;
+    if (nVarargs < 0) nVarargs = 0;
+    if (n == -1) {
+      n = nVarargs;
+      fr.setTop(index + n);
+    }
+    if (nVarargs > n) nVarargs = n;
+
+    fr.stackCopy(-fr.nArguments + nParams, index, nVarargs);
+
+    int numNils = n - nVarargs;
+    if (numNils > 0) {
+      fr.stackClear(index + nVarargs, index + n - 1);
+    }
   }
 }
