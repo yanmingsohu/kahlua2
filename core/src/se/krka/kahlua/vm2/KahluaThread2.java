@@ -107,17 +107,18 @@ public class KahluaThread2 extends KahluaThread {
     ComputStack cs = new ComputStack(currentCoroutine, nArguments);
 
     LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(oldc, null,
-      cs.localBase, cs.returnBase, nArguments, false, true);
+      cs.localBase, cs.returnBase, nArguments, false, false);
     callFrame.init();
 
     if (debug) {
-      Tool.pl("Call old thread", cs, oldc);
+      Tool.pl("Call old thread", cs, oldc, currentCoroutine.getCallframeTop());
     }
+
+    // This was call popCallFrame()
     luaMainloop();
 
     int nReturnValues = cs.returnValues(currentCoroutine);
     currentCoroutine.stackTrace = "";
-    currentCoroutine.popCallFrame();
     return nReturnValues;
   }
 

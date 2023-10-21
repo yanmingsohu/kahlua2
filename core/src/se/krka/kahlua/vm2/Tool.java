@@ -36,10 +36,12 @@ public class Tool {
   public static final String nil = "nil";
   public static final String point = " -- ";
   public static final String spoint = " +> ";
+  private static int line = 0;
 
 
   public static void pl(Object o) {
     StringBuilder buf = new StringBuilder();
+    buf.append(line++).append("^ ");
     getCurrentStack(buf, callFrom);
     buf.append(" - ");
     buf.append(o);
@@ -49,6 +51,7 @@ public class Tool {
 
   public static void pl(Object ...o) {
     StringBuilder buf = new StringBuilder();
+    buf.append(line++).append("^ ");
     getCurrentStack(buf, callFrom);
     buf.append(" - ");
     for (int i=0; i<o.length; ++i) {
