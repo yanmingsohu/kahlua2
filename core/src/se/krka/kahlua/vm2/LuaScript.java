@@ -42,11 +42,11 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  public void reinit(KahluaThread2 kt2, Coroutine c) {
+  public void reinit(KahluaThread2 kt2, Coroutine c, ComputStack cs) {
     this.t = kt2;
     this.coroutine = c;
     this.platform = kt2.platform;
-    this.plist[IConst.rootClosure].frameParams(0, 0, 0);
+    this.plist[IConst.rootClosure].frameParams(cs);
   }
 
 
