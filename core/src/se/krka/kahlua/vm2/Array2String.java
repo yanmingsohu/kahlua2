@@ -94,7 +94,7 @@ public class Array2String {
             showObj();
             nstate = 0;
           } else {
-            if (isCh) {
+            if (isCh || (i-base == 0)) {
               showCh();
             }
           }
@@ -115,7 +115,7 @@ public class Array2String {
     if (ns != i) {
       out.append(ent).append(__S8(ns)).append("~");
     }
-    out.append(ent).append(__S8(i)).append(spoint).append(nil);
+    out.append(ent).append(__S8(i)).append(pt).append(nil);
     ns = i+1;
     ne = i+1;
   }
