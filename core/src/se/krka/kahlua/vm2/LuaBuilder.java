@@ -166,8 +166,13 @@ public class LuaBuilder implements IConst {
     }
 
 
-    private Label jump1() {
-      return labels[npc + 1];
+    private Label jumpn1() {
+      return jumpToLabel(1);
+    }
+
+
+    private Label jumpToLabel(int i) {
+      return labels[npc + i];
     }
 
 
@@ -200,12 +205,12 @@ public class LuaBuilder implements IConst {
   }
 
 
-  protected void do_op_code(int opcode, State state) {
-    state.resetVarIndex();
+  protected void do_op_code(int opcode, State s) {
+    s.resetVarIndex();
     switch (opcode) {
       case OP_MOVE: op_move(); break;
       case OP_LOADK: op_loadk(); break;
-      case OP_LOADBOOL: op_loadbool(); break;
+      case OP_LOADBOOL: op_loadbool(s); break;
       case OP_LOADNIL: op_loadnil(); break;
       case OP_GETUPVAL: op_getupval(); break;
       case OP_GETGLOBAL: op_getglobal(); break;
@@ -215,31 +220,31 @@ public class LuaBuilder implements IConst {
       case OP_SETTABLE: op_settable(); break;
       case OP_NEWTABLE: op_newtable(); break;
       case OP_SELF: op_self(); break;
-      case OP_ADD: op_add(state); break;
-      case OP_SUB: op_sub(state); break;
-      case OP_MUL: op_mul(state); break;
-      case OP_DIV: op_div(state); break;
-      case OP_MOD: op_mod(state); break;
-      case OP_POW: op_pow(state); break;
+      case OP_ADD: op_add(s); break;
+      case OP_SUB: op_sub(s); break;
+      case OP_MUL: op_mul(s); break;
+      case OP_DIV: op_div(s); break;
+      case OP_MOD: op_mod(s); break;
+      case OP_POW: op_pow(s); break;
       case OP_UNM: op_unm(); break;
       case OP_NOT: op_not(); break;
       case OP_LEN: op_len(); break;
       case OP_CONCAT: op_concat(); break;
-      case OP_JMP: op_jmp(); break;
-      case OP_EQ: op_eq(); break;
-      case OP_LT: op_lt(); break;
-      case OP_LE: op_le(); break;
-      case OP_TEST: op_test(); break;
-      case OP_TESTSET: op_testset(); break;
-      case OP_CALL: op_call(state); break;
-      case OP_TAILCALL: op_tailcall(state); break;
-      case OP_RETURN: op_return(state); break;
-      case OP_FORLOOP: op_forloop(); break;
-      case OP_FORPREP: op_forprep(); break;
-      case OP_TFORLOOP: op_tforloop(); break;
-      case OP_SETLIST: op_setlist(state); break;
+      case OP_JMP: op_jmp(s); break;
+      case OP_EQ: op_eq(s); break;
+      case OP_LT: op_lt(s); break;
+      case OP_LE: op_le(s); break;
+      case OP_TEST: op_test(s); break;
+      case OP_TESTSET: op_testset(s); break;
+      case OP_CALL: op_call(s); break;
+      case OP_TAILCALL: op_tailcall(s); break;
+      case OP_RETURN: op_return(s); break;
+      case OP_FORLOOP: op_forloop(s); break;
+      case OP_FORPREP: op_forprep(s); break;
+      case OP_TFORLOOP: op_tforloop(s); break;
+      case OP_SETLIST: op_setlist(s); break;
       case OP_CLOSE: op_close(); break;
-      case OP_CLOSURE: op_closure(state); break;
+      case OP_CLOSURE: op_closure(s); break;
       case OP_VARARG: op_vararg(); break;
     }
   }
@@ -284,7 +289,7 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  void op_loadbool() {
+  void op_loadbool(State s) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
@@ -296,7 +301,7 @@ public class LuaBuilder implements IConst {
     });
 
     if (c != 0) {
-      cm.vGoto(labels[pc + 1]);
+      cm.vGoto(s.jumpn1());
     }
   }
 
@@ -723,17 +728,17 @@ public class LuaBuilder implements IConst {
     cm.vInvokeFunc(LuaScript.class, "auto_op_concat", I,I,I, LuaCallFrame.class);
   }
 
-  void op_jmp() {
-    int i = pc + getSBx(op);
-    cm.vGoto(this.labels[i]);
+  void op_jmp(State s) {
+    int i = getSBx(op);
+    cm.vGoto(s.jumpToLabel(i));
   }
 
 
   /**
    * EQ  A B C if ((RK(B) == RK(C)) ~= A) then PC++
    */
-  void op_eq() {
-    op_cmp(new ICompOp() {
+  void op_eq(State s) {
+    op_cmp(s, new ICompOp() {
       public void intComp() {
         cm.vIf(IFEQ, new IIF() {
           public void doThen() {
@@ -758,8 +763,8 @@ public class LuaBuilder implements IConst {
   /**
    * LT  A B C if ((RK(B) <  RK(C)) ~= A) then PC++
    */
-  void op_lt() {
-    op_cmp(new ICompOp() {
+  void op_lt(State s) {
+    op_cmp(s, new ICompOp() {
       public void intComp() {
         cm.vIf(IFLT, new IIF() {
           public void doThen() {
@@ -784,8 +789,8 @@ public class LuaBuilder implements IConst {
   /**
    * LE  A B C if ((RK(B) <= RK(C)) ~= A) then PC++
    */
-  void op_le() {
-    op_cmp(new ICompOp() {
+  void op_le(State s) {
+    op_cmp(s, new ICompOp() {
       public void intComp() {
         cm.vIf(IFLE, new IIF() {
           public void doThen() {
@@ -806,12 +811,12 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  void op_cmp(ICompOp cp) {
+  void op_cmp(State s, ICompOp cp) {
     final int a = getA8(op);
     final int b = getB9(op);
     final int c = getC9(op);
 
-    final Label jump = labels[pc + 1];
+    final Label jump = s.jumpn1();
     final Label njump = new Label();
     final Label isnum = new Label();
     final Label isstr = new Label();
@@ -908,12 +913,12 @@ public class LuaBuilder implements IConst {
     cm.vLabel(njump, line);
   }
 
-  void op_test() {
+  void op_test(State s) {
     final int a = getA8(op);
     final int c = getC9(op);
     final boolean eqt = (c == 0);
 
-    Label jumpto = this.labels[pc + 1];
+    Label jumpto = s.jumpn1();
 
     cm.vGetStackVar(a);
     cm.vBoolEval(false, true);
@@ -926,13 +931,13 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  void op_testset() {
+  void op_testset(State s) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
     boolean eqt = (c == 0);
 
-    Label jumpto = this.labels[pc + 1];
+    Label jumpto = s.jumpn1();
     final int value = vUser +1;
 
     cm.vGetStackVar(b);
@@ -952,7 +957,7 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  void op_forprep() {
+  void op_forprep(State s) {
     int a = getA8(op);
     int b = getSBx(op);
 
@@ -974,14 +979,14 @@ public class LuaBuilder implements IConst {
       cm.vToObjectDouble(false);
     });
 
-    cm.vGoto(labels[pc + b]);
+    cm.vGoto(s.jumpToLabel(b));
   }
 
-  void op_forloop() {
+  void op_forloop(State s) {
     int a = getA8(op);
     int b = getSBx(op);
 
-    final Label jumpTo = labels[pc + b];
+    final Label jumpTo = s.jumpToLabel(b);
     final int iter = vUser +1;
     final int step = vUser +2;
     final int end  = vUser +3;
@@ -1056,7 +1061,7 @@ public class LuaBuilder implements IConst {
    * if (x != null) callFrame.set(a+2, x)
    * else jump pc+1
    */
-  void op_tforloop() {
+  void op_tforloop(State stat) {
     final int a = getA8(op);
     final int c = getC9(op);
 
@@ -1132,7 +1137,7 @@ public class LuaBuilder implements IConst {
         cm.vSetStackVar(a + 2, ()-> mv.visitVarInsn(ALOAD, a3));
       }
       public void doElse() {
-        cm.vGoto(labels[pc + 1]);
+        cm.vGoto(stat.jumpn1());
       }
     });
   }
