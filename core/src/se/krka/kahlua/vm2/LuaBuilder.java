@@ -67,7 +67,7 @@ public class LuaBuilder implements IConst {
 
 
   public void makeJavacode(Prototype p) {
-    cm.defaultInit();
+    cm.defaultConstructor();
     ClosureInf root = pushClosure(p, ROOT_FUNCTION_NAME, -1);
     newClosureFunction(root);
   }
@@ -79,9 +79,10 @@ public class LuaBuilder implements IConst {
     State state = new State(ci);
 
     DebugInf di = new DebugInf(cm, classPath);
-    mv.visitLabel(state.initLabel);
+    int firstLine = ci.prototype.lines[0];
+    cm.vLabel(state.initLabel, firstLine);
     cm.vClosureFunctionHeader(state);
-    mv.visitLabel(state.initOverLabel);
+    cm.vLabel(state.initOverLabel, firstLine);
 
     while (state.hasNext()) {
       state.readNextOp();
@@ -94,6 +95,7 @@ public class LuaBuilder implements IConst {
       do_op_code(opcode, state);
     }
 
+    cm.vLabel(state.returnLabel, line);
     if (debug) {
       di.stackAll();
     }
@@ -117,6 +119,7 @@ public class LuaBuilder implements IConst {
     final LocalVar vClosure;
     final LocalVar vPrototype;
     final LocalVar vCI;
+    final boolean debug = LuaBuilder.this.debug;
 
 
     public State(ClosureInf ci) {
@@ -316,7 +319,7 @@ public class LuaBuilder implements IConst {
     int a = getA8(op);
     int b = getB9(op);
 
-    VUpvalueOp up = new VUpvalueOp(cm, mv, b, vUser);
+    VUpvalueOp up = new VUpvalueOp(cm, mv, b, 0);
     cm.vSetStackVar(a, () -> {
       up.getValue();
     });
@@ -1309,7 +1312,7 @@ public class LuaBuilder implements IConst {
 
     LocalVar vb = state.newVar(I, "b");
 
-    cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
+    //cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
 
     if (b == 0) {
       cm.vGetTop();
@@ -1387,6 +1390,10 @@ public class LuaBuilder implements IConst {
         throw new RuntimeException("bad operate code in op_closure");
       }
       mv.visitInsn(AASTORE);
+    }
+
+    if (debug) {
+      cm.vPrintCiUpvalue(ci, 0);
     }
   }
 }

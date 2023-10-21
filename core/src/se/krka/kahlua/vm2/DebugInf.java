@@ -22,17 +22,17 @@
 
 package se.krka.kahlua.vm2;
 
-import se.krka.kahlua.vm.Coroutine;
-import se.krka.kahlua.vm.LuaCallFrame;
-import se.krka.kahlua.vm.Prototype;
+import se.krka.kahlua.vm.*;
 
 import static se.krka.kahlua.vm2.KahluaThread2.*;
 
 
 public class DebugInf implements IConst {
 
-  private final static int NotReg = -1;
-  private final static int NotConst = -1;
+  private final static int NotReg = Integer.MIN_VALUE;
+  private final static int NotConst = Integer.MIN_VALUE;
+  private final static int BUF_SIZE = 100;
+  private final static char SP = Tool.sp;
 
   final static String[] opNames = {
     /*  0 */  "OP_MOVE"
@@ -156,7 +156,7 @@ public class DebugInf implements IConst {
 
 
   public void stackAll() {
-    cm.vPrintLuaStack();
+    cm.vPrintStack();
     cm.vPrintConsts();
   }
 
@@ -176,7 +176,13 @@ public class DebugInf implements IConst {
       case OP_NOT:
       case OP_LEN:
       case OP_TESTSET:
-        cm.vPrintLuaStack(a, b);
+        cm.vPrintStack(a, b);
+        break;
+
+      case OP_SETUPVAL:
+      case OP_GETUPVAL:
+        cm.vPrintOldClosureUpvaleu(b);
+        cm.vPrintStack(a);
         break;
 
       case OP_LOADK:
@@ -185,8 +191,6 @@ public class DebugInf implements IConst {
 
       case OP_LOADBOOL:
       case OP_LOADNIL:
-      case OP_SETUPVAL:
-      case OP_GETUPVAL: //UpValue
       case OP_NEWTABLE:
       case OP_TEST:
       case OP_CALL:
@@ -196,16 +200,16 @@ public class DebugInf implements IConst {
       case OP_FORPREP:
       case OP_TFORLOOP:
       case OP_SETLIST:
-      case OP_CLOSURE:
       case OP_VARARG:
       case OP_CLOSE:
-        cm.vPrintLuaStack(a);
+      case OP_CLOSURE: // show Up values after run
+        cm.vPrintStack(a);
         break;
 
       case OP_GETTABLE:
       case OP_SELF:
         cm.vPrintConsts(RKK(c));
-        cm.vPrintLuaStack(a, b, RKR(c));
+        cm.vPrintStack(a, b, RKR(c));
         break;
 
       case OP_SETTABLE:
@@ -216,11 +220,11 @@ public class DebugInf implements IConst {
       case OP_MOD:
       case OP_POW:
         cm.vPrintConsts(RKK(b), RKK(c));
-        cm.vPrintLuaStack(a, RKR(b), RKR(c));
+        cm.vPrintStack(a, RKR(b), RKR(c));
         break;
 
       case OP_CONCAT:
-        cm.vPrintLuaStack(a, b, c);
+        cm.vPrintStack(a, b, c);
         break;
 
       case OP_JMP:
@@ -230,13 +234,13 @@ public class DebugInf implements IConst {
       case OP_LT:
       case OP_LE:
         cm.vPrintConsts(RKK(b), RKK(c));
-        cm.vPrintLuaStack(RKR(b), RKR(c));
+        cm.vPrintStack(RKR(b), RKR(c));
         break;
 
       case OP_GETGLOBAL:
       case OP_SETGLOBAL:
         cm.vPrintConsts(bx);
-        cm.vPrintLuaStack(a);
+        cm.vPrintStack(a);
         break;
     }
   }
@@ -349,12 +353,12 @@ public class DebugInf implements IConst {
 
 
   /**
-   * @see ClassMaker#vPrintLuaStack(int...)
+   * @see ClassMaker#vPrintStack(int...)
    */
   public static void printLuaStack(Coroutine coroutine, LuaCallFrame f, int ...i) {
     Object[] s = coroutine.objectStack;
-    StringBuilder out = new StringBuilder(100);
-    out.append("Lua stack(").append(s.length).append(") [L");
+    StringBuilder out = new StringBuilder(BUF_SIZE);
+    out.append("STACK(").append(s.length).append(") [L");
     out.append(f.localBase).append(" R").append(f.returnBase).append("]");
     Tool.objectArray2String(out, s, f.localBase, selectInt(i));
     Tool.pl(out, "\n");
@@ -366,10 +370,49 @@ public class DebugInf implements IConst {
    */
   public static void printLuaConsts(Prototype p, int ...i) {
     Object[] s = p.constants;
-    StringBuilder out = new StringBuilder(100);
-    out.append("Lua consts(").append(s.length).append(')');
+    StringBuilder out = new StringBuilder(BUF_SIZE);
+    out.append("CONSTS(").append(s.length).append(')');
     Tool.objectArray2String(out, s, 0, selectInt(i));
     Tool.pl(out, "\n");
+  }
+
+
+  /**
+   * @see ClassMaker#vPrintOldClosureUpvaleu(int...)
+   */
+  public static void printUpValues(UpValue[] ups, int ...i) {
+    StringBuilder out = new StringBuilder(BUF_SIZE);
+    out.append("UPVALUE(").append(ups.length).append(')');
+    new Array2String(out, ups, 0, selectInt(i), new UpValueRender()).render();
+    Tool.pl(out, "\n");
+  }
+
+
+  static class UpValueRender implements Array2String.Stringify<UpValue> {
+
+    public void item(StringBuilder out, UpValue u) {
+      out.append('@').append(System.identityHashCode(u));
+      out.append(SP).append(u.getIndex());
+
+      if (u.getValue() == null) {
+        out.append(" nil");
+        return;
+      }
+
+      String hash = Integer.toHexString( System.identityHashCode(u.getValue()) );
+      String cname = u.getValue().getClass().getName();
+      String strs = cname +"@"+ hash;
+
+      out.append(SP).append(strs);
+
+      String str = u.getValue().toString();
+      if (! strs.equals(str)) {
+        out.append(SP)
+          .append('"')
+          .append(str)
+          .append('"');
+      }
+    }
   }
 
 

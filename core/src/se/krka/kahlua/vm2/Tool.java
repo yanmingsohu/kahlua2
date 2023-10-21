@@ -272,12 +272,12 @@ public class Tool {
 
 
   public static void objectArray2String(StringBuilder out, Object[] s) {
-    new Array2String(out, s);
+    new Array2String(out, s).render();
   }
 
 
   public static void objectArray2String(StringBuilder out, Object[] s, int base, ISelect st) {
-    new Array2String(out, s, base, st);
+    new Array2String(out, s, base, st).render();
   }
 
 

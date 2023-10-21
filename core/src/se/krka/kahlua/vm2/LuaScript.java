@@ -46,17 +46,12 @@ public abstract class LuaScript implements Runnable {
     this.t = kt2;
     this.coroutine = c;
     this.platform = kt2.platform;
-    this.plist[IConst.rootClosure].frameParams(0, 0, 0, true);
+    this.plist[IConst.rootClosure].frameParams(0, 0, 0);
   }
 
 
   protected void setClosureInf(List<ClosureInf> plist) {
     this.plist = plist.toArray(new ClosureInf[0]);
-  }
-
-
-  protected void closureReturn(LuaCallFrame cf) {
-    coroutine.popCallFrame();
   }
 
 
@@ -80,6 +75,7 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  //TODO: optimization
   protected Double rawTonumber(Object o) {
     return KahluaUtil.rawTonumber(o);
   }
@@ -231,43 +227,74 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  public void call(ClosureInf ci, LuaCallFrame fr, Object function,
+  public void call(ClosureInf ci, LuaCallFrame fr, Object orgFunction,
                    int nArguments2, int argBase) {
-    int localBase2 = fr.localBase + argBase + 1;
-    int returnBase2 = fr.localBase + argBase;
-    LuaClosure old = fr.closure;
+    if (orgFunction == null)
+      throw new RuntimeException("Tried to call nil");
 
-    do {
+    ComputStack cs = new ComputStack(fr, argBase, nArguments2);
+    Object function = orgFunction;
+
+
+    for (;;) {
       if (function instanceof JavaFunction) {
-        ci.frameParams(localBase2, returnBase2, nArguments2, false);
-        ci.call((JavaFunction) function, coroutine);
+        call((JavaFunction) function, cs);
         break;
       }
       else if (function instanceof ClosureInf) {
         ClosureInf newCI = (ClosureInf) function;
-        newCI.frameParams(localBase2, returnBase2, nArguments2, true);
+        newCI.frameParams(cs);
         newCI.call();
         break;
       }
       else if (function instanceof LuaClosure) {
-        ci.call((LuaClosure) function, nArguments2);
+        call((LuaClosure) function, cs);
         break;
       }
 
       Object funcMeta = this.getMetaOp(function, "__call");
       if (funcMeta == null) {
-        String errMsg = "Object " + function + " did not have __call metatable set";
+        String errMsg = "Object " + orgFunction + " did not have __call metatable set";
         throw new RuntimeException(errMsg);
       }
 
-      ++nArguments2;
-      localBase2 = returnBase2;
+      cs = new ComputStack(
+        cs.top,
+        nArguments2 + 1, // nArguments2 += 1;
+        cs.returnBase, // localBase2 = returnBase2;
+        cs.returnBase
+      );
       function = funcMeta;
-    } while(true);
+    }
 
     if (fr.closure == null) {
-      Tool.pl("fr.closure is null !!!!??????????????????????????????");
-      fr.closure = old;
+      Tool.pl("!!! fr.closure is null ", orgFunction, fr);
     }
+  }
+
+
+  private void call(JavaFunction javaf, ComputStack cs) {
+    LuaCallFrame oframe = cs.pushFrame(coroutine, javaf);
+    int nReturnValues = javaf.call(oframe, cs.nArguments);
+
+    int top = oframe.getTop();
+    int actualReturnBase = top - nReturnValues;
+
+    int diff = oframe.returnBase - oframe.localBase;
+    oframe.stackCopy(actualReturnBase, diff, nReturnValues);
+    oframe.setTop(nReturnValues + diff);
+
+    this.coroutine.popCallFrame();
+  }
+
+
+  /**
+   * LuaClosure may be the result of running the old vm.
+   * Their data structures are compatible, and a new version of the
+   * virtual machine can be created to compile and run it.
+   */
+  private void call(LuaClosure c, ComputStack cs) {
+    KahluaThread2 t = new KahluaThread2(platform, coroutine.environment);
+    t.call(c, coroutine, cs.nArguments);
   }
 }

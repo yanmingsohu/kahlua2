@@ -44,7 +44,6 @@ public class ClosureInf {
   private int localBase;
   private int returnBase;
   private int nArguments;
-  private boolean isLua;
 
 
   public ClosureInf(Prototype prototype,
@@ -85,58 +84,33 @@ public class ClosureInf {
   }
 
 
-  public void call(JavaFunction f, Coroutine c) {
-    newFrame(c);
-
-    int nReturnValues = f.call(oframe, oframe.nArguments);
-
-    int top = oframe.getTop();
-    int actualReturnBase = top - nReturnValues;
-
-    int diff = oframe.returnBase - oframe.localBase;
-    oframe.stackCopy(actualReturnBase, diff, nReturnValues);
-    oframe.setTop(nReturnValues + diff);
-
-    c.popCallFrame();
-//    this.oframe = c.currentCallFrame();
-//    this.ocl = oframe.closure;
-  }
-
-
-  /**
-   * LuaClosure may be the result of running the old vm.
-   * Their data structures are compatible, and a new version of the
-   * virtual machine can be created to compile and run it.
-   * @param oldc
-   */
-  public void call(LuaClosure oldc, int nArguments) {
-    KahluaThread2 t = new KahluaThread2(bind.platform,
-                                        bind.coroutine.environment);
-    t.call(oldc, bind.coroutine, nArguments);
-  }
-
-
   public void newFrame(Coroutine c) {
-    LuaClosure lc = new LuaClosure(prototype, c.environment);
-    LuaCallFrame cf = c.pushNewCallFrame(
-        lc, null, localBase, returnBase, nArguments, isLua, false);
+    ComputStack cs = new ComputStack(c.getTop(), nArguments, localBase, returnBase);
 
-    cf.init();
+    this.oframe = cs.pushFrame(c, prototype);
+    this.ocl = oframe.closure;
+    this.ocl.upvalues = this.upvalues;
+    //cf.init();
+//
+//    for (int i=0; i<upvalues.length; ++i) {
+//      this.ocl.upvalues[i] = this.upvalues[i];
+//    }
 
-    for (int i=0; i<upvalues.length; ++i) {
-      lc.upvalues[i] = this.upvalues[i];
-    }
-
-    this.oframe = cf;
-    this.ocl = lc;
+//    Tool.pl("(0==", cs, ')');
   }
 
 
-  public void frameParams(int lcBase, int rBase, int nArg, boolean isLua) {
+  public void frameParams(int lcBase, int rBase, int nArg) {
     this.localBase = lcBase;
     this.returnBase = rBase;
     this.nArguments = nArg;
-    this.isLua = isLua;
+  }
+
+
+  public void frameParams(ComputStack cs) {
+    this.localBase = cs.localBase;
+    this.returnBase = cs.returnBase;
+    this.nArguments = cs.nArguments;
   }
 
 
@@ -147,6 +121,7 @@ public class ClosureInf {
 
 
   public LuaCallFrame getOldFrame() {
+//    Tool.pl("(2==", oframe.localBase, oframe.returnBase, oframe.nArguments, oframe.hashCode(),')');
     return oframe;
   }
 

@@ -45,10 +45,10 @@ public class ClassMaker implements IConst {
   private AnnotationVisitor av0;
   private Class clazz;
 
+  final Class scriptSuperClass = LuaScript.class;
   final String className;
   final String classPath;
-  final Class  superClass = LuaScript.class;
-  final String superClassName = toClassPath(superClass.getName());
+  final String superClassName = toClassPath(scriptSuperClass.getName());
   final String outputDir;
 
 
@@ -124,7 +124,7 @@ public class ClassMaker implements IConst {
   }
 
 
-  public void defaultInit() {
+  public void defaultConstructor() {
     mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
     mv.visitCode();
 
@@ -169,20 +169,26 @@ public class ClassMaker implements IConst {
     mv.visitVarInsn(ALOAD, vCI);
     vField(ClosureInf.class, "prototype");
     mv.visitVarInsn(ASTORE, vPrototype);
+
+    if (s.debug) {
+      vPrint(">>>> vClosureFunctionHeader inited");
+    }
   }
 
 
   void vClosureFunctionFoot(LuaBuilder.State s) {
-    mv.visitLabel(s.returnLabel);
-    vThis();
-    mv.visitVarInsn(ALOAD, vCallframe);
-    vInvokeFunc(LuaScript.class, "closureReturn", FR);
+    if (s.debug) {
+      vPrint(">>>> vClosureFunctionFoot begin");
+    }
+    //coroutine.popCallFrame();
+    vField("coroutine");
+    vInvokeFunc(CR, "popCallFrame");
   }
 
 
   // Get field from Super Class
   public Field getField(String n) {
-    return getField(superClass, n);
+    return getField(scriptSuperClass, n);
   }
 
 
@@ -308,7 +314,7 @@ public class ClassMaker implements IConst {
 
   void vField(String fname) {
     vThis();
-    vField(superClass, fname);
+    vField(scriptSuperClass, fname);
   }
 
 
@@ -753,13 +759,12 @@ public class ClassMaker implements IConst {
 
 
   void vNewFrameParams(LocalVar ci, LocalVar lb, LocalVar ret,
-                       LocalVar arg, boolean isLua) {
+                       LocalVar arg) {
     ci.load();
     lb.load();
     ret.load();
     arg.load();
-    vBoolean(isLua);
-    vInvokeFunc(CI, "frameParams", I,I,I,B);
+    vInvokeFunc(CI, "frameParams", I,I,I);
   }
 
 
@@ -871,7 +876,7 @@ public class ClassMaker implements IConst {
   }
 
 
-  void vPrintLuaStack(int ...i) {
+  void vPrintStack(int ...i) {
     vThis();
     vField(LuaScript.class, "coroutine");
     mv.visitVarInsn(ALOAD, vCallframe);
@@ -884,6 +889,22 @@ public class ClassMaker implements IConst {
     mv.visitVarInsn(ALOAD, vPrototype);
     vIntArray(i);
     vInvokeStatic(DebugInf.class, "printLuaConsts", PT, int[].class);
+  }
+
+
+  void vPrintOldClosureUpvaleu(int ...i) {
+    mv.visitVarInsn(ALOAD, vClosure);
+    vField(CU, "upvalues");
+    vIntArray(i);
+    vInvokeStatic(DebugInf.class, "printUpValues", UpValue[].class, int[].class);
+  }
+
+
+  void vPrintCiUpvalue(LocalVar ci, int ...i) {
+    ci.load();
+    vField(ClosureInf.class, "upvalues");
+    vIntArray(0);
+    vInvokeStatic(DebugInf.class, "printUpValues", UpValue[].class, int[].class);
   }
 
 

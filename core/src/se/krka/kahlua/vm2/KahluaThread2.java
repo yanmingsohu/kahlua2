@@ -36,8 +36,7 @@ public class KahluaThread2 extends KahluaThread {
 
   private String outputDir;
   final Platform platform;
-  public boolean debug;
-
+  public static boolean debug;
 
 
   public KahluaThread2(Platform platform, KahluaTable environment) {
@@ -52,19 +51,18 @@ public class KahluaThread2 extends KahluaThread {
 
 
   public int call(int nArguments) {
-    int top = currentCoroutine.getTop();
-    int base = top - nArguments - 1;
-    Object o = currentCoroutine.objectStack[base];
+    ComputStack cs = new ComputStack(currentCoroutine, nArguments);
+    Object o = currentCoroutine.objectStack[cs.returnBase];
 
     if (o == null) {
       throw new RuntimeException("tried to call nil");
     }
     if (debug) {
-      Tool.pl("(base:", base, "nArg:", nArguments, "Func:", o, outputDir, ")");
+      Tool.pl(cs, "Func:", o);
     }
 
     if (o instanceof JavaFunction) {
-      return callJava((JavaFunction) o, base + 1, base, nArguments);
+      return callJava((JavaFunction) o, cs.localBase, cs.returnBase, nArguments);
     }
 
     if (o instanceof ClosureInf) {
@@ -73,10 +71,10 @@ public class KahluaThread2 extends KahluaThread {
       if (f != null) {
         ci.setFrame(f.closure, f);
       } else {
-        ci.frameParams(base + 1, base, nArguments, true);
+        ci.frameParams(cs);
       }
       ci.call();
-      return currentCoroutine.getTop() - base;
+      return cs.returnValues(currentCoroutine);
     }
 
     if (!(o instanceof LuaClosure)) {
@@ -91,14 +89,14 @@ public class KahluaThread2 extends KahluaThread {
 
       LuaScript x = luab.createJavaAgent();
       x.reinit(this, currentCoroutine);
-      x.run();
+      x.run(); //TODO: Add thread running strategy
 
     } catch (NoSuchMethodException | InstantiationException
           | IllegalAccessException | InvocationTargetException e) {
       throw new RuntimeException(e);
     }
 
-    int nReturnValues = currentCoroutine.getTop() - base;
+    int nReturnValues = cs.returnValues(currentCoroutine);
     currentCoroutine.stackTrace = "";
     return nReturnValues;
   }
@@ -106,24 +104,20 @@ public class KahluaThread2 extends KahluaThread {
 
   public int call(LuaClosure oldc, Coroutine cor, int nArguments) {
     currentCoroutine = cor;
-    int top = cor.getTop();
-    int base = top - nArguments - 1;
-    int localBase = base +1;
-    int returnBase = base;
+    ComputStack cs = new ComputStack(currentCoroutine, nArguments);
 
     LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(oldc, null,
-      localBase, returnBase, nArguments, false, false);
+      cs.localBase, cs.returnBase, nArguments, false, true);
     callFrame.init();
 
     if (debug) {
-      Tool.pl("Call old thread", localBase, returnBase, nArguments);
+      Tool.pl("Call old thread", cs, oldc);
     }
     luaMainloop();
 
-    int nReturnValues = currentCoroutine.getTop() - base;
+    int nReturnValues = cs.returnValues(currentCoroutine);
     currentCoroutine.stackTrace = "";
     currentCoroutine.popCallFrame();
-
     return nReturnValues;
   }
 

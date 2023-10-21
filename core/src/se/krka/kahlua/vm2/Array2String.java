@@ -33,6 +33,9 @@ public class Array2String {
   final StringBuilder out;
   final int len;
   final int base;
+  final Object[] oa;
+  final ISelect st;
+  final Stringify sf;
 
   int i;
   int ns = 0;
@@ -49,9 +52,25 @@ public class Array2String {
 
 
   public Array2String(StringBuilder out, Object[] oa, int base, ISelect st) {
+    this(out, oa, base, st, new DefaultStringify());
+  }
+
+
+  public Array2String(StringBuilder out, Object[] oa, int base, ISelect st, Stringify sf) {
     this.base = base;
     this.out = out;
-    len = oa.length;
+    this.len = oa.length;
+    this.oa = oa;
+    this.st = st;
+    this.sf = sf;
+  }
+
+
+  public void render() {
+    if (len <= 0) {
+      nullArray();
+      return;
+    }
 
     for (i=0; i< len; ++i) {
       isCh = st.isChoise(i - base);
@@ -113,14 +132,13 @@ public class Array2String {
 
 
   void showObj() {
-    String addr = Integer.toHexString( System.identityHashCode(obj) );
-    String desc = obj.getClass().getName() +"@"+ addr;
-    String str  = obj.toString();
+    out.append(ent).append(__S8(i)).append(pt);
+    sf.item(out, obj);
+  }
 
-    out.append(ent).append(__S8(i)).append(pt).append(desc);
-    if (! desc.equals(str)) {
-      out.append(sp).append('"').append(str).append('"');
-    }
+
+  void nullArray() {
+    out.append("\n!----- _ -- >>>> NULL Array");
   }
 
 
@@ -132,5 +150,26 @@ public class Array2String {
 
   public String toString() {
     return out.toString();
+  }
+
+
+  public interface Stringify<T> {
+    void item(StringBuilder out, T obj);
+  }
+
+
+  public static class DefaultStringify implements Stringify {
+
+    @Override
+    public void item(StringBuilder out, Object obj) {
+      String addr = Integer.toHexString( System.identityHashCode(obj) );
+      String desc = obj.getClass().getName() +"@"+ addr;
+      String str  = obj.toString();
+
+      out.append(desc);
+      if (! desc.equals(str)) {
+        out.append(sp).append('"').append(str).append('"');
+      }
+    }
   }
 }
