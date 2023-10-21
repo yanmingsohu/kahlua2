@@ -634,9 +634,9 @@ public class ClassMaker implements IConst {
       public void doThen() {
         vPop();
         if (primitive) {
-          vBoolean(vTrue);
+          vBoolean(!vTrue);
         } else {
-          vBooleanObj(vTrue);
+          vBooleanObj(!vTrue);
         }
       }
 
