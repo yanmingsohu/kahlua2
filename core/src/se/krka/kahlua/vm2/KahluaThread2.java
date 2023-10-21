@@ -55,7 +55,7 @@ public class KahluaThread2 extends KahluaThread {
     Object o = currentCoroutine.objectStack[cs.returnBase];
 
     if (o == null) {
-      throw new RuntimeException("tried to call nil");
+      throw new LuaFail("tried to call nil");
     }
     if (debug) {
       Tool.pl(cs, "Func:", o);
@@ -78,7 +78,7 @@ public class KahluaThread2 extends KahluaThread {
     }
 
     if (!(o instanceof LuaClosure)) {
-      throw new RuntimeException("tried to call a non-function");
+      throw new LuaFail("tried to call a non-function");
     }
 
     try {
@@ -93,7 +93,7 @@ public class KahluaThread2 extends KahluaThread {
 
     } catch (NoSuchMethodException | InstantiationException
           | IllegalAccessException | InvocationTargetException e) {
-      throw new RuntimeException(e);
+      throw new LuaFail(e);
     }
 
     int nReturnValues = cs.returnValues(currentCoroutine);

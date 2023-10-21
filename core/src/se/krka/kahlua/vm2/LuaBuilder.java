@@ -150,7 +150,6 @@ public class LuaBuilder implements IConst {
     private LocalVar internalVar(Class c, int index) {
       String name = Tool.toLocalVarName(c);
       LocalVar v = new LocalVar(mv, c, index, name, initLabel, returnLabel);
-      v.lock();
       return v;
     }
 
@@ -361,10 +360,10 @@ public class LuaBuilder implements IConst {
 
     cm.vSetStackVar(a, () -> {
       cm.vGetTableVar(new IBuildParam2() {
-        public void param2() {
+        public void param1() {
           cm.vGetStackVar(b);
         }
-        public void param1() {
+        public void param2() {
           cm.vGetRegOrConst(c, notused);
         }
       });
@@ -718,6 +717,7 @@ public class LuaBuilder implements IConst {
     });
   }
 
+
   void op_concat() {
     int a = getA8(op);
     int b = getB9(op);
@@ -731,9 +731,16 @@ public class LuaBuilder implements IConst {
     cm.vInvokeFunc(LuaScript.class, "auto_op_concat", I,I,I, LuaCallFrame.class);
   }
 
+
+  //TODO: close all upvalues >= R(A:0 - 1) ??
   void op_jmp(State s) {
-    int i = getSBx(op);
+    final int a = getA8(op);
+    final int i = getSBx(op);
     cm.vGoto(s.jumpToLabel(i));
+
+    if (a > 0) {
+      Tool.pl("flag_op_jmp_close_all_upvalues", a);
+    }
   }
 
 
@@ -1313,6 +1320,7 @@ public class LuaBuilder implements IConst {
     LocalVar vb = state.newVar(I, "b");
 
     // This will fix the reference, making it a constant
+    // TODO: Verify if it is correct
     cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
 
     if (b == 0) {

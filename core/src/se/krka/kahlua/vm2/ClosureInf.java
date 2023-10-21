@@ -64,7 +64,7 @@ public class ClosureInf {
       bind = ls;
 
     } catch (NoSuchMethodException e) {
-      throw new RuntimeException(e);
+      throw new LuaFail(e);
     }
   }
 
@@ -74,7 +74,7 @@ public class ClosureInf {
       mc.invoke(ls);
 
     } catch (IllegalAccessException | InvocationTargetException e) {
-      throw new RuntimeException(e);
+      throw new LuaFail(e);
     }
   }
 

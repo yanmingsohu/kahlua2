@@ -71,7 +71,7 @@ public abstract class LuaScript implements Runnable {
 
 
   protected void fail(String msg) {
-    throw new RuntimeException(msg);
+    throw new LuaFail(msg);
   }
 
 
@@ -99,7 +99,7 @@ public abstract class LuaScript implements Runnable {
   protected Object metaOp(Object a, Object b, String op) {
     Object metafun = getBinMetaOp(a, b, op);
     if (metafun == null) {
-      fail("["+ op +"] not defined for operands");
+      throw new LuaFail("["+ op +"] not defined for operands");
     }
     return call(metafun, a, b, null);
   }
@@ -230,7 +230,7 @@ public abstract class LuaScript implements Runnable {
   public void call(ClosureInf ci, LuaCallFrame fr, Object orgFunction,
                    int nArguments2, int argBase) {
     if (orgFunction == null)
-      throw new RuntimeException("Tried to call nil");
+      throw new LuaFail("Tried to call nil");
 
     ComputStack cs = new ComputStack(fr, argBase, nArguments2);
     Object function = orgFunction;
@@ -255,7 +255,7 @@ public abstract class LuaScript implements Runnable {
       Object funcMeta = this.getMetaOp(function, "__call");
       if (funcMeta == null) {
         String errMsg = "Object " + orgFunction + " did not have __call metatable set";
-        throw new RuntimeException(errMsg);
+        throw new LuaFail(errMsg);
       }
 
       cs = new ComputStack(

@@ -143,42 +143,48 @@ public class ClassMaker implements IConst {
     vField("plist");
     vInt(inf.arrIndex);
     mv.visitInsn(AALOAD);
-    mv.visitVarInsn(ASTORE, vCI);
+    s.vCI.store();
+    s.vCI.lock();
 
     // ci.newFrame(this.coroutine)
-    mv.visitVarInsn(ALOAD, vCI);
+    s.vCI.load();
     vThis();
     vField(LuaScript.class, "coroutine");
     vInvokeFunc(CI, "newFrame", Coroutine.class);
 
     // final LuaClosure vClosure = ci.getOldClosure();
-    mv.visitVarInsn(ALOAD, vCI);
+    s.vCI.load();
     vInvokeFunc(ClosureInf.class, "getOldClosure");
-    mv.visitVarInsn(ASTORE, vClosure);
+    s.vClosure.store();
+    s.vClosure.lock();
 
     // final LuaCallFrame vCallframe = closure.getOldFrame();
-    mv.visitVarInsn(ALOAD, vCI);
+    s.vCI.load();
     vInvokeFunc(ClosureInf.class, "getOldFrame");
-    mv.visitVarInsn(ASTORE, vCallframe);
+    s.vCallframe.store();
+    s.vCallframe.lock();
 
     // final Platform vPlatform = this.platform
     vField("platform");
-    mv.visitVarInsn(ASTORE, vPlatform);
+    s.vPlatform.store();
+    s.vPlatform.lock();
 
     // final Prototype vPrototype = ci.prototype
+    s.vCI.load();
     mv.visitVarInsn(ALOAD, vCI);
     vField(ClosureInf.class, "prototype");
-    mv.visitVarInsn(ASTORE, vPrototype);
+    s.vPrototype.store();
+    s.vPrototype.lock();
 
     if (s.debug) {
-      vPrint(">>>> vClosureFunctionHeader inited");
+      vPrint(">>>> vClosureFunctionHeader inited", s.vCI);
     }
   }
 
 
   void vClosureFunctionFoot(LuaBuilder.State s) {
     if (s.debug) {
-      vPrint(">>>> vClosureFunctionFoot begin");
+      vPrint(">>>> vClosureFunctionFoot begin", s.vCI);
     }
     //coroutine.popCallFrame();
     vField("coroutine");
@@ -381,11 +387,11 @@ public class ClassMaker implements IConst {
 
 
   void vThrow(IBuildParam p) {
-    final String RE = "java/lang/RuntimeException";
-    mv.visitTypeInsn(NEW, RE);
+    final String CLP = "se/krka/kahlua/vm2/LuaFail"; //"java/lang/RuntimeException";
+    mv.visitTypeInsn(NEW, CLP);
     vCopyRef();
     p.param1();
-    mv.visitMethodInsn(INVOKESPECIAL, RE, CONSTRUCTOR, "(Ljava/lang/String;)V", false);
+    mv.visitMethodInsn(INVOKESPECIAL, CLP, CONSTRUCTOR, "(Ljava/lang/String;)V", false);
     mv.visitInsn(ATHROW);
   }
 
