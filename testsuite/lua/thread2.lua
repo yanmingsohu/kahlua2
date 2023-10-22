@@ -4,15 +4,22 @@
 --- DateTime: 2023/10/22 10:27
 ---
 
-function x2(a,b)
+local upper
+local a1 = 101
+
+local function x2(a,b,x)
+  if upper ~= x then
+    error("up value bad " .. x) -- ..upper .. " " .. x)
+  end
+  print("Up value ok :", upper)
   return a+b
 end
 
 function x(i)
-  return x2(i,1)
+  upper = i
+  return x2(i,1,i)
 end
 
-local a1 = 101
 a2 = 1
 
 a3 = a1 + a2 + 1

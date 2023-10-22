@@ -108,6 +108,7 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  //TODO: optimization
   protected Object call(Object func, Object a1, Object a2, Object a3) {
     return t.call(func, a1, a2, a3);
   }

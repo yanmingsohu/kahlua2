@@ -845,12 +845,8 @@ public class ClassMaker implements IConst {
 
   void vIf(int ifop, IIFot opfunc) {
     vIf(ifop, new IIF() {
-      public void doThen() {
-        opfunc.doThen();
-      }
-      public void doElse() {
-        // do nothing
-      }
+      public void doThen() { opfunc.doThen(); }
+      public void doElse() { /* do nothing */ }
     });
   }
 
@@ -864,6 +860,14 @@ public class ClassMaker implements IConst {
       mv.visitTypeInsn(INSTANCEOF, toClassPath(c.getName()));
       mv.visitJumpInsn(IFNE, _then);
     }, opfunc);
+  }
+
+
+  void vIf(Class c, IIFot of) {
+    this.vIf(c, new IIF() {
+      public void doThen() { of.doThen(); }
+      public void doElse() { /* do nothing */ }
+    });
   }
 
 

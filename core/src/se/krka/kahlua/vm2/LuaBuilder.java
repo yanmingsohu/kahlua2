@@ -207,6 +207,11 @@ public class LuaBuilder implements IConst {
     public LocalVar newVar(Class c, String name) {
       return super.newVar(c, name, label, labels[npc]);
     }
+
+
+    public LocalVar newVar(String name) {
+      return this.newVar(Object.class, name);
+    }
   }
 
 
@@ -241,7 +246,7 @@ public class LuaBuilder implements IConst {
       case OP_POW: op_pow(s); break;
       case OP_UNM: op_unm(); break;
       case OP_NOT: op_not(); break;
-      case OP_LEN: op_len(); break;
+      case OP_LEN: op_len(s); break;
       case OP_CONCAT: op_concat(); break;
       case OP_JMP: op_jmp(s); break;
       case OP_EQ: op_eq(s); break;
@@ -670,68 +675,58 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  void op_len() {
+  void op_len(State s) {
     int a = getA8(op);
     int b = getB9(op);
 
     final Label end = new Label();
-    final int res = vUser +1;
-    final int obj = vUser +2;
-    final int func = vUser +3;
+    final Label meta = new Label();
+    LocalVar res = s.newVar("res");
+    LocalVar obj = s.newVar("name");
+    LocalVar func = s.newVar("func");
     cm.vGetStackVar(b);
     cm.vCopyRef();
-    mv.visitVarInsn(ASTORE, obj);
+    obj.store();
 
-    cm.vIf(KahluaTable.class, new IIFwe() {
-      public void doThen() {
-        mv.visitVarInsn(ALOAD, obj);
-        cm.vCast(KahluaTable.class);
-        cm.vInvokeFunc(KahluaTable.class, "len");
-        mv.visitInsn(I2D);
-        cm.vInvokeStatic(Double.class, "valueOf", D);
-        mv.visitVarInsn(ASTORE, res);
-        cm.vGoto(end);
-      }
+    cm.vIf(KahluaTable.class, ()-> {
+      obj.load();
+      cm.vCast(KahluaTable.class);
+      cm.vInvokeFunc(KahluaTable.class, "len");
+      mv.visitInsn(I2D);
+      cm.vToObjectDouble(false);
+      res.store();
+      cm.vGoto(end);
     });
 
-    mv.visitVarInsn(ALOAD, obj);
-    cm.vIf(String.class, new IIFwe() {
-      public void doThen() {
-        mv.visitVarInsn(ALOAD, obj);
-        cm.vCast(String.class);
-        cm.vInvokeFunc(String.class, "length");
-        mv.visitInsn(I2D);
-        cm.vInvokeStatic(Double.class, "valueOf", D);
-        mv.visitVarInsn(ASTORE, res);
-        cm.vGoto(end);
-      }
+    obj.load();
+    cm.vIf(String.class, ()-> {
+      obj.load();
+      cm.vCast(String.class);
+      cm.vInvokeFunc(String.class, "length");
+      mv.visitInsn(I2D);
+      cm.vToObjectDouble(false);
+      res.store();
+      cm.vGoto(end);
     });
 
-    cm.vGetMetaOp("__len", ()->{
-      mv.visitVarInsn(ALOAD, obj);
-    });
-    cm.vCopyRef();
+    cm.vBlock(meta, end, ()-> {
+      cm.vGetMetaOp("__len", ()-> obj.load());
+      cm.vCopyRef();
+      func.store();
 
-    mv.visitVarInsn(ASTORE, func);
-    cm.vIf(IFNULL, new IIFwe() {
-      public void doThen() {
-        cm.vThrow("__len not defined for operand");
-      }
-    });
+      cm.vIf(IFNULL, ()-> cm.vThrow("__len not defined for operand"));
 
-    cm.vCall(new IBuildParam4() {
-      public void param1() { mv.visitVarInsn(ALOAD, func); }
-      public void param2() { mv.visitVarInsn(ALOAD, obj); }
-      public void param3() { cm.vNull(); }
-      public void param4() { cm.vNull(); }
+      cm.vCall(new IBuildParam4() {
+        public void param1() { func.load(); }
+        public void param2() { obj.load(); }
+        public void param3() { cm.vNull(); }
+        public void param4() { cm.vNull(); }
+      });
+      res.store();
     });
-    mv.visitVarInsn(ASTORE, res);
-    cm.vGoto(end);
 
     cm.vLabel(end, line);
-    cm.vSetStackVar(a, ()->{
-      mv.visitVarInsn(ALOAD, res);
-    });
+    cm.vSetStackVar(a, ()-> res.load());
   }
 
 
