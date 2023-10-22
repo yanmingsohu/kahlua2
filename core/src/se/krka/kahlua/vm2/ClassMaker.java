@@ -25,6 +25,7 @@ package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.*;
 import se.krka.kahlua.vm.*;
+import sun.security.util.Debug;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -53,15 +54,17 @@ public class ClassMaker implements IConst {
   final String classPath;
   final String superClassName = toClassPath(scriptSuperClass.getName());
   final String outputDir;
+  final DebugInf di;
 
 
   /**
    * @param className '.' split class path
    */
-  public ClassMaker(String className, String outputDir) {
+  public ClassMaker(String className, String outputDir, DebugInf di) {
     this.outputDir = outputDir;
     this.className = className;
     this.classPath = toClassPath(className);
+    this.di = di;
 
     cw = new ClassWriter(COMPUTE_FRAMES);
     cw.visit(52,
@@ -75,8 +78,8 @@ public class ClassMaker implements IConst {
   }
 
 
-  public ClassMaker(String className) {
-    this(className, null);
+  public ClassMaker(String className, DebugInf di) {
+    this(className, null, di);
   }
 
 
@@ -113,6 +116,9 @@ public class ClassMaker implements IConst {
 
   private void writeBuf(String outputFile, byte[] buf) {
     try (FileOutputStream w = new FileOutputStream(outputFile)) {
+      if (di.has(DebugInf.FILEMSG)) {
+        Tool.pl("Write class file:", outputFile);
+      }
       w.write(buf);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -125,7 +131,8 @@ public class ClassMaker implements IConst {
    */
   public String getOutputFile() {
     return outputDir == null ? null :
-      outputDir +"/"+ Tool.flatPath(className) +".class";
+      outputDir +"/"+ Tool.flatPath(className)
+        + (di.flag==DebugInf.NONE ? ".class" : ".debug.class");
   }
 
 
@@ -189,14 +196,14 @@ public class ClassMaker implements IConst {
     s.vPrototype.store();
     s.vPrototype._lock();
 
-    if (s.debug) {
+    if (di.has(DebugInf.CALL)) {
       vPrint(">>>> vClosureFunctionHeader", s.vCI);
     }
   }
 
 
   void vClosureFunctionFoot(LuaBuilder.State s) {
-    if (s.debug) {
+    if (di.has(DebugInf.CALL)) {
       vPrint("<<<< vClosureFunctionFoot", s.vCI);
     }
     //coroutine.popCallFrame();

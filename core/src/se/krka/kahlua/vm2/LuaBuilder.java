@@ -55,16 +55,15 @@ public class LuaBuilder implements IConst {
   protected int op;
   protected int line;
   protected int id = 1;
-  public boolean debug;
   private DebugInf di;
 
 
-  public LuaBuilder(String _classPath, String _outDir) {
+  public LuaBuilder(DebugInf di, String _classPath, String _outDir) {
     this.classPath = _classPath;
     this.className = Tool.formatClassName(classPath);
-    this.cm = new ClassMaker(className, _outDir);
+    this.cm = new ClassMaker(className, _outDir, di);
     this.plist = new ArrayList<>(30);
-    this.di = new DebugInf();
+    this.di = di;
   }
 
 
@@ -88,17 +87,16 @@ public class LuaBuilder implements IConst {
 
     while (state.hasNext()) {
       state.readNextOp();
-      if (debug) {
-        di.stack();
-        di.update(line, opcode, op, pc);
-        di.fullMsg();
-        di.build();
+
+      if (di.flag != DebugInf.NONE) {
+        debugOp();
       }
+
       do_op_code(opcode, state);
     }
 
     cm.vLabel(state.returnLabel, line);
-    if (debug) {
+    if (di.has(DebugInf.STACK)) {
       di.stackAll();
       Tool.pl("endMethod");
     }
@@ -106,6 +104,22 @@ public class LuaBuilder implements IConst {
     cm.vClosureFunctionFoot(state);
     cm.endMethod(state);
     processSubClosure(startIndex, plist.size());
+  }
+
+
+  private void debugOp() {
+    if (di.has(DebugInf.STACK)) {
+      di.stackAuto();
+    }
+
+    di.update(line, opcode, op, pc);
+
+    if (di.has(DebugInf.FULLOP)) {
+      di.fullMsg();
+    }
+    if (di.has(DebugInf.BUILD)) {
+      di.build();
+    }
   }
 
 
@@ -122,7 +136,6 @@ public class LuaBuilder implements IConst {
     final LocalVar vClosure;
     final LocalVar vPrototype;
     final LocalVar vCI;
-    final boolean debug = LuaBuilder.this.debug;
 
 
     public State(ClosureInf ci) {
@@ -153,6 +166,7 @@ public class LuaBuilder implements IConst {
     private LocalVar internalVar(Class c, int index) {
       String name = Tool.toLocalVarName(c);
       LocalVar v = new LocalVar(mv, c, index, name, initLabel, returnLabel);
+      super.add(v);
       return v;
     }
 
@@ -188,16 +202,6 @@ public class LuaBuilder implements IConst {
 
     public LocalVar newVar(Class c, String name) {
       return super.newVar(c, name, label, labels[npc]);
-    }
-
-
-    public void vAllVariables() {
-      super.vAllVariables();
-      vCallframe.output();
-      vPlatform.output();
-      vClosure.output();
-      vPrototype.output();
-      vCI.output();
     }
   }
 
@@ -1294,7 +1298,7 @@ public class LuaBuilder implements IConst {
       nArguments2.store();
     }
 
-    if (debug) {
+    if (di.has(DebugInf.CALL)) {
       func.load();
       cm.vInvokeFunc(Object.class, "getClass");
       clazz.store();
@@ -1408,7 +1412,7 @@ public class LuaBuilder implements IConst {
       mv.visitInsn(AASTORE);
     }
 
-    if (debug) {
+    if (di.has(DebugInf.UPVALUE)) {
       cm.vPrintCiUpvalue(ci, 0);
     }
   }

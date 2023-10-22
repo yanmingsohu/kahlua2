@@ -20,7 +20,6 @@
  THE SOFTWARE.
  */
 
-import org.objectweb.asm.Label;
 import org.objectweb.asm.signature.SignatureWriter;
 import se.krka.kahlua.converter.KahluaConverterManager;
 import se.krka.kahlua.integration.LuaCaller;
@@ -28,7 +27,9 @@ import se.krka.kahlua.integration.LuaReturn;
 import se.krka.kahlua.j2se.J2SEPlatform;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.*;
-import se.krka.kahlua.vm2.*;
+import se.krka.kahlua.vm2.DebugInf;
+import se.krka.kahlua.vm2.KahluaThread2;
+import se.krka.kahlua.vm2.Tool;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,13 +37,10 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -50,6 +48,7 @@ import java.util.stream.Stream;
 public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
+  static final int DEBUG = DebugInf.ALL;
   public LuaCallFrame callFrame;
 
 
@@ -62,23 +61,17 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static void main(String[] av) throws Exception {
-    testVM();
-//    testLuaBuilder();
-//    test1();
-//    testAllLua();
+//    testVM();
+    testAllLua();
+//    test_signature();
+
     Tool.pl("Done");
-  }
-
-
-  private static void testLuaBuilder() throws Exception {
-    TestLuaBuild tlb = new TestLuaBuild();
-    tlb.test_every_lua_code();
   }
 
 
   private static void testAllLua() throws Exception {
     File dir = new File("./testsuite/lua");
-    //Test.testDir(dir, from(dir, ".lua"));
+//    Test.testDir(dir, from(dir, ".lua"));
     Test.testDir(dir, from(dir, "fail.lua"));
   }
 
@@ -108,7 +101,7 @@ public class TestKahluaThread2 implements Runnable {
     if (USE_NEW_THREAD) {
       KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
       thread.setOutputDir("./bin/lua");
-      thread.debug = true;
+      thread.setDebug(DEBUG);
       return thread;
     } else {
       return new KahluaThread(out, pl, pl.newEnvironment());
@@ -122,7 +115,7 @@ public class TestKahluaThread2 implements Runnable {
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
     thread.setOutputDir("./bin/lua");
-    thread.debug = true;
+    thread.setDebug(DEBUG);
     LuaCaller caller = new LuaCaller(converterManager);
 
     final String filename = "./testsuite/lua/thread2.lua";
@@ -140,7 +133,7 @@ public class TestKahluaThread2 implements Runnable {
   }
 
 
-  private static void test1() throws Exception {
+  private static void test_signature() throws Exception {
     Field f = TestKahluaThread2.class.getField("callFrame");
 
     pl("Test signature:");
@@ -208,64 +201,6 @@ public class TestKahluaThread2 implements Runnable {
 
   public static void pl(Object o) {
     Tool.pl(o);
-  }
-
-
-  public static class TestLuaBuild extends LuaBuilder {
-
-    public TestLuaBuild() {
-      super("TestLuaBuild.test_every_lua_code.lua", "./bin");
-    }
-
-
-    public void test_every_lua_code() throws Exception {
-      Platform platform = J2SEPlatform.getInstance();
-      KahluaTable env = platform.newEnvironment();
-      KahluaThread2 kt2 = new KahluaThread2(platform, env);
-
-      Prototype p = new Prototype();
-      p.name = "./testsuite/lua/testhelper.lua";
-      p.constants = new Object[]{};
-      p.lines = new int[KahluaThread2.opNamesLen()];
-      ComputStack cs = new ComputStack(0,0,0,0);
-
-      Set<String> useSBx = new HashSet();
-      useSBx.add("op_jmp");
-      useSBx.add("op_test");
-      useSBx.add("op_testset");
-      useSBx.add("op_closure");
-      useSBx.add("op_forprep");
-      useSBx.add("op_forloop");
-      useSBx.add("op_closure");
-
-      this.labels = new Label[p.lines.length];
-      p.code = new int[KahluaThread2.opNamesLen()];
-
-      for (int i=0; i<p.code.length; ++i) {
-        p.lines[i] = i;
-        this.labels[i] = new Label();
-
-        if (KahluaThread.OP_JMP == i) continue;
-        if (KahluaThread.OP_FORLOOP == i) continue;
-        if (KahluaThread.OP_FORPREP== i) continue;
-
-        String opName = KahluaThread2.opName(i).toLowerCase();
-        if (useSBx.contains(opName)) {
-          op = (0x7fff_8000) + (i);
-        } else {
-          op = ((1)<<6) | ((3)<<14) | ((2)<<23) + i;
-        }
-
-        p.code[i] = op;
-      }
-
-      makeJavacode(p);
-
-      Coroutine cr = new Coroutine(platform, env, kt2);
-      LuaScript agent = createJavaAgent();
-      agent.reinit(kt2, cr, cs);
-      agent.run();
-    }
   }
 
 }

@@ -37,7 +37,19 @@ public class DebugInf implements IConst {
   private final static int BUF_SIZE = 100;
   private final static char SP = Tool.sp;
 
-  final static String[] opNames = {
+  /** FLAG values */
+  public static final int ALL     = 0xFFFF_FFFF;
+  public static final int NONE    = 0;
+  public static final int STACK   = 1;
+  public static final int FULLOP  = 1<<1;
+  public static final int BUILD   = 1<<2;
+  public static final int UPVALUE = 1<<3;
+  public static final int CALL    = 1<<4;
+  public static final int FILEMSG = 1<<5;
+
+  public int flag = NONE;
+
+  private final static String[] opNames = {
     /*  0 */  "OP_MOVE"
     /*  1 */ ,"OP_LOADK"
     /*  2 */ ,"OP_LOADBOOL"
@@ -95,6 +107,12 @@ public class DebugInf implements IConst {
 
 
   public DebugInf() {
+    this(NONE);
+  }
+
+
+  public DebugInf(int _flag_) {
+    this.flag = _flag_;
   }
 
 
@@ -112,13 +130,18 @@ public class DebugInf implements IConst {
   }
 
 
+  public boolean has(int _flag_) {
+    return (flag & _flag_) != 0;
+  }
+
+
   public void fullMsg() {
     cm.vPrint("[ "+ opDesc() +" ]");
   }
 
 
   public void shortMsg() {
-    String msg = classPath +":"+ line +" "+ KahluaThread2.opName(opcode);
+    String msg = classPath +":"+ line +" "+ opNames[opcode];
     switch (opcode) {
       default:
         msg += "{ A:"+ getA8(op) +" B:"+ getB9(op) +" C:"+ getC9(op) + " }";
@@ -175,7 +198,7 @@ public class DebugInf implements IConst {
   /**
    * Stack offset not calculated
    */
-  public void stack() {
+  public void stackAuto() {
     final int a = getA8(op);
     final int b = getB9(op);
     final int c = getC9(op);

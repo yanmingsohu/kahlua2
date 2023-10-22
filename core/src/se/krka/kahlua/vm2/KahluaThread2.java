@@ -35,8 +35,8 @@ import java.lang.reflect.InvocationTargetException;
 public class KahluaThread2 extends KahluaThread {
 
   private String outputDir;
+  private final DebugInf di;
   final Platform platform;
-  public boolean debug;
 
 
   public KahluaThread2(Platform platform, KahluaTable environment) {
@@ -47,6 +47,7 @@ public class KahluaThread2 extends KahluaThread {
   public KahluaThread2(PrintStream s, Platform p, KahluaTable e) {
     super(s, p, e);
     this.platform = p;
+    this.di = new DebugInf();
   }
 
 
@@ -57,7 +58,7 @@ public class KahluaThread2 extends KahluaThread {
     if (o == null) {
       throw new LuaFail("tried to call nil");
     }
-    if (debug) {
+    if (di.has(DebugInf.CALL)) {
       Tool.pl(cs, "Func:", o);
     }
 
@@ -85,13 +86,8 @@ public class KahluaThread2 extends KahluaThread {
 
     try {
       LuaClosure lc = (LuaClosure) o;
-      LuaBuilder luab = new LuaBuilder(lc.prototype.name, outputDir);
-      luab.debug = debug;
+      LuaBuilder luab = new LuaBuilder(di, lc.prototype.name, outputDir);
       luab.makeJavacode(lc.prototype);
-
-      if (debug) {
-        Tool.pl("Write class file:", luab.getOutoutFile());
-      }
 
       LuaScript x = luab.createJavaAgent();
       x.reinit(this, currentCoroutine, cs);
@@ -116,7 +112,7 @@ public class KahluaThread2 extends KahluaThread {
       cs.localBase, cs.returnBase, nArguments, false, false);
     callFrame.init();
 
-    if (debug) {
+    if (di.has(DebugInf.CALL)) {
       Tool.pl("Call old thread", cs, oldc, currentCoroutine.getCallframeTop());
     }
 
@@ -134,17 +130,19 @@ public class KahluaThread2 extends KahluaThread {
   }
 
 
-  public static int opNamesLen() {
-    return DebugInf.opNames.length;
-  }
-
-
-  public static String opName(int i) {
-    return DebugInf.opNames[i];
-  }
-
-
   public void setOutputDir(String dir) {
     this.outputDir = dir;
+  }
+
+
+  public void setDebug(int ...flag) {
+    for (int f : flag) {
+      this.di.flag |= f;
+    }
+  }
+
+
+  public void setDebug(DebugInf di) {
+    this.di.flag = di.flag;
   }
 }

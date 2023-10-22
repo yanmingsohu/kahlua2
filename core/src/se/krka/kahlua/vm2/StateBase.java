@@ -74,4 +74,9 @@ public abstract class StateBase implements IConst {
     }
     return (varId++);
   }
+
+
+  protected void add(LocalVar lv) {
+    outputVarDebugInf.add(lv);
+  }
 }
