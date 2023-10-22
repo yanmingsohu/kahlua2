@@ -56,6 +56,7 @@ public class LuaBuilder implements IConst {
   protected int line;
   protected int id = 1;
   public boolean debug;
+  private DebugInf di;
 
 
   public LuaBuilder(String _classPath, String _outDir) {
@@ -63,6 +64,7 @@ public class LuaBuilder implements IConst {
     this.className = Tool.formatClassName(classPath);
     this.cm = new ClassMaker(className, _outDir);
     this.plist = new ArrayList<>(30);
+    this.di = new DebugInf();
   }
 
 
@@ -78,7 +80,7 @@ public class LuaBuilder implements IConst {
     mv = cm.beginMethod(ci.funcName);
     State state = new State(ci);
 
-    DebugInf di = new DebugInf(cm, classPath);
+    di.update(cm, classPath);
     int firstLine = ci.prototype.lines[0];
     cm.vLabel(state.initLabel, firstLine);
     cm.vClosureFunctionHeader(state);
@@ -89,7 +91,7 @@ public class LuaBuilder implements IConst {
       if (debug) {
         di.stack();
         di.update(line, opcode, op, pc);
-        di.opArg();
+        di.fullMsg();
         di.build();
       }
       do_op_code(opcode, state);
@@ -98,6 +100,7 @@ public class LuaBuilder implements IConst {
     cm.vLabel(state.returnLabel, line);
     if (debug) {
       di.stackAll();
+      Tool.pl("endMethod");
     }
 
     cm.vClosureFunctionFoot(state);
@@ -270,6 +273,11 @@ public class LuaBuilder implements IConst {
 
   private String closureFuncName() {
     return "closure_"+ (id++);
+  }
+
+
+  public String getOutoutFile() {
+    return cm.getOutputFile();
   }
 
 

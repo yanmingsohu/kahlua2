@@ -36,8 +36,11 @@ import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.Opcodes.*;
 import static se.krka.kahlua.vm2.Tool.*;
 
-public class ClassMaker implements IConst {
 
+/**
+ * The class will be cached after successful compilation
+ */
+public class ClassMaker implements IConst {
 
   private ClassWriter cw;
   private FieldVisitor fv;
@@ -91,7 +94,6 @@ public class ClassMaker implements IConst {
     mv.visitMaxs(0, 0);
     mv.visitEnd();
     mv = null;
-    Tool.pl("endMethod");
   }
 
 
@@ -102,17 +104,28 @@ public class ClassMaker implements IConst {
       clazz = LuaClassLoader.instance.defineClass(className, buf);
       cw = null;
 
-      if (outputDir != null) try {
-        String file = outputDir +"/"+ Tool.flatPath(className) +".class";
-        FileOutputStream w = new FileOutputStream(file);
-        w.write(buf);
-        w.close();
-        Tool.pl("Write class file:", file);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      String outputFile = getOutputFile();
+      if (outputFile != null) writeBuf(outputFile, buf);
     }
     return clazz;
+  }
+
+
+  private void writeBuf(String outputFile, byte[] buf) {
+    try (FileOutputStream w = new FileOutputStream(outputFile)) {
+      w.write(buf);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+
+  /**
+   * return .class path or null if not set output dir
+   */
+  public String getOutputFile() {
+    return outputDir == null ? null :
+      outputDir +"/"+ Tool.flatPath(className) +".class";
   }
 
 

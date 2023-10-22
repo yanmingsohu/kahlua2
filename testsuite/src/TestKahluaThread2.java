@@ -32,16 +32,24 @@ import se.krka.kahlua.vm2.*;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
-import java.util.Date;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 
 public class TestKahluaThread2 implements Runnable {
+
+  static final boolean USE_NEW_THREAD = true;
   public LuaCallFrame callFrame;
 
 
@@ -68,21 +76,42 @@ public class TestKahluaThread2 implements Runnable {
   }
 
 
-  private static File[] from(File dir, String ...names) {
-    File[] ret = new File[names.length];
-    for (int i=0; i<names.length; ++i) {
-      ret[i] = new File(dir, names[i]);
+  private static void testAllLua() throws Exception {
+    File dir = new File("./testsuite/lua");
+    Test.testDir(dir, from(dir, ".lua"));
+  }
+
+
+  private static File[] from(File dir, String ext) throws Exception {
+    Predicate<Path> luafile = new Predicate<Path>() {
+      public boolean test(Path o) {
+        return o.toFile().getName().endsWith(ext);
+      }
+    };
+
+    File[] ret;
+    try (Stream<Path> s = Files.walk(dir.toPath(), 1)) {
+      List<File> files = new ArrayList<>();
+
+      s.filter(luafile).forEach((p)-> files.add(p.toFile()) );
+      ret = files.toArray(new File[files.size()]);
     }
     return ret;
   }
 
 
-  private static void testAllLua() throws Exception {
-    File dir = new File("./testsuite/lua");
+  public static KahluaThread newThread() {
+    Platform pl = J2SEPlatform.getInstance();
+    PrintStream out = System.out;
 
-    Test.testDir(dir, from(dir, new String[]{
-      "boolean.lua",
-    }));
+    if (USE_NEW_THREAD) {
+      KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
+      thread.setOutputDir("./bin/lua");
+      thread.debug = false;
+      return thread;
+    } else {
+      return new KahluaThread(out, pl, pl.newEnvironment());
+    }
   }
 
 
@@ -91,7 +120,7 @@ public class TestKahluaThread2 implements Runnable {
     Platform plat = J2SEPlatform.getInstance();
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
-    thread.setOutputDir("./bin");
+    thread.setOutputDir("./bin/lua");
     LuaCaller caller = new LuaCaller(converterManager);
 
     final String filename = "./testsuite/lua/testhelper.lua";

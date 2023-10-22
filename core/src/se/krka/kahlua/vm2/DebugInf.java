@@ -27,6 +27,9 @@ import se.krka.kahlua.vm.*;
 import static se.krka.kahlua.vm2.KahluaThread2.*;
 
 
+/**
+ * Compile debugging information into class files
+ */
 public class DebugInf implements IConst {
 
   private final static int NotReg = Integer.MIN_VALUE;
@@ -91,7 +94,11 @@ public class DebugInf implements IConst {
   private int pc;
 
 
-  public DebugInf(ClassMaker cm, String classPath) {
+  public DebugInf() {
+  }
+
+
+  public void update(ClassMaker cm, String classPath) {
     this.cm = cm;
     this.classPath = classPath;
   }
@@ -105,7 +112,12 @@ public class DebugInf implements IConst {
   }
 
 
-  public void opArg() {
+  public void fullMsg() {
+    cm.vPrint("[ "+ opDesc() +" ]");
+  }
+
+
+  public void shortMsg() {
     String msg = classPath +":"+ line +" "+ KahluaThread2.opName(opcode);
     switch (opcode) {
       default:
@@ -151,7 +163,6 @@ public class DebugInf implements IConst {
     }
 
     cm.vPrint(msg);
-    cm.vPrint("[ "+ opDesc() +" ]");
   }
 
 

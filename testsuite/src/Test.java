@@ -31,27 +31,10 @@ import java.io.*;
 
 public class Test {
 
-	static final boolean USE_NEW_THREAD = true;
-
-
-	static KahluaThread newThread() {
-		Platform pl = J2SEPlatform.getInstance();
-		PrintStream out = System.out;
-
-		if (USE_NEW_THREAD) {
-			KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
-			thread.setOutputDir("./bin/lua");
-			thread.debug = true;
-			return thread;
-		} else {
-			return new KahluaThread(out, pl, pl.newEnvironment());
-		}
-	}
-
 
 	private static KahluaThread getThread(File dir) throws FileNotFoundException, IOException {
         Platform platform = J2SEPlatform.getInstance();
-        KahluaThread thread = newThread();
+        KahluaThread thread = TestKahluaThread2.newThread();
 		OsLib.register(platform, thread.getEnvironment());
 		LuaCompiler.register(thread.getEnvironment());
 

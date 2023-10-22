@@ -89,6 +89,10 @@ public class KahluaThread2 extends KahluaThread {
       luab.debug = debug;
       luab.makeJavacode(lc.prototype);
 
+      if (debug) {
+        Tool.pl("Write class file:", luab.getOutoutFile());
+      }
+
       LuaScript x = luab.createJavaAgent();
       x.reinit(this, currentCoroutine, cs);
       x.run(); //TODO: Add thread running strategy
@@ -116,7 +120,7 @@ public class KahluaThread2 extends KahluaThread {
       Tool.pl("Call old thread", cs, oldc, currentCoroutine.getCallframeTop());
     }
 
-    // This was call popCallFrame()
+    // This was call popCallFrame() when back
     luaMainloop();
 
     int nReturnValues = cs.returnValues(currentCoroutine);
