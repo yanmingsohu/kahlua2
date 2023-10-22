@@ -62,10 +62,10 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static void main(String[] av) throws Exception {
-//    testVM();
+    testVM();
 //    testLuaBuilder();
 //    test1();
-    testAllLua();
+//    testAllLua();
     Tool.pl("Done");
   }
 
@@ -78,7 +78,8 @@ public class TestKahluaThread2 implements Runnable {
 
   private static void testAllLua() throws Exception {
     File dir = new File("./testsuite/lua");
-    Test.testDir(dir, from(dir, ".lua"));
+    //Test.testDir(dir, from(dir, ".lua"));
+    Test.testDir(dir, from(dir, "fail.lua"));
   }
 
 
@@ -107,7 +108,7 @@ public class TestKahluaThread2 implements Runnable {
     if (USE_NEW_THREAD) {
       KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
       thread.setOutputDir("./bin/lua");
-      thread.debug = false;
+      thread.debug = true;
       return thread;
     } else {
       return new KahluaThread(out, pl, pl.newEnvironment());
@@ -121,12 +122,18 @@ public class TestKahluaThread2 implements Runnable {
     KahluaTable env = plat.newEnvironment();
     KahluaThread2 thread = new KahluaThread2(plat, env);
     thread.setOutputDir("./bin/lua");
+    thread.debug = true;
     LuaCaller caller = new LuaCaller(converterManager);
 
-    final String filename = "./testsuite/lua/testhelper.lua";
+    final String filename = "./testsuite/lua/thread2.lua";
     FileInputStream fi = new FileInputStream(filename);
     LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
     LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
+
+    if (ret.isSuccess()) {
+      Tool.pl("Return:", ret.get(0));
+      Tool.printTable(env);
+    }
 
     printError(ret);
     Test.verifyCorrectStack(thread);

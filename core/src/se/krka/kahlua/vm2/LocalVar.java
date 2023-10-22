@@ -110,7 +110,7 @@ public class LocalVar {
   }
 
 
-  void lock() {
+  void _lock() {
     this.readonly = true;
   }
 

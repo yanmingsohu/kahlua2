@@ -36,7 +36,7 @@ public class KahluaThread2 extends KahluaThread {
 
   private String outputDir;
   final Platform platform;
-  public static boolean debug;
+  public boolean debug;
 
 
   public KahluaThread2(Platform platform, KahluaTable environment) {
@@ -95,7 +95,7 @@ public class KahluaThread2 extends KahluaThread {
 
       LuaScript x = luab.createJavaAgent();
       x.reinit(this, currentCoroutine, cs);
-      x.run(); //TODO: Add thread running strategy
+      x.run(); //TODO: Add thread running/compile strategy
 
     } catch (NoSuchMethodException | InstantiationException
           | IllegalAccessException | InvocationTargetException e) {

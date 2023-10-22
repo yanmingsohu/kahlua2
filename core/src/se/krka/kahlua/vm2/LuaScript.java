@@ -46,7 +46,8 @@ public abstract class LuaScript implements Runnable {
     this.t = kt2;
     this.coroutine = c;
     this.platform = kt2.platform;
-    this.plist[IConst.rootClosure].frameParams(cs);
+    ClosureInf ci = this.plist[IConst.rootClosure];
+    ci.frameParams(cs);
   }
 
 

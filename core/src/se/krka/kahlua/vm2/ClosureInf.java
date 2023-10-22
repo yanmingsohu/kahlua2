@@ -35,6 +35,7 @@ public class ClosureInf {
   public final int arrIndex;
   public final int stackIndex;
   public final String funcName;
+  public final int constIndex;
 
   private Method mc;
   private LuaCallFrame oframe;
@@ -49,12 +50,14 @@ public class ClosureInf {
   public ClosureInf(Prototype prototype,
                     int arrIndex,
                     String funcName,
-                    int stackIndex) {
+                    int stackIndex,
+                    int constIndex) {
     this.prototype = prototype;
     this.upvalues = new UpValue[prototype.numUpvalues];
     this.arrIndex = arrIndex;
     this.funcName = funcName;
     this.stackIndex = stackIndex;
+    this.constIndex = constIndex;
   }
 
 
@@ -133,9 +136,17 @@ public class ClosureInf {
   }
 
 
+  public String getLuaName() {
+    if (constIndex < 0) {
+      return "";
+    } else {
+      return prototype.constants[constIndex] +"";
+    }
+  }
+
   public String toString() {
     return "ClosureInf@"+ Tool.hash(this) +
-      " "+ funcName +
+      " "+ funcName +" "+ getLuaName() +
       " "+ prototype;
   }
 }

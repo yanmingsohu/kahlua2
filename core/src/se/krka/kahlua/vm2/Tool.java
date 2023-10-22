@@ -23,6 +23,8 @@
 package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.signature.SignatureVisitor;
+import se.krka.kahlua.vm.KahluaTable;
+import se.krka.kahlua.vm.KahluaTableIterator;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -33,6 +35,7 @@ public class Tool {
   public static final int callFrom = 2;
   public static final char sp = ' ';
   public static final char ent = '\n';
+  public static final char tab = '\t';
   public static final String nil = "nil";
   public static final String point = " -- ";
   public static final String spoint = " +> ";
@@ -286,5 +289,18 @@ public class Tool {
 
   public static String hash(Object o) {
     return o == null ? "NULL" : Integer.toHexString(System.identityHashCode(o));
+  }
+
+
+  public static void printTable(KahluaTable t) {
+    StringBuilder out = new StringBuilder();
+    KahluaTableIterator it = t.iterator();
+    while (it.advance()) {
+      out.append(ent).append(tab);
+      out.append(it.getKey());
+      out.append("\t:\t");
+      out.append(it.getValue());
+    }
+    pl("Table", t, out);
   }
 }

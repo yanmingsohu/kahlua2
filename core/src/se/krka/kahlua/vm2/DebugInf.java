@@ -309,7 +309,7 @@ public class DebugInf implements IConst {
       case OP_DIV:
         return String.format("DIV   A B C   R(A:%d) := RK(B:%d) / RK(C:%d)", a, b, c);
       case OP_MOD:
-        return String.format("MOD   A B C   R(A:%d) := RK(B:%d) % RK(C:%d)", a, b, c);
+        return String.format("MOD   A B C   R(A:%d) := RK(B:%d) %% RK(C:%d)", a, b, c);
       case OP_POW:
         return String.format("POW   A B C   R(A:%d) := RK(B:%d) ^ RK(C:%d)", a,b,c);
       case OP_UNM:

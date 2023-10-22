@@ -70,7 +70,7 @@ public class LuaBuilder implements IConst {
 
   public void makeJavacode(Prototype p) {
     cm.defaultConstructor();
-    ClosureInf root = pushClosure(p, ROOT_FUNCTION_NAME, -1);
+    ClosureInf root = pushClosure(p, ROOT_FUNCTION_NAME, -1, -1);
     newClosureFunction(root);
   }
 
@@ -263,9 +263,10 @@ public class LuaBuilder implements IConst {
   }
 
 
-  private ClosureInf pushClosure(Prototype sp, String funcName, int stackIndex) {
+  private ClosureInf pushClosure(Prototype sp, String funcName,
+                                 int stackIndex, int constIndex) {
     int index = plist.size();
-    ClosureInf inf = new ClosureInf(sp, index, funcName, stackIndex);
+    ClosureInf inf = new ClosureInf(sp, index, funcName, stackIndex, constIndex);
     plist.add(inf);
     return inf;
   }
@@ -1280,7 +1281,7 @@ public class LuaBuilder implements IConst {
 
     state.vCallframe.load();
     cm.vBoolean(c != 0);
-    cm.vPutField(FR, "restoreTop");
+    cm.vPutField(FR, "restoreTop"); //TODO: using restoreTop
 
     if (b != 0) {
       cm.vSetFrameTop(()-> cm.vInt(a+b));
@@ -1297,7 +1298,7 @@ public class LuaBuilder implements IConst {
       func.load();
       cm.vInvokeFunc(Object.class, "getClass");
       clazz.store();
-      cm.vPrint("CallFunction:", clazz, func);
+      cm.vPrint("CallFunction:", clazz, func, "(..)");
     }
 
     cm.vThis();
@@ -1370,8 +1371,7 @@ public class LuaBuilder implements IConst {
     int b = getBx(op);
 
     Prototype p = state.ci.prototype.prototypes[b];
-    ClosureInf newci = pushClosure(p, closureFuncName(), a);
-
+    ClosureInf newci = pushClosure(p, closureFuncName(), a, b);
     LocalVar ci = state.newVar(ClosureInf.class, "ci");
 
     cm.vField("plist");

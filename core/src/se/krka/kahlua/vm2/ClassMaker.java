@@ -157,7 +157,7 @@ public class ClassMaker implements IConst {
     vInt(inf.arrIndex);
     mv.visitInsn(AALOAD);
     s.vCI.store();
-    s.vCI.lock();
+    s.vCI._lock();
 
     // ci.newFrame(this.coroutine)
     s.vCI.load();
@@ -169,25 +169,25 @@ public class ClassMaker implements IConst {
     s.vCI.load();
     vInvokeFunc(ClosureInf.class, "getOldClosure");
     s.vClosure.store();
-    s.vClosure.lock();
+    s.vClosure._lock();
 
     // final LuaCallFrame vCallframe = closure.getOldFrame();
     s.vCI.load();
     vInvokeFunc(ClosureInf.class, "getOldFrame");
     s.vCallframe.store();
-    s.vCallframe.lock();
+    s.vCallframe._lock();
 
     // final Platform vPlatform = this.platform
     vField("platform");
     s.vPlatform.store();
-    s.vPlatform.lock();
+    s.vPlatform._lock();
 
     // final Prototype vPrototype = ci.prototype
     s.vCI.load();
     mv.visitVarInsn(ALOAD, vCI);
     vField(ClosureInf.class, "prototype");
     s.vPrototype.store();
-    s.vPrototype.lock();
+    s.vPrototype._lock();
 
     if (s.debug) {
       vPrint(">>>> vClosureFunctionHeader", s.vCI);
@@ -804,16 +804,6 @@ public class ClassMaker implements IConst {
   void vPopFrame() {
     vField("coroutine");
     vInvokeFunc(CR, "popCallFrame");
-  }
-
-
-  void vStore(LocalVar v) {
-    v.store();
-  }
-
-
-  void vLoad(LocalVar v) {
-    v.load();
   }
 
 
