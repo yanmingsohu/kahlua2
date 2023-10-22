@@ -4,13 +4,17 @@
 --- DateTime: 2023/10/22 10:27
 ---
 
-function x(i)
-  return i+1
+function x2(a,b)
+  return a+b
 end
 
-local a = 99
-b = 1001
+function x(i)
+  return x2(i,1)
+end
 
-c = a + b
-d = x(c)
-return a, b, c, d
+local a1 = 101
+a2 = 1
+
+a3 = a1 + a2 + 1
+a4 = x(a3)
+return a1,a2,a3,a4
