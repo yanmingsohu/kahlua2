@@ -48,8 +48,9 @@ import java.util.stream.Stream;
 public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.ALL;
+  static final int DEBUG = DebugInf.SHORTOP | DebugInf.ALL;
   public LuaCallFrame callFrame;
+  private static KahluaTable lastEnv;
 
 
   public void ___asm() {
@@ -72,7 +73,9 @@ public class TestKahluaThread2 implements Runnable {
   private static void testAllLua() throws Exception {
     File dir = new File("./testsuite/lua");
 //    Test.testDir(dir, from(dir, ".lua"));
-    Test.testDir(dir, from(dir, "fail.lua"));
+    Test.testDir(dir, from(dir, "array.lua"));
+
+//    Tool.printTable(lastEnv);
   }
 
 
@@ -97,14 +100,15 @@ public class TestKahluaThread2 implements Runnable {
   public static KahluaThread newThread() {
     Platform pl = J2SEPlatform.getInstance();
     PrintStream out = System.out;
+    lastEnv = pl.newEnvironment();
 
     if (USE_NEW_THREAD) {
-      KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
+      KahluaThread2 thread = new KahluaThread2(out, pl, lastEnv);
       thread.setOutputDir("./bin/lua");
       thread.setDebug(DEBUG);
       return thread;
     } else {
-      return new KahluaThread(out, pl, pl.newEnvironment());
+      return new KahluaThread(out, pl, lastEnv);
     }
   }
 

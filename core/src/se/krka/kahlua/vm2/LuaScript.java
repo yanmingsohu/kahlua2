@@ -36,16 +36,18 @@ public abstract class LuaScript implements Runnable {
   protected KahluaThread2 t;
   protected Coroutine coroutine;
   protected ClosureInf[] plist;
+  private int debugFlag;
 
 
   public LuaScript() {
   }
 
 
-  public void reinit(KahluaThread2 kt2, Coroutine c, ComputStack cs) {
+  public void reinit(KahluaThread2 kt2, Coroutine c, ComputStack cs, int debugFlag) {
     this.t = kt2;
     this.coroutine = c;
     this.platform = kt2.platform;
+    this.debugFlag = debugFlag;
     ClosureInf ci = this.plist[IConst.rootClosure];
     ci.frameParams(cs);
   }
@@ -230,22 +232,24 @@ public abstract class LuaScript implements Runnable {
 
   public void call(ClosureInf ci, LuaCallFrame fr, Object orgFunction,
                    int nArguments2, int argBase) {
-    if (orgFunction == null)
+    if (orgFunction == null) {
       throw new LuaFail("Tried to call nil");
+    }
 
-    ComputStack cs = new ComputStack(fr, argBase, nArguments2);
+    ComputStack cs = new ComputStack(fr, argBase, nArguments2, ci.prototype.maxStacksize);
     Object function = orgFunction;
 
 
     for (;;) {
-      if (function instanceof JavaFunction) {
-        call((JavaFunction) function, cs);
-        break;
-      }
-      else if (function instanceof ClosureInf) {
+      // order is important
+      if (function instanceof ClosureInf) {
         ClosureInf newCI = (ClosureInf) function;
         newCI.frameParams(cs);
         newCI.call();
+        break;
+      }
+      else if (function instanceof JavaFunction) {
+        call((JavaFunction) function, cs);
         break;
       }
       else if (function instanceof LuaClosure) {
@@ -291,7 +295,9 @@ public abstract class LuaScript implements Runnable {
    * virtual machine can be created to compile and run it.
    */
   private void call(LuaClosure c, ComputStack cs) {
+    //TODO: Need restoreTop set top if exception
     KahluaThread2 t = new KahluaThread2(platform, coroutine.environment);
+    t.setDebug(debugFlag);
     t.call(c, coroutine, cs.nArguments);
   }
 

@@ -68,4 +68,9 @@ public final class UpValue {
     value = coroutine.objectStack[index];
     coroutine = null;
   }
+
+
+  public String toString() {
+    return index + (coroutine == null ? " closed " : " open ") +'"'+ value +'"';
+  }
 }

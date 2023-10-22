@@ -46,6 +46,7 @@ public class DebugInf implements IConst {
   public static final int UPVALUE = 1<<3;
   public static final int CALL    = 1<<4;
   public static final int FILEMSG = 1<<5;
+  public static final int SHORTOP = 1<<6;
 
   public int flag = NONE;
 
@@ -417,7 +418,7 @@ public class DebugInf implements IConst {
   public static void printUpValues(UpValue[] ups, int ...i) {
     StringBuilder out = new StringBuilder(BUF_SIZE);
     out.append("UPVALUE(").append(ups.length).append(')');
-    new Array2String(out, ups, 0, selectInt(i), new UpValueRender()).render();
+    new Array2String(out, ups, 0, selectInt(i), new UpValueRender2()).render();
     Tool.pl(out, "\n");
   }
 
@@ -433,8 +434,9 @@ public class DebugInf implements IConst {
         return;
       }
 
-      String hash = Tool.hash(u.getValue());
-      String cname = u.getValue().getClass().getName();
+      Object val = u.getValue();
+      String hash = Tool.hash(val);
+      String cname = val.getClass().getName();
       String strs = cname +"@"+ hash;
 
       out.append(SP).append(strs);
@@ -446,6 +448,15 @@ public class DebugInf implements IConst {
           .append(str)
           .append('"');
       }
+    }
+  }
+
+
+  // add toString() function to UpValue class
+  static class UpValueRender2 implements Array2String.Stringify<UpValue> {
+    public void item(StringBuilder out, UpValue u) {
+      out.append('@').append(System.identityHashCode(u));
+      out.append(SP).append(u);
     }
   }
 

@@ -51,6 +51,7 @@ public class KahluaThread2 extends KahluaThread {
   }
 
 
+  @Override
   public int call(int nArguments) {
     ComputStack cs = new ComputStack(currentCoroutine, nArguments);
     Object o = currentCoroutine.objectStack[cs.returnBase];
@@ -59,7 +60,7 @@ public class KahluaThread2 extends KahluaThread {
       throw new LuaFail("tried to call nil");
     }
     if (di.has(DebugInf.CALL)) {
-      Tool.pl(cs, "Func:", o);
+      Tool.pl(cs, "Func:", o.getClass(), o);
     }
 
     if (o instanceof JavaFunction) {
@@ -90,7 +91,7 @@ public class KahluaThread2 extends KahluaThread {
       luab.makeJavacode(lc.prototype);
 
       LuaScript x = luab.createJavaAgent();
-      x.reinit(this, currentCoroutine, cs);
+      x.reinit(this, currentCoroutine, cs, di.flag);
       x.run(); //TODO: Add thread running/compile strategy
 
     } catch (NoSuchMethodException | InstantiationException
@@ -99,7 +100,7 @@ public class KahluaThread2 extends KahluaThread {
     }
 
     int nReturnValues = cs.returnValues(currentCoroutine);
-    currentCoroutine.stackTrace = "";
+    //currentCoroutine.stackTrace = "";
     return nReturnValues;
   }
 
@@ -108,20 +109,46 @@ public class KahluaThread2 extends KahluaThread {
     currentCoroutine = cor;
     ComputStack cs = new ComputStack(currentCoroutine, nArguments);
 
-    LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(oldc, null,
-      cs.localBase, cs.returnBase, nArguments, false, false);
+    LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(
+      oldc, null, cs.localBase, cs.returnBase, nArguments, false, false);
     callFrame.init();
 
     if (di.has(DebugInf.CALL)) {
-      Tool.pl("Call old thread", cs, oldc, currentCoroutine.getCallframeTop());
+      Tool.pl("Call old thread", cs, oldc, "FrameTop:", currentCoroutine.getCallframeTop());
+    }
+    if (di.has(DebugInf.STACK)) {
+      DebugInf.printLuaStack(cor, callFrame);
     }
 
     // This was call popCallFrame() when back
     luaMainloop();
 
     int nReturnValues = cs.returnValues(currentCoroutine);
-    currentCoroutine.stackTrace = "";
+    //currentCoroutine.stackTrace = "";
     return nReturnValues;
+  }
+
+
+  /**
+   * Does not intercept exceptions compared to the original version
+   */
+  @Override
+  public int pcall(int nArguments) {
+    Coroutine coroutine = currentCoroutine;
+    LuaCallFrame currentCallFrame = coroutine.currentCallFrame();
+    coroutine.stackTrace = "";
+    int oldBase = coroutine.getTop() - nArguments - 1;
+
+    int oldCallframetop = coroutine.getCallframeTop();
+    int nValues = call(nArguments);
+    int newCallframeTop = coroutine.getCallframeTop();
+    KahluaUtil.luaAssert(oldCallframetop == newCallframeTop, "error - call stack depth changed.");
+    int newTop = oldBase + nValues + 1;
+    coroutine.setTop(newTop);
+    coroutine.stackCopy(oldBase, oldBase + 1, nValues);
+    coroutine.objectStack[oldBase] = Boolean.TRUE;
+
+    return 1 + nValues;
   }
 
 

@@ -69,11 +69,11 @@ public class ComputStack {
    * @param copy
    * @param funcBase from OP_CALL(a)
    */
-  public ComputStack(LuaCallFrame copy, int funcBase, int nArguments) {
+  public ComputStack(LuaCallFrame copy, int funcBase, int nArguments, int top) {
     this.localBase = copy.localBase + funcBase + 1;
     this.returnBase = localBase - 1;
     this.nArguments = nArguments;
-    this.top = Integer.MIN_VALUE;
+    this.top = top;
   }
 
 
@@ -88,7 +88,7 @@ public class ComputStack {
       +" localBase:"+ localBase
       +" returnBase:"+ returnBase
       +" nArg:"+ nArguments
-      +" @"+ System.identityHashCode(this)
+      +" @"+ Tool.hash(this)
       +" }";
   }
 

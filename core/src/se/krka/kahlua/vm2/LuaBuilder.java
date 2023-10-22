@@ -41,6 +41,7 @@ import static se.krka.kahlua.vm.KahluaThread.*;
 public class LuaBuilder implements IConst {
 
   public final static String ROOT_FUNCTION_NAME = "run";
+  public final static String CANNOT_BIND_LUA_NAME = "";
 
   final String classPath;
   final String className;
@@ -116,7 +117,10 @@ public class LuaBuilder implements IConst {
 
     if (di.has(DebugInf.FULLOP)) {
       di.fullMsg();
+    } else if (di.has(DebugInf.SHORTOP)) {
+      di.shortMsg();
     }
+
     if (di.has(DebugInf.BUILD)) {
       di.build();
     }
@@ -1285,7 +1289,7 @@ public class LuaBuilder implements IConst {
 
     state.vCallframe.load();
     cm.vBoolean(c != 0);
-    cm.vPutField(FR, "restoreTop"); //TODO: using restoreTop
+    cm.vPutField(FR, "restoreTop");
 
     if (b != 0) {
       cm.vSetFrameTop(()-> cm.vInt(a+b));
@@ -1300,9 +1304,18 @@ public class LuaBuilder implements IConst {
 
     if (di.has(DebugInf.CALL)) {
       func.load();
-      cm.vInvokeFunc(Object.class, "getClass");
-      clazz.store();
-      cm.vPrint("CallFunction:", clazz, func, "(..)");
+
+      cm.vIf(IFNONNULL, new IIF() {
+        public void doThen() {
+          func.load();
+          cm.vInvokeFunc(Object.class, "getClass");
+          clazz.store();
+          cm.vPrint("CallFunction:", clazz, func, "(..)");
+        }
+        public void doElse() {
+          cm.vPrint("CallFunction got null object");
+        }
+      });
     }
 
     cm.vThis();
@@ -1373,7 +1386,7 @@ public class LuaBuilder implements IConst {
     int b = getBx(op);
 
     Prototype p = state.ci.prototype.prototypes[b];
-    String luaName = state.ci.prototype.constants[b] +"";
+    String luaName = CANNOT_BIND_LUA_NAME; //state.ci.prototype.constants[b] +"";
     ClosureInf newci = pushClosure(p, closureFuncName(), a, luaName);
     LocalVar ci = state.newVar(ClosureInf.class, "ci");
 
@@ -1406,7 +1419,6 @@ public class LuaBuilder implements IConst {
         break;
 
       default:
-        cm.vNull();
         throw new RuntimeException("bad operate code in op_closure");
       }
       mv.visitInsn(AASTORE);

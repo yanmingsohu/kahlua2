@@ -28,7 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 
-public class ClosureInf {
+public class ClosureInf /*implements JavaFunction */{
 
   public final Prototype prototype;
   public final UpValue[] upvalues;
@@ -45,6 +45,7 @@ public class ClosureInf {
   private int localBase;
   private int returnBase;
   private int nArguments;
+  private int top;
 
 
   public ClosureInf(Prototype prototype,
@@ -77,8 +78,8 @@ public class ClosureInf {
     try {
       mc.invoke(ls);
 
-    } catch (IllegalAccessException | InvocationTargetException e) {
-      throw new LuaFail(e);
+    } catch (Throwable e) {
+      throw new LuaFail(e.getCause());
     }
   }
 
@@ -88,12 +89,28 @@ public class ClosureInf {
   }
 
 
+  /**
+   * Call from older Thread object
+   * mock javafunction (TODO: remove)
+   */
+  public int call(LuaCallFrame callFrame, int nArguments) {
+    this.nArguments = nArguments;
+    this.oframe = callFrame;
+    call();
+    return 0;
+  }
+
+
   public void newFrame(Coroutine c) {
-    ComputStack cs = new ComputStack(c.getTop(), nArguments, localBase, returnBase);
+    ComputStack cs = new ComputStack(top, nArguments, localBase, returnBase);
 
     this.oframe = cs.pushFrame(c, prototype);
     this.ocl = oframe.closure;
     this.ocl.upvalues = this.upvalues;
+
+    if (this.top > 0) {
+      oframe.setTop(this.top);
+    }
 
     //TODO: remove this code
     //cf.init();
@@ -110,6 +127,7 @@ public class ClosureInf {
     this.localBase = lcBase;
     this.returnBase = rBase;
     this.nArguments = nArg;
+    this.top = -1;
   }
 
 
@@ -117,6 +135,7 @@ public class ClosureInf {
     this.localBase = cs.localBase;
     this.returnBase = cs.returnBase;
     this.nArguments = cs.nArguments;
+    this.top = cs.top;
   }
 
 
@@ -142,4 +161,5 @@ public class ClosureInf {
       " "+ funcName +" "+ luaName +
       " "+ prototype;
   }
+
 }
