@@ -162,7 +162,7 @@ public class Array2String {
 
     @Override
     public void item(StringBuilder out, Object obj) {
-      String addr = Integer.toHexString( System.identityHashCode(obj) );
+      String addr = Tool.hash(obj);
       String desc = obj.getClass().getName() +"@"+ addr;
       String str  = obj.toString();
 

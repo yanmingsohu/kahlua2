@@ -40,7 +40,7 @@ public class Test {
 
 		if (USE_NEW_THREAD) {
 			KahluaThread2 thread = new KahluaThread2(out, pl, pl.newEnvironment());
-			thread.setOutputDir("./bin");
+			thread.setOutputDir("./bin/lua");
 			thread.debug = true;
 			return thread;
 		} else {

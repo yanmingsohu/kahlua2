@@ -284,4 +284,7 @@ public class Tool {
   }
 
 
+  public static String hash(Object o) {
+    return o == null ? "NULL" : Integer.toHexString(System.identityHashCode(o));
+  }
 }

@@ -131,4 +131,11 @@ public class ClosureInf {
   public LuaClosure getOldClosure() {
     return ocl;
   }
+
+
+  public String toString() {
+    return "ClosureInf@"+ Tool.hash(this) +
+      " "+ funcName +
+      " "+ prototype;
+  }
 }

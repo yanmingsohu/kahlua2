@@ -399,7 +399,7 @@ public class DebugInf implements IConst {
         return;
       }
 
-      String hash = Integer.toHexString( System.identityHashCode(u.getValue()) );
+      String hash = Tool.hash(u.getValue());
       String cname = u.getValue().getClass().getName();
       String strs = cname +"@"+ hash;
 
