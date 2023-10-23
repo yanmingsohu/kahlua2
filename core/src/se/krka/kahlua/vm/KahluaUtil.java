@@ -1,5 +1,7 @@
 package se.krka.kahlua.vm;
 
+import se.krka.kahlua.vm2.ClosureInf;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -171,7 +173,7 @@ public class KahluaUtil {
         if (o instanceof Boolean) {
             return TYPE_BOOLEAN;
         }
-        if (o instanceof JavaFunction || o instanceof LuaClosure) {
+        if (o instanceof JavaFunction || o instanceof LuaClosure || o instanceof ClosureInf) {
             return TYPE_FUNCTION;
         }
         if (o instanceof KahluaTable) {
