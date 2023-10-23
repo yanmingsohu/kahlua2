@@ -232,7 +232,7 @@ public abstract class LuaScript implements Runnable {
 
 
   public void call(ClosureInf ci, LuaCallFrame fr, Object orgFunction,
-                   int nArguments2, int argBase) {
+                   int nArguments2, int argBase, int top) {
     if (orgFunction == null) {
       throw new LuaFail("Tried to call nil");
     }
@@ -250,11 +250,11 @@ public abstract class LuaScript implements Runnable {
         break;
       }
       else if (function instanceof JavaFunction) {
-        call((JavaFunction) function, cs);
+        callJava((JavaFunction) function, cs);
         break;
       }
       else if (function instanceof LuaClosure) {
-        call((LuaClosure) function, cs);
+        callOld((LuaClosure) function, cs);
         break;
       }
 
@@ -275,13 +275,14 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  private void call(JavaFunction javaf, ComputStack cs) {
+  private void callJava(JavaFunction javaf, ComputStack cs) {
     LuaCallFrame oframe = cs.pushFrame(coroutine, javaf);
+    //oframe.setTop(cs.top);
+
     int nReturnValues = javaf.call(oframe, cs.nArguments);
 
     int top = oframe.getTop();
     int actualReturnBase = top - nReturnValues;
-
     int diff = oframe.returnBase - oframe.localBase;
     oframe.stackCopy(actualReturnBase, diff, nReturnValues);
     oframe.setTop(nReturnValues + diff);
@@ -295,7 +296,7 @@ public abstract class LuaScript implements Runnable {
    * Their data structures are compatible, and a new version of the
    * virtual machine can be created to compile and run it.
    */
-  private void call(LuaClosure c, ComputStack cs) {
+  private void callOld(LuaClosure c, ComputStack cs) {
     //TODO: Need restoreTop set top if exception
     KahluaThread2 t = new KahluaThread2(platform, coroutine.environment);
     t.setDebug(debugFlag);

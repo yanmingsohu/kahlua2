@@ -65,20 +65,24 @@ public class ComputStack {
 
 
   /**
-   *
    * @param copy
    * @param funcBase from OP_CALL(a)
    */
   public ComputStack(LuaCallFrame copy, int funcBase, int nArguments, int top) {
+    this.top = top;
+    this.nArguments = nArguments;
     this.localBase = copy.localBase + funcBase + 1;
     this.returnBase = localBase - 1;
-    this.nArguments = nArguments;
-    this.top = top;
   }
 
 
   public int returnValues(Coroutine cr) {
     return cr.getTop() - returnBase;
+  }
+
+
+  public ComputStack setTop(int nt) {
+    return new ComputStack(nt, nArguments, localBase, returnBase);
   }
 
 
@@ -110,10 +114,8 @@ public class ComputStack {
     }
 
     LuaCallFrame cf = c.pushNewCallFrame(
-      lc, jf, localBase, returnBase, nArguments, jf == null, false);
+        lc, jf, localBase, returnBase, nArguments, jf == null, false);
 
-    //Tool.pl("(0==", cf.localBase, cf.returnBase, cf.nArguments, cf.hashCode(), ')');
-    //cf.init();
     return cf;
   }
 }

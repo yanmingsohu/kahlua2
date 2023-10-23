@@ -151,7 +151,7 @@ public class Test {
 	}
 
 	public static void verifyCorrectStack(KahluaThread thread) {
-		KahluaUtil.luaAssert(thread.currentCoroutine.getCallframeTop() == 0, "");
+		KahluaUtil.luaAssert(thread.currentCoroutine.getCallframeTop() == 0, "bad top, is something in the call frame");
 		KahluaUtil.luaAssert(thread.currentCoroutine != null, "coroutine is missing");
 		KahluaUtil.luaAssert(thread.currentCoroutine.getThread() != null, "coroutine is missing thread " + thread.currentCoroutine);
 		KahluaUtil.luaAssert(thread.currentCoroutine.getThread() == thread, "coroutine has wrong thread");

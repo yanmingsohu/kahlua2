@@ -4,12 +4,19 @@
 --- DateTime: 2023/10/22 10:27
 ---
 
+
+
+function throwFail()
+  assert(false, "ok")
+end
+
+
 local upper
 local a1 = 101
 
 local function x2(a,b,x)
   if upper ~= x then
-    error("up value bad " .. x) -- ..upper .. " " .. x)
+    error("up value bad " ..upper .. " " .. x)
   end
   print("Up value ok :", upper)
   return a+b
@@ -24,4 +31,6 @@ a2 = 1
 
 a3 = a1 + a2 + 1
 a4 = x(a3)
+
+assert(a1 == 101)
 return a1,a2,a3,a4

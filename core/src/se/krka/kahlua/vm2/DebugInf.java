@@ -309,19 +309,19 @@ public class DebugInf implements IConst {
       case OP_LOADK:
         return String.format("LOADK A Bx    R(A:%d) := Kst(Bx:%d)", a, b);
       case OP_LOADBOOL:
-        return String.format("LDBOL A B C   R(A:%d) := (Bool)B:%d; if (C:%d) pc++", a, b, c);
+        return String.format("LOADBOOL A B C   R(A:%d) := (Bool)B:%d; if (C:%d) pc++", a, b, c);
       case OP_LOADNIL:
-        return String.format("LDNIL A B     R(A:%d), R(A:%d+1), ..., R(A:%d+B:%d) := nil", a, a, a, b);
+        return String.format("LOADNIL A B     R(A:%d), R(A:%d+1), ..., R(A:%d+B:%d) := nil", a, a, a, b);
       case OP_GETUPVAL:
-        return String.format("GTUVL A B     R(A:%d) := UpValue[B:%d]", a, b);
+        return String.format("GETUPVAL A B     R(A:%d) := UpValue[B:%d]", a, b);
       case OP_GETTABLE:
-        return String.format("GTTBE A B C   R(A:%d) := R(B:%d)[RK(C:%d)]", a, b, c);
+        return String.format("GETTABLE A B C   R(A:%d) := R(B:%d)[RK(C:%d)]", a, b, c);
       case OP_SETUPVAL:
-        return String.format("STUVL A B     UpValue[B:%d] := R(A:%d)", b, a);
+        return String.format("SETUPVAL A B     UpValue[B:%d] := R(A:%d)", b, a);
       case OP_SETTABLE:
-        return String.format("STTBL A B C   R(A:%d)[RK(B:%d)] := RK(C:%d)", a, b, c);
+        return String.format("SETTABLE A B C   R(A:%d)[RK(B:%d)] := RK(C:%d)", a, b, c);
       case OP_NEWTABLE:
-        return String.format("NETBL A B C   R(A:%d) := {} (size = B:%d,C:%d)", a, b, c);
+        return String.format("NEWTABLE A B C   R(A:%d) := {} (size = B:%d,C:%d)", a, b, c);
       case OP_SELF:
         return String.format("SELF  A B C   R(A:%d+1) := R(B:%d); R(A:%d) := R(B:%d)[RK(C:%d)]", a, b, a, b, c);
       case OP_ADD:
@@ -343,7 +343,7 @@ public class DebugInf implements IConst {
       case OP_LEN:
         return String.format("LEN   A B     R(A:%d) := length of R(B:%d)", a, b);
       case OP_CONCAT:
-        return String.format("CONCT A B C   R(A:%d) := R(B:%d).. ... ..R(C:%d)", a, b, c);
+        return String.format("CONCAT A B C   R(A:%d) := R(B:%d).. ... ..R(C:%d)", a, b, c);
       case OP_JMP:
         return String.format("JMP   A sBx   pc+=sBx:%d; if (A:%d) close all upvalues >= R(A:%d - 1)", sbx, a, a);
       case OP_EQ:
@@ -355,30 +355,30 @@ public class DebugInf implements IConst {
       case OP_TEST:
         return String.format("TEST  A C     if (boolean(R(A:%d)) != C:%d) then PC++", a, c);
       case OP_TESTSET:
-        return String.format("TESSE A B C   if (boolean(R(B:%d)) != C:%d) then PC++ else R(A:%d) := R(B:%d)", b, c, a, b);
+        return String.format("TESTSET A B C   if (boolean(R(B:%d)) != C:%d) then PC++ else R(A:%d) := R(B:%d)", b, c, a, b);
       case OP_CALL:
         return String.format("CALL  A B C   R(A:%d), ... ,R(A:%d+C:%d-2) := R(A:%d)(R(A:%d+1), ... ,R(A:%d+B:%d-1))", a, a, c, a, a, a, b);
       case OP_TAILCALL:
-        return String.format("TCALL A B C   return R(A:%d)(R(A:%d+1), ... ,R(A:%d+B:%d-1))", a, a, a, b);
+        return String.format("TAILCALL A B C   return R(A:%d)(R(A:%d+1), ... ,R(A:%d+B:%d-1))", a, a, a, b);
       case OP_RETURN:
-        return String.format("RETUN A B     return R(A:%d), ... ,R(A:%d+B:%d-2)", a,a,b);
+        return String.format("RETURN A B     return R(A:%d), ... ,R(A:%d+B:%d-2)", a,a,b);
       case OP_FORLOOP:
-        return String.format("FOLOP A sBx   R(A:%d)+=R(A:%d+2); If R(A:%d) <?= R(A:%d+1) then { pc+=sBx:%d; R(A:%d+3)=R(A:%d) }", a,a,a, a,sbx,a,a);
+        return String.format("FORLOOP A sBx   R(A:%d)+=R(A:%d+2); If R(A:%d) <?= R(A:%d+1) then { pc+=sBx:%d; R(A:%d+3)=R(A:%d) }", a,a,a, a,sbx,a,a);
       case OP_FORPREP:
-        return String.format("FOPRP A sBx   R(A:%d)-=R(A:%d+2); pc+=sBx:%d", a,a,sbx);
+        return String.format("FORPREP A sBx   R(A:%d)-=R(A:%d+2); pc+=sBx:%d", a,a,sbx);
       case OP_TFORLOOP:
-        return String.format("TFRLP A sBx   if R(A:%d+1) ~= nil then { R(A:%d)=R(A:%d+1); pc += sBx:%d }", a,a,a,sbx);
+        return String.format("TFORLOOP A sBx   if R(A:%d+1) ~= nil then { R(A:%d)=R(A:%d+1); pc += sBx:%d }", a,a,a,sbx);
       case OP_SETLIST:
-        return String.format("SEIST A B C   R(A:%d)[(C:%d-1)*FPF+i] := R(A:%d+i), 1 <= i <= B:%d", a,c,a,b);
+        return String.format("SETLIST A B C   R(A:%d)[(C:%d-1)*FPF+i] := R(A:%d+i), 1 <= i <= B:%d", a,c,a,b);
       case OP_CLOSURE:
-        return String.format("CLSRE A Bx    R(A:%d) := closure(KPROTO[Bx:%d])", a,bx);
+        return String.format("CLOSURE A Bx    R(A:%d) := closure(KPROTO[Bx:%d])", a,bx);
       case OP_VARARG:
-        return String.format("VARAG A B     R(A:%d), R(A:%d+1), ..., R(A:%d+B:%d-1) = vararg", a,a,a,b);
+        return String.format("VARARG A B     R(A:%d), R(A:%d+1), ..., R(A:%d+B:%d-1) = vararg", a,a,a,b);
 
       case OP_GETGLOBAL:
-        return String.format("GTGBL A Bx    R(A:%d) := ENV(CONST(Bx:%d))", a,bx);
+        return String.format("GETGLOBAL A Bx    R(A:%d) := ENV(CONST(Bx:%d))", a,bx);
       case OP_SETGLOBAL:
-        return String.format("STGBL A Bx    ENV(CONST(Bx:%d)) = R(A:%d)", bx, a);
+        return String.format("SETGLOBAL A Bx    ENV(CONST(Bx:%d)) = R(A:%d)", bx, a);
       case OP_CLOSE:
         return String.format("CLOSE A       close all upvalues >= R[A:%d]", a);
 
@@ -391,12 +391,51 @@ public class DebugInf implements IConst {
    * @see ClassMaker#vPrintStack(int...)
    */
   public static void printLuaStack(Coroutine coroutine, LuaCallFrame f, int ...i) {
+    __printLuaStack(coroutine, f, i);
+  }
+
+
+  public static void printLuaStack(Coroutine c, int ...i) {
+    __printLuaStack(c, c.currentCallFrame(), i);
+  }
+
+
+  public static void __printLuaStack(Coroutine coroutine, LuaCallFrame f, int ...i) {
     Object[] s = coroutine.objectStack;
     StringBuilder out = new StringBuilder(BUF_SIZE);
-    out.append("STACK(").append(s.length).append(") [L");
-    out.append(f.localBase).append(" R").append(f.returnBase).append("]");
-    Tool.objectArray2String(out, s, f.localBase, selectInt(i));
-    Tool.pl(out, "\n");
+    out.append("STACK(").append(s.length).append(") [");
+    int localBase = 0;
+    if (f != null) {
+      output(out, f);
+      localBase = f.localBase;
+    }
+    out.append(" GT").append(coroutine.getTop());
+    out.append(" C").append(coroutine.getCallframeTop());
+    out.append("]");
+    Tool.objectArray2String(out, s, localBase, selectInt(i));
+    Tool.plx(Tool.STACK_DEPTH + 2, out, "\n");
+  }
+
+
+  public static void print(LuaCallFrame f) {
+    StringBuilder out = new StringBuilder();
+    out.append('[');
+    if (f != null) {
+      output(out, f);
+    } else {
+      out.append("NULL");
+    }
+    out.append(']');
+    Tool.plx(Tool.STACK_DEPTH + 1, out);
+  }
+
+
+  private static void output(StringBuilder out, LuaCallFrame f) {
+    out.append("L").append(f.localBase)
+      .append(" R").append(f.returnBase)
+      .append(" T").append(f.getTop())
+      .append(f.restoreTop ? " .Y" : " .N")
+      .append(" @").append(Tool.hash(f));
   }
 
 
@@ -408,7 +447,7 @@ public class DebugInf implements IConst {
     StringBuilder out = new StringBuilder(BUF_SIZE);
     out.append("CONSTS(").append(s.length).append(')');
     Tool.objectArray2String(out, s, 0, selectInt(i));
-    Tool.pl(out, "\n");
+    Tool.plx(Tool.STACK_DEPTH + 1, out, "\n");
   }
 
 
@@ -419,7 +458,7 @@ public class DebugInf implements IConst {
     StringBuilder out = new StringBuilder(BUF_SIZE);
     out.append("UPVALUE(").append(ups.length).append(')');
     new Array2String(out, ups, 0, selectInt(i), new UpValueRender2()).render();
-    Tool.pl(out, "\n");
+    Tool.plx(Tool.STACK_DEPTH + 1, out, "\n");
   }
 
 

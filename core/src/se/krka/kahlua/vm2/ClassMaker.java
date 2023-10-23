@@ -191,7 +191,6 @@ public class ClassMaker implements IConst {
 
     // final Prototype vPrototype = ci.prototype
     s.vCI.load();
-    mv.visitVarInsn(ALOAD, vCI);
     vField(ClosureInf.class, "prototype");
     s.vPrototype.store();
     s.vPrototype._lock();
@@ -199,16 +198,43 @@ public class ClassMaker implements IConst {
     if (di.has(DebugInf.CALL)) {
       vPrint(">>>> vClosureFunctionHeader", s.vCI);
     }
+
+    vNull();
+    s.vError.store();
   }
 
 
   void vClosureFunctionFoot(LuaBuilder.State s) {
+    final String t = "java/lang/Throwable";
+    mv.visitTryCatchBlock(s.initOverLabel, s.finallyLabel, s.cacheLabel, t);
+
+    if (di.has(DebugInf.STACK)) {
+      di.stackAll();
+      Tool.pl("endMethod");
+    }
+    vGoto(s.finallyLabel);
+
+    mv.visitLabel(s.cacheLabel);
+    s.vError.store();
+    if (di.has(DebugInf.CALL)) {
+      vPrint("!!!! Got", t, s.vCI);
+    }
+    vGoto(s.finallyLabel);
+
+    mv.visitLabel(s.finallyLabel);
     if (di.has(DebugInf.CALL)) {
       vPrint("<<<< vClosureFunctionFoot", s.vCI);
     }
+
     //coroutine.popCallFrame();
     vField("coroutine");
     vInvokeFunc(CR, "popCallFrame");
+
+    s.vError.load();
+    vIf(IFNONNULL, ()-> {
+      s.vError.load();
+      mv.visitInsn(ATHROW);
+    });
   }
 
 
@@ -768,6 +794,20 @@ public class ClassMaker implements IConst {
     mv.visitVarInsn(ALOAD, vCallframe);
     p.param1();
     vInvokeFunc(FR, "setTop", I);
+  }
+
+
+  void vAutoRestoreTop() {
+    mv.visitVarInsn(ALOAD, vCI);
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vInvokeFunc(CI, "restoreStack", FR);
+  }
+
+
+  void vSetRestoreTop(boolean r) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    vBoolean(r);
+    vPutField(FR, "restoreTop");
   }
 
 

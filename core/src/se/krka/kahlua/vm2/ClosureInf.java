@@ -108,17 +108,13 @@ public class ClosureInf /*implements JavaFunction */{
     this.ocl = oframe.closure;
     this.ocl.upvalues = this.upvalues;
 
-    if (this.top > 0) {
-      oframe.setTop(this.top);
-    }
+    this.oframe.init();
 
     //TODO: remove this code
-    //cf.init();
-    //
+//    this.oframe.setTop(prototype.maxStacksize);
     //    for (int i=0; i<upvalues.length; ++i) {
     //      this.ocl.upvalues[i] = this.upvalues[i];
     //    }
-
     //    Tool.pl("(0==", cs, ')');
   }
 
@@ -145,8 +141,15 @@ public class ClosureInf /*implements JavaFunction */{
   }
 
 
+  public void restoreStack(LuaCallFrame cf) {
+    if (cf.restoreTop) {
+      cf.setTop(prototype.maxStacksize);
+    }
+  }
+
+
   public LuaCallFrame getOldFrame() {
-//    Tool.pl("(2==", oframe.localBase, oframe.returnBase, oframe.nArguments, oframe.hashCode(),')');
+//    Tool.pl("(2==", oframe.localBase, oframe.returnBase, oframe.nArguments, oframe.hashCode(), oframe.getTop(), ')');
     return oframe;
   }
 

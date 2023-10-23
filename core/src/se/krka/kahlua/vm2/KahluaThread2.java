@@ -23,6 +23,7 @@
 package se.krka.kahlua.vm2;
 
 import se.krka.kahlua.vm.*;
+import sun.security.util.Debug;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -110,7 +111,7 @@ public class KahluaThread2 extends KahluaThread {
     ComputStack cs = new ComputStack(currentCoroutine, nArguments);
 
     LuaCallFrame callFrame = currentCoroutine.pushNewCallFrame(
-      oldc, null, cs.localBase, cs.returnBase, nArguments, false, false);
+        oldc, null, cs.localBase, cs.returnBase, nArguments, false, false);
     callFrame.init();
 
     if (di.has(DebugInf.CALL)) {
@@ -123,6 +124,7 @@ public class KahluaThread2 extends KahluaThread {
     // This was call popCallFrame() when back
     luaMainloop();
 
+
     int nReturnValues = cs.returnValues(currentCoroutine);
     //currentCoroutine.stackTrace = "";
     return nReturnValues;
@@ -131,6 +133,7 @@ public class KahluaThread2 extends KahluaThread {
 
   /**
    * Does not intercept exceptions compared to the original version
+   * TODO: remove Because this allows lua code to catch exceptions
    */
   @Override
   public int pcall(int nArguments) {

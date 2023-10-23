@@ -48,21 +48,28 @@ import java.util.stream.Stream;
 public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.SHORTOP | DebugInf.ALL;
+  static final int DEBUG = DebugInf.NONE | DebugInf.ALL;
   public LuaCallFrame callFrame;
   private static KahluaTable lastEnv;
 
 
   public void ___asm() {
-    Object[] is = new Object[10];
-    is[0] = 99;
-    is[1] = 90;
-    is[2] = 89;
+    try {
+      Object[] is = new Object[10];
+      is[0] = 99;
+      is[1] = 90;
+      is[2] = 89;
+    } catch (Throwable e) {
+      Tool.pl("cache", e);
+      throw e;
+    } finally {
+      Tool.pl("finaaly");
+    }
   }
 
 
   public static void main(String[] av) throws Exception {
-//    testVM();
+    testVM();
     testAllLua();
 //    test_signature();
 
@@ -72,10 +79,15 @@ public class TestKahluaThread2 implements Runnable {
 
   private static void testAllLua() throws Exception {
     File dir = new File("./testsuite/lua");
-//    Test.testDir(dir, from(dir, ".lua"));
-    Test.testDir(dir, from(dir, "array.lua"));
+    File[] files = from(dir, "array.lua");
+//    File[] files = from(dir, ".lua");
 
-//    Tool.printTable(lastEnv);
+    try {
+      Test.testDir(dir, files);
+    } catch (Exception e) {
+      e.printStackTrace();
+      Tool.printTable(lastEnv);
+    }
   }
 
 
@@ -127,9 +139,28 @@ public class TestKahluaThread2 implements Runnable {
     LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
     LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
 
+    try {
+      Object func = env.rawget("throwFail");
+      thread.call(func, null, null, null);
+      throw new Exception("must be throw");
+    } catch (RuntimeException e) {
+      if (! "ok".equals(e.getCause().getMessage())) {
+        throw e;
+      }
+      Tool.pl("Throw fail pass");
+    }
+
     if (ret.isSuccess()) {
-      Tool.pl("Return:", ret.get(0));
+      if (ret.size() > 0) {
+        for (int i = 0; i < ret.size(); ++i) {
+          Tool.pl("  return", i, ret.get(i));
+        }
+      } else {
+        Tool.pl("  return NONE");
+      }
+    } else {
       Tool.printTable(env);
+      throw new Exception("bad");
     }
 
     printError(ret);

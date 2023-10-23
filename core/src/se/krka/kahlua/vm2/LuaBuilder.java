@@ -97,11 +97,6 @@ public class LuaBuilder implements IConst {
     }
 
     cm.vLabel(state.returnLabel, line);
-    if (di.has(DebugInf.STACK)) {
-      di.stackAll();
-      Tool.pl("endMethod");
-    }
-
     cm.vClosureFunctionFoot(state);
     cm.endMethod(state);
     processSubClosure(startIndex, plist.size());
@@ -132,6 +127,9 @@ public class LuaBuilder implements IConst {
     final Label returnLabel;
     final Label initLabel;
     final Label initOverLabel;
+    final Label cacheLabel;
+    final Label finallyLabel;
+
     private final int[] opcodes;
     private int npc = 0;
 
@@ -140,14 +138,17 @@ public class LuaBuilder implements IConst {
     final LocalVar vClosure;
     final LocalVar vPrototype;
     final LocalVar vCI;
+    final LocalVar vError;
 
 
     public State(ClosureInf ci) {
       super(mv);
       this.ci = ci;
-      opcodes = ci.prototype.code;
+      this.opcodes = ci.prototype.code;
       this.initLabel = new Label();
       this.initOverLabel = new Label();
+      this.cacheLabel = new Label();
+      this.finallyLabel = new Label();
       this.returnLabel = initLabels();
 
       this.vCallframe = internalVar(FR, IConst.vCallframe);
@@ -155,6 +156,7 @@ public class LuaBuilder implements IConst {
       this.vClosure = internalVar(CU, IConst.vClosure);
       this.vPrototype = internalVar(PT, IConst.vPrototype);
       this.vCI = internalVar(CI, IConst.vCI);
+      this.vError = internalVar(Throwable.class, IConst.vException);
     }
 
 
@@ -691,7 +693,7 @@ public class LuaBuilder implements IConst {
     cm.vIf(KahluaTable.class, ()-> {
       obj.load();
       cm.vCast(KahluaTable.class);
-      cm.vInvokeFunc(KahluaTable.class, "len");
+      cm.vInvokeInterface(KahluaTable.class, "len");
       mv.visitInsn(I2D);
       cm.vToObjectDouble(false);
       res.store();
@@ -1231,7 +1233,7 @@ public class LuaBuilder implements IConst {
           i.load();
           mv.visitInsn(IADD);
         });
-        cm.vInvokeFunc(KahluaTable.class, "rawset", O,O);
+        cm.vInvokeInterface(KahluaTable.class, "rawset", O,O);
       }
       public void doElse() {
         cm.vGoto(forend);
@@ -1281,13 +1283,10 @@ public class LuaBuilder implements IConst {
 
     cm.vGetStackVar(a);
     func.store();
-
-    state.vCallframe.load();
-    cm.vBoolean(c != 0);
-    cm.vPutField(FR, "restoreTop");
+    cm.vSetRestoreTop(c != 0);
 
     if (b != 0) {
-      cm.vSetFrameTop(()-> cm.vInt(a+b));
+      cm.vSetFrameTop(()-> cm.vInt(a+b)); // is right
       cm.vInt(b - 1);
       nArguments2.store();
     } else {
@@ -1319,7 +1318,10 @@ public class LuaBuilder implements IConst {
     func.load();
     nArguments2.load();
     cm.vInt(a);
-    cm.vInvokeFunc(LuaScript.class, "call", CI,FR,O,I,I);
+    cm.vInt(a+b);
+    cm.vInvokeFunc(LuaScript.class, "call", CI,FR,O,I,I,I);
+
+    cm.vAutoRestoreTop();
   }
 
 
@@ -1337,9 +1339,10 @@ public class LuaBuilder implements IConst {
     int b = getB9(op);
 
     LocalVar vb = state.newVar(I, "b");
+    Label setTop = new Label();
+    Label end = new Label();
 
     // This will fix the reference, making it a constant
-    // TODO: Verify if it is correct
     cm.vCloseCoroutineUpvalues(()-> cm.vGetBase());
 
     if (b == 0) {
@@ -1366,12 +1369,15 @@ public class LuaBuilder implements IConst {
       }
     });
 
+    // This will make the variable after top null
+    mv.visitLabel(setTop);
     cm.vSetCoroutineTop(()-> {
       cm.vReturnBase();
       vb.load();
       mv.visitInsn(IADD);
     });
 
+    mv.visitLabel(end);
     cm.vGoto(state.returnLabel);
   }
 

@@ -1,6 +1,5 @@
 a = array.new()
 testAssert(a)
-print("array.lua 1 done-------------------------------------------1")
 testAssert(#a == 0)
 
 testAssert(getmetatable(a) == "restricted")
@@ -20,6 +19,3 @@ testAssert(a[3] == 70)
 a[3] = 90
 
 testAssert(a[3] == 90)
-
-
-print("array.lua all done-------------------------------------------2")

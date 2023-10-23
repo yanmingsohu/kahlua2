@@ -32,20 +32,21 @@ import java.lang.reflect.Type;
 
 public class Tool {
 
-  public static final int callFrom = 2;
+  public static final int STACK_DEPTH = 2;
   public static final char sp = ' ';
   public static final char ent = '\n';
   public static final char tab = '\t';
   public static final String nil = "nil";
   public static final String point = " -- ";
   public static final String spoint = " +> ";
+
   private static int line = 0;
 
 
   public static void pl(Object o) {
     StringBuilder buf = new StringBuilder();
     buf.append(line++).append("^ ");
-    getCurrentStack(buf, callFrom);
+    getCurrentStack(buf, STACK_DEPTH);
     buf.append(" - ");
     buf.append(o);
     System.out.println(buf);
@@ -53,9 +54,14 @@ public class Tool {
 
 
   public static void pl(Object ...o) {
+    plx(STACK_DEPTH +1, o);
+  }
+
+
+  public static void plx(int stackDepth, Object ...o) {
     StringBuilder buf = new StringBuilder();
     buf.append(line++).append("^ ");
-    getCurrentStack(buf, callFrom);
+    getCurrentStack(buf, stackDepth);
     buf.append(" - ");
     for (int i=0; i<o.length; ++i) {
       buf.append(sp);
@@ -65,15 +71,15 @@ public class Tool {
   }
 
 
-  public static StringBuilder getCurrentStack(StringBuilder b, int i) {
+  public static StringBuilder getCurrentStack(StringBuilder b, int stackDepth) {
     Exception e = new Exception();
     StackTraceElement[] ss = e.getStackTrace();
-    // b.append(ss[i]);
-    b.append(ss[i].getMethodName());
+
+    b.append(ss[stackDepth].getMethodName());
     b.append('(');
-    b.append(ss[i].getFileName());
+    b.append(ss[stackDepth].getFileName());
     b.append(':');
-    int ln = ss[i].getLineNumber();
+    int ln = ss[stackDepth].getLineNumber();
     if (ln < 999) b.append(sp);
     if (ln < 99) b.append(sp);
     if (ln < 9) b.append(sp);
@@ -301,6 +307,6 @@ public class Tool {
       out.append("\t:\t");
       out.append(it.getValue());
     }
-    pl("Table", t, out);
+    plx(STACK_DEPTH +1, "Table", t, out);
   }
 }

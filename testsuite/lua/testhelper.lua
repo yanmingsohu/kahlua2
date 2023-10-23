@@ -26,8 +26,6 @@ local function storeTestcase(testcase, status, errormessage, stacktrace)
 	testcase.okcount = testcase.okcount + (status and 1 or 0)
 	testcase.failcount = testcase.failcount + (status and 0 or 1)
 
-	print("TESTCASExx::", parent)
-
 	local category = "ok"
 	if status and testcase.fail then
 		category = "fail"
@@ -61,7 +59,6 @@ function testCall(name, f, ...)
 
 	local oldParent = parent
 	parent = testcase
-	print("TESTCALLxx::", oldParent, parent)
 
 	local status, errormessage, stacktrace = pcall(f, ...)
 	if status then
@@ -80,7 +77,6 @@ function testCall(name, f, ...)
 end
 
 function testAssert(name, condition, errormessage)
-	print("TESTASSERT begin", parent)
 	if type(name) ~= "string" then
 		condition, errormessage = name, condition
 	end
@@ -89,7 +85,6 @@ function testAssert(name, condition, errormessage)
 	end
 	local testcase = createTestcase(name)
 	storeTestcase(testcase, condition, errormessage, debugstacktrace(nil, 2, nil, 1))
-	print("TESTASSERT over", parent)
 end
 
 local template, template_test

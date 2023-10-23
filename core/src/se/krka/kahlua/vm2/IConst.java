@@ -39,8 +39,9 @@ public interface IConst {
   int vClosure = 3;
   int vPrototype = 4;
   int vCI = 5;
+  int vException = 6;
 
-  int vUser = 6;
+  int vUser = 7;
 
   Class O = Object.class;
   Class S = String.class;
