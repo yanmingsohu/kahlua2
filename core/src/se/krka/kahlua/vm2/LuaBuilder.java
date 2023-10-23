@@ -1202,7 +1202,7 @@ public class LuaBuilder implements IConst {
     if (c == 0) {
       c = state.readNextOp();
     }
-    cm.vInt(c - 1 * KahluaThread2.FIELDS_PER_FLUSH);
+    cm.vInt((c - 1) * KahluaThread2.FIELDS_PER_FLUSH);
     offset.store();
 
     cm.vGetStackVar(a);
