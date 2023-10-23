@@ -287,8 +287,10 @@ public class LuaBuilder implements IConst {
   }
 
 
-  private String closureFuncName() {
-    return "closure_"+ (id++);
+  private String closureFuncName(Prototype sub) {
+    int begin = sub.lines[0];
+    int end = sub.lines[sub.lines.length - 1];
+    return "closure_"+ (id++) +"$L"+ begin +'_'+ end;
   }
 
 
@@ -1388,7 +1390,7 @@ public class LuaBuilder implements IConst {
 
     Prototype p = state.ci.prototype.prototypes[b];
     String luaName = CANNOT_BIND_LUA_NAME; //state.ci.prototype.constants[b] +"";
-    ClosureInf newci = pushClosure(p, closureFuncName(), a, luaName);
+    ClosureInf newci = pushClosure(p, closureFuncName(p), a, luaName);
     LocalVar ci = state.newVar(ClosureInf.class, "ci");
 
     cm.vField("plist");

@@ -23,20 +23,30 @@
 package se.krka.kahlua.vm2;
 
 
+import java.util.HashMap;
+import java.util.Map;
+
+
 public class LuaClassLoader extends ClassLoader {
+
   public static final LuaClassLoader instance = new LuaClassLoader();
-//    private Map<String, Class<?>> cache;
+  private Map<String, Class<?>> cache;
+
 
   public LuaClassLoader() {
-//      cache = new HashMap<>();
+    cache = new HashMap<>();
   }
 
+
+  /**
+   * If a class is defined repeatedly, a java.lang.LinkageError will be thrown.
+   */
   public synchronized Class defineClass(String name, byte[] code) {
-//      Class r = cache.get(name);
-//      if (r == null) {
-//        r = defineClass(name, code, 0, code.length);
-//        cache.put(name, r);
-//      }
-    return defineClass(name, code, 0, code.length);
+    Class r = cache.get(name);
+    if (r == null) {
+      r = defineClass(name, code, 0, code.length);
+      cache.put(name, r);
+    }
+    return r;
   }
 }

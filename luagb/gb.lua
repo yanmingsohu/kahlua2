@@ -19,10 +19,10 @@ gb.audio.on_buffer_full(play_gameboy_audio)
 
 while (true) do
   for i = 0, 1000, 1 do
-    gb:step()
+    --gb:step()
   end
-
-  local pixels = gb.graphics.game_screen
-  setFrame(gb.graphics.vblank_count)
-  updateScreen(pixels)
+--
+--  local pixels = gb.graphics.game_screen
+--  setFrame(gb.graphics.vblank_count)
+--  updateScreen(pixels)
 end

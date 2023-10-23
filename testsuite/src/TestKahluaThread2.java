@@ -48,28 +48,22 @@ import java.util.stream.Stream;
 public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.NONE | DebugInf.ALL;
+  static final int DEBUG = DebugInf.NONE;
   public LuaCallFrame callFrame;
   private static KahluaTable lastEnv;
 
 
   public void ___asm() {
-    try {
-      Object[] is = new Object[10];
-      is[0] = 99;
-      is[1] = 90;
-      is[2] = 89;
-    } catch (Throwable e) {
-      Tool.pl("cache", e);
-      throw e;
-    } finally {
-      Tool.pl("finaaly");
-    }
   }
 
 
   public static void main(String[] av) throws Exception {
-    testVM();
+    TestVM tv = new TestVM();
+    tv.testThrow("./testsuite/lua/throw.lua");
+    tv.lua("./testsuite/lua/testhelper.lua");
+    tv.lua("./testsuite/lua/thread2.lua");
+    tv.lua("./testsuite/lua/os.lua");
+
     testAllLua();
 //    test_signature();
 
@@ -79,8 +73,8 @@ public class TestKahluaThread2 implements Runnable {
 
   private static void testAllLua() throws Exception {
     File dir = new File("./testsuite/lua");
-    File[] files = from(dir, "array.lua");
-//    File[] files = from(dir, ".lua");
+//    File[] files = from(dir, "os.lua");
+    File[] files = from(dir, ".lua");
 
     try {
       Test.testDir(dir, files);
@@ -125,32 +119,44 @@ public class TestKahluaThread2 implements Runnable {
   }
 
 
-  private static void testVM() throws Exception {
-    KahluaConverterManager converterManager = new KahluaConverterManager();
-    Platform plat = J2SEPlatform.getInstance();
-    KahluaTable env = plat.newEnvironment();
-    KahluaThread2 thread = new KahluaThread2(plat, env);
-    thread.setOutputDir("./bin/lua");
-    thread.setDebug(DEBUG);
-    LuaCaller caller = new LuaCaller(converterManager);
+  public static class TestVM {
+    KahluaTable env;
+    KahluaThread2 thread;
+    LuaCaller caller;
 
-    final String filename = "./testsuite/lua/thread2.lua";
-    FileInputStream fi = new FileInputStream(filename);
-    LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
-    LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
-
-    try {
-      Object func = env.rawget("throwFail");
-      thread.call(func, null, null, null);
-      throw new Exception("must be throw");
-    } catch (RuntimeException e) {
-      if (! "ok".equals(e.getCause().getMessage())) {
-        throw e;
-      }
-      Tool.pl("Throw fail pass");
+    public TestVM() {
+      KahluaConverterManager converterManager = new KahluaConverterManager();
+      Platform plat = J2SEPlatform.getInstance();
+      env = plat.newEnvironment();
+      thread = new KahluaThread2(plat, env);
+      thread.setOutputDir("./bin/lua");
+      thread.setDebug(DEBUG);
+      caller = new LuaCaller(converterManager);
     }
 
-    if (ret.isSuccess()) {
+    public void testThrow(String filename) throws Exception {
+      try {
+        lua(filename);
+        Object func = env.rawget("throwFail");
+        thread.call(func, null, null, null);
+
+        throw new Exception("must be throw");
+
+      } catch (RuntimeException e) {
+        Throwable cause = e.getCause();
+        if (cause == null || "ok".equals(cause.getMessage()) != true) {
+          Tool.printTable(env);
+          throw e;
+        }
+        Tool.pl("Throw test pass");
+      }
+    }
+
+    public void lua(String filename) throws Exception {
+      FileInputStream fi = new FileInputStream(filename);
+      LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
+      LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
+
       if (ret.size() > 0) {
         for (int i = 0; i < ret.size(); ++i) {
           Tool.pl("  return", i, ret.get(i));
@@ -158,13 +164,17 @@ public class TestKahluaThread2 implements Runnable {
       } else {
         Tool.pl("  return NONE");
       }
-    } else {
-      Tool.printTable(env);
-      throw new Exception("bad");
-    }
 
-    printError(ret);
-    Test.verifyCorrectStack(thread);
+      if (ret.isSuccess()) {
+        Tool.pl("OK", filename);
+      } else {
+        Tool.pl("ERROR", filename);
+        Tool.printTable(env);
+        printError(ret);
+      }
+
+      Test.verifyCorrectStack(thread);
+    }
   }
 
 
@@ -226,7 +236,6 @@ public class TestKahluaThread2 implements Runnable {
     }
     return b.toString();
   }
-
 
 
   @Override

@@ -292,7 +292,7 @@ public class DebugInf implements IConst {
 
 
   public void build() {
-    Tool.pl("LL ",pc, Tool.num8len(op), opNames[opcode], line);
+    Tool.plx(Tool.STACK_DEPTH +1, "LL ",pc, Tool.num8len(op), opNames[opcode], line);
   }
 
 

@@ -8,7 +8,9 @@ import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaThread;
 import se.krka.kahlua.vm.LuaClosure;
+import se.krka.kahlua.vm2.DebugInf;
 import se.krka.kahlua.vm2.KahluaThread2;
+import se.krka.kahlua.vm2.Tool;
 
 import javax.swing.*;
 import java.awt.*;
@@ -28,7 +30,7 @@ public class Luaenv {
 
 	private final J2SEPlatform platform;
 	private final KahluaTable env;
-	private final KahluaThread thread;
+	private final KahluaThread2 thread;
 	private final LuaCaller caller;
 	private final LuaJavaClassExposer exposer;
 	private final String baseDir = "./luagb/";
@@ -55,7 +57,9 @@ public class Luaenv {
 		KahluaConverterManager converterManager = new KahluaConverterManager();
 		platform = new J2SEPlatform();
 		env = platform.newEnvironment();
-		thread = new KahluaThread(platform, env);
+		thread = new KahluaThread2(platform, env);
+		thread.setDebug(DebugInf.ALL);
+		thread.setOutputDir("./bin/lua");
 		caller = new LuaCaller(converterManager);
 		exposer = new LuaJavaClassExposer(converterManager, platform, env);
 		//thread.setOutputDir("./bin");
@@ -85,9 +89,20 @@ public class Luaenv {
 			require("gb");
 			fr.dispose();
 		} catch (Exception e) {
-			pl(e);
+			e.printStackTrace();
 		}
 		pl("Done");
+	}
+
+
+	public Throwable finderror(Object[] retObj) {
+		for (int i=0; i<retObj.length; ++i) {
+			Tool.pl(i, "->", retObj[i]);
+			if (retObj[i] instanceof Throwable) {
+				return (Throwable) retObj[i];
+			}
+		}
+		return null;
 	}
 
 
@@ -102,10 +117,15 @@ public class Luaenv {
 		FileInputStream fi = new FileInputStream(filename);
 
 		LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
-		LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
+		Object[] retObj = caller.pcall(thread, closure);
+		LuaReturn ret = LuaReturn.createReturn(retObj);
 		if (!ret.isSuccess()) {
-			String ls = ret.toString();
-			throw new RuntimeException(ls);
+			Throwable t = finderror(retObj);
+			if (t == null) {
+				throw new RuntimeException(ret.toString());
+			} else {
+				throw new RuntimeException(t);
+			}
 		}
 
 		if (ret.size() > 0) {

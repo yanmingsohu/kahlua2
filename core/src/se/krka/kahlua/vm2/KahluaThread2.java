@@ -23,7 +23,6 @@
 package se.krka.kahlua.vm2;
 
 import se.krka.kahlua.vm.*;
-import sun.security.util.Debug;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -70,13 +69,6 @@ public class KahluaThread2 extends KahluaThread {
 
     if (o instanceof ClosureInf) {
       ClosureInf ci = (ClosureInf)o;
-      //TODO: remove this code
-      //      LuaCallFrame f = currentCoroutine.currentCallFrame();
-      //      if (f != null) {
-      //        ci.setFrame(f.closure, f);
-      //      } else {
-      //
-      //      }
       ci.frameParams(cs);
       ci.call();
       return cs.returnValues(currentCoroutine);
@@ -135,8 +127,7 @@ public class KahluaThread2 extends KahluaThread {
    * Does not intercept exceptions compared to the original version
    * TODO: remove Because this allows lua code to catch exceptions
    */
-  @Override
-  public int pcall(int nArguments) {
+  public int __pcall(int nArguments) {
     Coroutine coroutine = currentCoroutine;
     LuaCallFrame currentCallFrame = coroutine.currentCallFrame();
     coroutine.stackTrace = "";
