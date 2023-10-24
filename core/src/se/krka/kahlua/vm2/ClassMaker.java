@@ -787,6 +787,15 @@ public class ClassMaker implements IConst {
   }
 
 
+  void vFrameStackCopy(IBuildParam3 p) {
+    mv.visitVarInsn(ALOAD, vCallframe);
+    p.param1();
+    p.param2();
+    p.param3();
+    vInvokeFunc(FR, "stackCopy", I,I,I);
+  }
+
+
   // currentCoroutine.setTop(b);
   void vSetCoroutineTop(IBuildParam p) {
     vField("coroutine");

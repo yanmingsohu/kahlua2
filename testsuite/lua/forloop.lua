@@ -44,3 +44,17 @@ test_for()
 test_for()
 test_for()
 test_for() -- 10
+
+
+local Gameboy = {}
+function Gameboy:a() end
+function Gameboy:b() end
+
+local gameboy_defaults = {}
+for k, v in pairs(Gameboy) do
+	gameboy_defaults[k] = v
+end
+
+assert(gameboy_defaults.a ~= nil)
+assert(gameboy_defaults.b ~= nil)
+assert(gameboy_defaults.c == nil)

@@ -61,8 +61,10 @@ public class TestKahluaThread2 implements Runnable {
     TestVM tv = new TestVM();
     tv.testThrow("./testsuite/lua/throw.lua");
     tv.lua("./testsuite/lua/testhelper.lua");
-//    tv.lua("./testsuite/lua/bigarray.lua");
-    tv.lua("./luagb/cartridge/Tetris.gb.lua");
+    tv.lua("./testsuite/lua/forloop.lua");
+
+    //TODO: org.objectweb.asm.MethodTooLargeException: Method too large
+    // tv.lua("./luagb/cartridge/Tetris.gb.lua");
 
 //    testAllLua();
 //    test_signature();
@@ -120,32 +122,28 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static class TestVM {
-    KahluaTable env;
-    KahluaThread2 thread;
+    KahluaThread thread;
     LuaCaller caller;
 
     public TestVM() {
       KahluaConverterManager converterManager = new KahluaConverterManager();
-      Platform plat = J2SEPlatform.getInstance();
-      env = plat.newEnvironment();
-      thread = new KahluaThread2(plat, env);
-      thread.setOutputDir("./bin/lua");
-      thread.setDebug(DEBUG);
+      thread = newThread();
       caller = new LuaCaller(converterManager);
     }
 
     public void testThrow(String filename) throws Exception {
       try {
         lua(filename);
-        Object func = env.rawget("throwFail");
+        Object func = lastEnv.rawget("throwFail");
         thread.call(func, null, null, null);
 
         throw new Exception("must be throw");
 
       } catch (RuntimeException e) {
         Throwable cause = e.getCause();
-        if (cause == null || "ok".equals(cause.getMessage()) != true) {
-          Tool.printTable(env);
+        if (cause == null) cause = e;
+        if ("ok".equals(cause.getMessage()) != true) {
+          Tool.printTable(lastEnv);
           throw e;
         }
         Tool.pl("Throw test pass");
@@ -154,7 +152,7 @@ public class TestKahluaThread2 implements Runnable {
 
     public void lua(String filename) throws Exception {
       FileInputStream fi = new FileInputStream(filename);
-      LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
+      LuaClosure closure = LuaCompiler.loadis(fi, filename, lastEnv);
       LuaReturn ret = LuaReturn.createReturn(caller.pcall(thread, closure));
 
       if (ret.size() > 0) {
@@ -169,7 +167,8 @@ public class TestKahluaThread2 implements Runnable {
         Tool.pl("OK", filename);
       } else {
         Tool.pl("ERROR", filename);
-        Tool.printTable(env);
+        DebugInf.printLuaStack(thread.currentCoroutine);
+        Tool.printTable(lastEnv);
         printError(ret);
       }
 

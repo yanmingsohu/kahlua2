@@ -18,6 +18,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +31,7 @@ public class Luaenv {
 
 	private final J2SEPlatform platform;
 	private final KahluaTable env;
-	private final KahluaThread2 thread;
+	private final KahluaThread thread;
 	private final LuaCaller caller;
 	private final LuaJavaClassExposer exposer;
 	private final String baseDir = "./luagb/";
@@ -49,17 +50,27 @@ public class Luaenv {
 	private final int GBh = 140;
 
 
-	public static void main(String[] args) throws IOException {
-		new Luaenv().run();
+	public static void main(String[] args) throws Throwable {
+		Luaenv lua = new Luaenv();
+		lua.run();
+	}
+
+	private KahluaThread createThread(boolean newT) {
+		if (newT) {
+			KahluaThread2 t2 = new KahluaThread2(platform, env);
+			t2.setDebug(DebugInf.ALL);
+			t2.setOutputDir("./bin/lua");
+			return t2;
+		} else {
+			return new KahluaThread(platform, env);
+		}
 	}
 
 	private Luaenv() {
 		KahluaConverterManager converterManager = new KahluaConverterManager();
 		platform = new J2SEPlatform();
 		env = platform.newEnvironment();
-		thread = new KahluaThread2(platform, env);
-		thread.setDebug(DebugInf.NONE);
-		thread.setOutputDir("./bin/lua");
+		thread = createThread(true);
 		caller = new LuaCaller(converterManager);
 		exposer = new LuaJavaClassExposer(converterManager, platform, env);
 		//thread.setOutputDir("./bin");
@@ -90,6 +101,7 @@ public class Luaenv {
 			fr.dispose();
 		} catch (Exception e) {
 			e.printStackTrace();
+			printdebug();
 		}
 		pl("Done");
 	}
@@ -183,6 +195,29 @@ public class Luaenv {
 	}
 
 
+	@LuaMethod(name = "loadRom", global = true)
+	public void loadRom(KahluaTable card, String filename) {
+		KahluaTable data = (KahluaTable) card.rawget("data");
+		try (FileInputStream in = new FileInputStream(filename)) {
+			int i = 0;
+			int d = 0;
+
+			for (; ; ) {
+				d = in.read();
+				if (d < 0) {
+					break;
+				}
+				data.rawset(Double.valueOf(i+1), Double.valueOf(d));
+				++i;
+			}
+			card.rawset("size", Double.valueOf(i));
+			Tool.pl("Load file", filename, i, "bytes");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+
 	private void setFrame(int frame, int used, int _fps) {
 		final String sp = "   ";
 		fps.setLength(0);
@@ -213,6 +248,14 @@ public class Luaenv {
 		//     0->4321  10->4321 19->4321
 		b.append("   0Frame    0ms      0FPS");
 		return b;
+	}
+
+
+	public void printdebug() {
+		if (thread instanceof KahluaThread2) {
+			KahluaThread2 t2 = (KahluaThread2) thread;
+			t2.printStack();
+		}
 	}
 
 

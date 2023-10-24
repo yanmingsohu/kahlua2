@@ -166,4 +166,9 @@ public class KahluaThread2 extends KahluaThread {
   public void setDebug(DebugInf di) {
     this.di.flag = di.flag;
   }
+
+
+  public void printStack() {
+    DebugInf.printLuaStack(currentCoroutine);
+  }
 }

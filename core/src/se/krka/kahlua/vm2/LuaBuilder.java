@@ -493,7 +493,7 @@ public class LuaBuilder implements IConst {
       cm.vToPrimitiveDouble(false);
       cd.load();
       cm.vToPrimitiveDouble(false);
-      cm.vInvokeFunc(Platform.class, "pow", D, D);
+      cm.vInvokeInterface(Platform.class, "pow", D, D);
     });
   }
 
@@ -1062,99 +1062,36 @@ public class LuaBuilder implements IConst {
   }
 
 
-  /**
-   * OP_TFORLOOP,
-   * A C R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));
-   * if R(A+3) ~= nil
-   *  then R(A+2)=R(A+3)
-   *  else pc++
-   * ===================================================
-   * func = callFrame.get(a)
-   * s = callFrame.get(a+1)
-   * i = callFrame.get(a+2)
-   * for (; i<=c; ++i) {
-   *    callFrame.set(a + 2, i) ??
-   *    ret = func(s, i);
-   *    callFrame.set(a + 2 + i, ret)
-   * }
-   * x = callFrame.get(a+3)
-   * if (x != null) callFrame.set(a+2, x)
-   * else jump pc+1
-   */
   void op_tforloop(State stat) {
     final int a = getA8(op);
     final int c = getC9(op);
 
-    final int func = vUser +1;
-    final int s = vUser +2;
-    final int i = vUser +3;
-    final int a3 = vUser +4;
-    final int ret = vUser +5;
-    final int di = vUser +6;
-
-    cm.vGetStackVar(a);
-    mv.visitVarInsn(ASTORE, func);
-    cm.vGetStackVar(a + 1);
-    mv.visitVarInsn(ASTORE, s);
-    cm.vGetStackVar(a + 2);
-    cm.vToPrimitiveDouble(true);
-    mv.visitInsn(D2I);
-    mv.visitVarInsn(ISTORE, i);
-
-    mv.visitVarInsn(ILOAD, i);
-    cm.vInt(c);
-    cm.vIf(IF_ICMPLE, new IIFwe() { //TODO: ??? goto loop
-      public void doThen() {
-        mv.visitVarInsn(ILOAD, i);
-        mv.visitInsn(I2D);
-        cm.vToObjectDouble(false);
-        mv.visitVarInsn(ASTORE, di);
-
-        cm.vSetStackVar(a + 2, ()->{
-          mv.visitVarInsn(ALOAD, di);
-        });
-
-        cm.vCall(new IBuildParam4() {
-          public void param1() {
-            mv.visitVarInsn(ALOAD, func);
-          }
-          public void param2() {
-            mv.visitVarInsn(ALOAD, s);
-          }
-          public void param3() {
-            mv.visitVarInsn(ALOAD, di);
-          }
-          public void param4() {
-            cm.vNull();
-          }
-        });
-        mv.visitVarInsn(ASTORE, ret);
-
-        cm.vSetStackVar(new IBuildParam2() {
-          public void param1() {
-            mv.visitVarInsn(ILOAD, i);
-            cm.vInt(a + 2);
-            mv.visitInsn(IADD);
-          }
-          public void param2() {
-            mv.visitVarInsn(ALOAD, ret);
-          }
-        });
-
-        mv.visitVarInsn(ILOAD, i);
-        cm.vInt(1);
-        mv.visitInsn(IADD);
-        mv.visitVarInsn(ISTORE, i);
+    cm.vSetFrameTop(()-> cm.vInt(a + 6));
+    cm.vFrameStackCopy(new IBuildParam3() {
+      public void param1() {
+        cm.vInt(a);
+      }
+      public void param2() {
+        cm.vInt(a +3);
+      }
+      public void param3() {
+        cm.vInt(3);
       }
     });
 
-    cm.vGetStackVar(a + 3);
-    cm.vCopyRef();
-    mv.visitVarInsn(ASTORE, a3);
+    cm.vThis();
+    cm.vInt(2);
+    cm.vInvokeFunc(LS, "call", I);
+    cm.vPop(); // drop return value
 
+    cm.vClearStack(a + 3 + c);
+    stat.vCallframe.load();
+    cm.vInvokeFunc(FR, "setPrototypeStacksize");
+
+    cm.vGetStackVar(a + 3);
     cm.vIf(IFNONNULL, new IIF() {
       public void doThen() {
-        cm.vSetStackVar(a + 2, ()-> mv.visitVarInsn(ALOAD, a3));
+        cm.vSetStackVar(a+2, ()-> cm.vGetStackVar(a + 3));
       }
       public void doElse() {
         cm.vGoto(stat.jumpn1());

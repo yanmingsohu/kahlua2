@@ -114,6 +114,11 @@ public abstract class LuaScript implements Runnable {
   }
 
 
+  protected int call(int nArg) {
+    return t.call(nArg);
+  }
+
+
   protected void auto_op_concat(int a, int b, int c, LuaCallFrame callFrame) {
     int first = b;
     int last = c;
