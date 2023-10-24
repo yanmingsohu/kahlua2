@@ -582,23 +582,28 @@ public class LuaBuilder implements IConst {
       cm.vGetRegOrConst(c);
       co.store();
 
-      cm.vThis();
       bo.load();
-      //TODO: optimization
-      cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
-      bd.store();
+      cm.vToNumber(new IToNumber() {
+        public void success() {
+          bd.store();
 
-      cm.vThis();
-      co.load();
-      cm.vInvokeFunc(LuaScript.class, "rawTonumber", O);
-      cd.store();
-
-      // if (bd == null || cd == null) then useMetaOp();
-      bd.load();
-      mv.visitJumpInsn(IFNULL, useMetaOp2);
-      cd.load();
-      mv.visitJumpInsn(IFNULL, useMetaOp2);
-      cm.vGoto(primitive);
+          co.load();
+          cm.vToNumber(new IToNumber() {
+            public void success() {
+              cd.store();
+              cm.vGoto(primitive);
+            }
+            public void nan() {
+              cm.vPop();
+              cm.vGoto(useMetaOp2);
+            }
+          });
+        }
+        public void nan() {
+          cm.vPop();
+          cm.vGoto(useMetaOp2);
+        }
+      });
     }
 
     // primitiveMath();
@@ -654,6 +659,7 @@ public class LuaBuilder implements IConst {
 
     cm.vToNumber(new IToNumber() {
       public void success() {
+        cm.vInvokeFunc(Double.class, "doubleValue");
         mv.visitInsn(DNEG);
         cm.vInvokeStatic(Double.class, "valueOf", D);
         res.store();

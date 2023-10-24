@@ -706,7 +706,7 @@ public class ClassMaker implements IConst {
 
   /**
    * Convert the value at the top of the stack to
-   * primitive double or original object.
+   * Double or original object.
    *
    * @see KahluaUtil#rawTonumber(Object)
    */
@@ -716,7 +716,6 @@ public class ClassMaker implements IConst {
     vIf(Double.class, new IIF() {
       public void doThen() {
         vCast(Double.class);
-        vInvokeFunc(Double.class, "doubleValue");
         tn.success();
       }
 
@@ -727,7 +726,6 @@ public class ClassMaker implements IConst {
           public void doThen() {
             vCast(String.class);
             vInvokeStatic(KahluaUtil.class, "tonumber", S);
-            vInvokeFunc(Double.class, "doubleValue");
             tn.success();
           }
           public void doElse() {

@@ -78,12 +78,6 @@ public abstract class LuaScript implements Runnable {
   }
 
 
-  //TODO: optimization
-  protected Double rawTonumber(Object o) {
-    return KahluaUtil.rawTonumber(o);
-  }
-
-
   protected Object getBinMetaOp(Object a, Object b, String meta_op) {
     return t.getBinMetaOp(a, b, meta_op);
   }
