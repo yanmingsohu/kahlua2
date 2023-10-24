@@ -260,8 +260,14 @@ public class Luaenv {
 		fps.append(" FPS");
 		fps.append(sp);
 
-		fps.append((int)(frame / (total/1000)));
+		fps.append(num2(frame / (total/1000)));
 		fps.append(" FPS.avg");
+	}
+
+
+	private static String num2(double x) {
+		int r = (int)(x * 100.0);
+		return Double.toString(((double)r) / 100.0);
 	}
 
 

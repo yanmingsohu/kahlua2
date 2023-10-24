@@ -53,7 +53,7 @@ public class TestKahluaThread2 implements Runnable {
   private static KahluaTable lastEnv;
 
 
-  public void ___asm() {
+  public void ___asm(Prototype p) {
     Object[] a = new Object[0];
     a[1] = new Object();
     Object t = (a[1]);
@@ -61,10 +61,15 @@ public class TestKahluaThread2 implements Runnable {
     if (t == a[0]) {
       Tool.pl("eq");
     }
+
+    if (p != null) {
+      Tool.pl(p);
+    }
   }
 
 
   public static void main(String[] av) throws Exception {
+    Tool.pl(av);
     TestVM tv = new TestVM();
     tv.testThrow("./testsuite/lua/throw.lua");
     tv.lua("./testsuite/lua/testhelper.lua");

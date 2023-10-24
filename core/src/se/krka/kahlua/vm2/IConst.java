@@ -52,4 +52,9 @@ public interface IConst {
   String TS = "TRUE";
   String FS = "FALSE";
   String CONSTRUCTOR = "<init>";
+  String CONST_INIT = "__script_consts_var_init";
+
+  default String constVarName(int i) {
+    return "_const_" + i;
+  }
 }

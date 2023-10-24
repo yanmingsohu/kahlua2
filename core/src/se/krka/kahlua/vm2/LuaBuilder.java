@@ -71,6 +71,7 @@ public class LuaBuilder implements IConst {
   public void makeJavacode(Prototype p) {
     final long start = System.currentTimeMillis();
     cm.defaultConstructor();
+
     ClosureInf root = pushClosure(p, ROOT_FUNCTION_NAME, -1, "<init>");
     newClosureFunction(root);
 
@@ -147,7 +148,7 @@ public class LuaBuilder implements IConst {
     public final LocalVar vError;
     public final LocalVar vStack;
     public final LocalVar vLocalBase;
-    public final LocalVar vConstants[];
+    public final LocalVar vConstants;
     public final LocalVar vUpvalue[];
 
 
@@ -169,11 +170,7 @@ public class LuaBuilder implements IConst {
       this.vError = internalVar(Throwable.class);
       this.vStack = internalVar(Object[].class, "_stack");
       this.vLocalBase = internalVar(int.class, "_localbase");
-
-      this.vConstants = new LocalVar[ci.prototype.constants.length];
-      for (int i=0; i<vConstants.length; ++i) {
-        this.vConstants[i] = internalVar(Object.class, "_consts_"+ i);
-      }
+      this.vConstants = internalVar(Object[].class, "_constants");
 
       this.vUpvalue = new LocalVar[ci.prototype.numUpvalues];
       for (int i=0; i<vUpvalue.length; ++i) {

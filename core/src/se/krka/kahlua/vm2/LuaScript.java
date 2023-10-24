@@ -29,7 +29,7 @@ import se.krka.kahlua.vm.*;
 import java.util.List;
 
 
-public abstract class LuaScript implements Runnable {
+public abstract class LuaScript implements Runnable, IConst {
 
 
   protected Platform platform;

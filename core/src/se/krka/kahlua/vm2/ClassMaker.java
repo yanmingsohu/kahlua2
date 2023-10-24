@@ -210,15 +210,10 @@ public class ClassMaker implements IConst {
     s.vLocalBase.store();
     s.vLocalBase._lock();
 
-    for (int i=0; i<s.vConstants.length; ++i) {
-      s.vPrototype.load();
-      vField(Prototype.class, "constants");
-      vInt(i);
-      mv.visitInsn(AALOAD);
-      LocalVar vConst = s.vConstants[i];
-      vConst.store();
-      vConst._lock();
-    }
+    s.vPrototype.load();
+    vField(Prototype.class, "constants");
+    s.vConstants.store();
+    s.vConstants._lock();
 
     vSyncStack();
 
@@ -636,7 +631,9 @@ public class ClassMaker implements IConst {
 //    vField(Prototype.class, "constants");
 //    vInt(i);
 //    mv.visitInsn(AALOAD);
-    stat.vConstants[i].load();
+    stat.vConstants.load();
+    vInt(i);
+    mv.visitInsn(AALOAD);
   }
 
 
@@ -1101,4 +1098,5 @@ public class ClassMaker implements IConst {
       mv.visitInsn(AASTORE);
     }
   }
+
 }
