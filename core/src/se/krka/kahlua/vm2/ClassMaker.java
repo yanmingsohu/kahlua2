@@ -211,16 +211,26 @@ public class ClassMaker implements IConst {
     s.vLocalBase._lock();
 
     for (int i=0; i<s.vConstants.length; ++i) {
-      LocalVar vConst = s.vConstants[i];
       s.vPrototype.load();
       vField(Prototype.class, "constants");
       vInt(i);
       mv.visitInsn(AALOAD);
+      LocalVar vConst = s.vConstants[i];
       vConst.store();
       vConst._lock();
     }
 
     vSyncStack();
+
+    for (int i=0; i<s.vUpvalue.length; ++i) {
+      s.vClosure.load();
+      vField(LuaClosure.class, "upvalues");
+      mv.visitLdcInsn(i);
+      mv.visitInsn(AALOAD);
+      LocalVar vu = s.vUpvalue[i];
+      vu.store();
+      vu._lock();
+    }
 
     if (di.has(DebugInf.CALL)) {
       vPrint(">>>> vClosureFunctionHeader", s.vCI);
@@ -549,6 +559,36 @@ public class ClassMaker implements IConst {
     vIf(IF_ACMPNE, ()-> {
       vPrint("!!!! stack ref changed", a, "~", stat.vStack);
     });
+  }
+
+
+  // callFrame.findUpvalue(b);
+  void vFindUpvalue(IBuildParam p) {
+    stat.vCallframe.load();
+    p.param1();
+    vInvokeFunc(FR, "findUpvalue", I);
+  }
+
+
+  // closure.upvalues[b];
+  void vGetUpvalueFromClosure(IBuildParam p) {
+    stat.vClosure.load();
+    vField(LuaClosure.class, "upvalues");
+    p.param1();
+    mv.visitInsn(AALOAD);
+  }
+
+
+  void vGetUpValue(int i) {
+    stat.vUpvalue[i].load();
+    vInvokeFunc(UpValue.class, "getValue");
+  }
+
+
+  void vSetUpValue(int i, IBuildParam p) {
+    stat.vUpvalue[i].load();
+    p.param1();
+    vInvokeFunc(UpValue.class, "setValue", O);
   }
 
 
@@ -892,23 +932,6 @@ public class ClassMaker implements IConst {
     p.param2();
     vInvokeFunc(LuaScript.class, "pushVarargs", PT,FR,I,I);
     vSyncStack();
-  }
-
-
-  // callFrame.findUpvalue(b);
-  void vFindUpvalue(IBuildParam p) {
-    stat.vCallframe.load();
-    p.param1();
-    vInvokeFunc(FR, "findUpvalue", I);
-  }
-
-
-  // closure.upvalues[b];
-  void vGetUpvalueFromClosure(IBuildParam p) {
-    stat.vClosure.load();
-    vField(LuaClosure.class, "upvalues");
-    p.param1();
-    mv.visitInsn(AALOAD);
   }
 
 

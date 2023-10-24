@@ -148,6 +148,7 @@ public class LuaBuilder implements IConst {
     public final LocalVar vStack;
     public final LocalVar vLocalBase;
     public final LocalVar vConstants[];
+    public final LocalVar vUpvalue[];
 
 
     public State(ClosureInf ci) {
@@ -172,6 +173,11 @@ public class LuaBuilder implements IConst {
       this.vConstants = new LocalVar[ci.prototype.constants.length];
       for (int i=0; i<vConstants.length; ++i) {
         this.vConstants[i] = internalVar(Object.class, "_consts_"+ i);
+      }
+
+      this.vUpvalue = new LocalVar[ci.prototype.numUpvalues];
+      for (int i=0; i<vUpvalue.length; ++i) {
+        this.vUpvalue[i] = internalVar(UpValue.class, "_upv_"+ i);
       }
     }
 
@@ -361,16 +367,6 @@ public class LuaBuilder implements IConst {
     cm.vClearStack(a, b);
   }
 
-  void op_getupval(State s) {
-    int a = getA8(op);
-    int b = getB9(op);
-
-    VUpvalueOp up = new VUpvalueOp(cm, mv, b, s);
-    cm.vSetStackVar(a, () -> {
-      up.getValue();
-    });
-  }
-
   void op_getglobal() {
     int a = getA8(op);
     int b = getBx(op);
@@ -416,12 +412,20 @@ public class LuaBuilder implements IConst {
     });
   }
 
+  void op_getupval(State s) {
+    int a = getA8(op);
+    int b = getB9(op);
+
+    cm.vSetStackVar(a, () -> {
+      cm.vGetUpValue(b);
+    });
+  }
+
   void op_setupval(State s) {
     int a = getA8(op);
     int b = getB9(op);
 
-    VUpvalueOp upop = new VUpvalueOp(cm, mv, b, s);
-    upop.setValue(() -> {
+    cm.vSetUpValue(b, () -> {
       cm.vGetStackVar(a);
     });
   }

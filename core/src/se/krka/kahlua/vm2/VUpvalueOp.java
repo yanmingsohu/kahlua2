@@ -29,6 +29,7 @@ import se.krka.kahlua.vm.UpValue;
 import static org.objectweb.asm.Opcodes.*;
 
 
+@Deprecated
 public class VUpvalueOp implements IConst {
 
   private final ClassMaker cm;
