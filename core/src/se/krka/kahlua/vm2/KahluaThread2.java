@@ -123,29 +123,6 @@ public class KahluaThread2 extends KahluaThread {
   }
 
 
-  /**
-   * Does not intercept exceptions compared to the original version
-   * TODO: remove Because this allows lua code to catch exceptions
-   */
-  public int __pcall(int nArguments) {
-    Coroutine coroutine = currentCoroutine;
-    LuaCallFrame currentCallFrame = coroutine.currentCallFrame();
-    coroutine.stackTrace = "";
-    int oldBase = coroutine.getTop() - nArguments - 1;
-
-    int oldCallframetop = coroutine.getCallframeTop();
-    int nValues = call(nArguments);
-    int newCallframeTop = coroutine.getCallframeTop();
-    KahluaUtil.luaAssert(oldCallframetop == newCallframeTop, "error - call stack depth changed.");
-    int newTop = oldBase + nValues + 1;
-    coroutine.setTop(newTop);
-    coroutine.stackCopy(oldBase, oldBase + 1, nValues);
-    coroutine.objectStack[oldBase] = Boolean.TRUE;
-
-    return 1 + nValues;
-  }
-
-
   public static String metaOpName(int i) {
     return meta_ops[i];
   }

@@ -63,15 +63,20 @@ public class LuaBuilder implements IConst {
     this.classPath = _classPath;
     this.className = Tool.formatClassName(classPath);
     this.cm = new ClassMaker(className, _outDir, di);
-    this.plist = new ArrayList<>(30);
+    this.plist = new ArrayList<>();
     this.di = di;
   }
 
 
   public void makeJavacode(Prototype p) {
+    final long start = System.currentTimeMillis();
     cm.defaultConstructor();
     ClosureInf root = pushClosure(p, ROOT_FUNCTION_NAME, -1, "<init>");
     newClosureFunction(root);
+
+    if (di.has(DebugInf.BUILD)) {
+      Tool.pl("Build", classPath, "used", System.currentTimeMillis() - start, "ms");
+    }
   }
 
 
@@ -116,8 +121,8 @@ public class LuaBuilder implements IConst {
       di.shortMsg();
     }
 
-    if (di.has(DebugInf.BUILD)) {
-      di.build();
+    if (di.has(DebugInf.SHORPS)) {
+      di.shortPaser();
     }
   }
 

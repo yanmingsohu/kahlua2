@@ -47,6 +47,7 @@ public class DebugInf implements IConst {
   public static final int CALL    = 1<<4;
   public static final int FILEMSG = 1<<5;
   public static final int SHORTOP = 1<<6;
+  public static final int SHORPS  = 1<<7;
 
   public int flag = NONE;
 
@@ -296,7 +297,7 @@ public class DebugInf implements IConst {
   }
 
 
-  public void build() {
+  public void shortPaser() {
     Tool.plx(Tool.STACK_DEPTH +1, "LL ",pc, Tool.num8len(op), opNames[opcode], line);
   }
 

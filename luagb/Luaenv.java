@@ -48,6 +48,7 @@ public class Luaenv {
 	private final int Height = 400;
 	private final int GBw = 160;
 	private final int GBh = 140;
+	private final int DEBUG_FLAG = DebugInf.ALL;
 
 
 	public static void main(String[] args) throws Throwable {
@@ -58,7 +59,7 @@ public class Luaenv {
 	private KahluaThread createThread(boolean newT) {
 		if (newT) {
 			KahluaThread2 t2 = new KahluaThread2(platform, env);
-			t2.setDebug(DebugInf.ALL);
+			t2.setDebug(DEBUG_FLAG);
 			t2.setOutputDir("./bin/lua");
 			return t2;
 		} else {
@@ -102,6 +103,7 @@ public class Luaenv {
 		} catch (Exception e) {
 			e.printStackTrace();
 			printdebug();
+			Tool.printTable(env);
 		}
 		pl("Done");
 	}

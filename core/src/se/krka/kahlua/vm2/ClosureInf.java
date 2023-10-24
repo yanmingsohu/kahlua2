@@ -109,13 +109,6 @@ public class ClosureInf /*implements JavaFunction */{
     this.ocl.upvalues = this.upvalues;
 
     this.oframe.init();
-
-    //TODO: remove this code
-//    this.oframe.setTop(prototype.maxStacksize);
-    //    for (int i=0; i<upvalues.length; ++i) {
-    //      this.ocl.upvalues[i] = this.upvalues[i];
-    //    }
-    //    Tool.pl("(0==", cs, ')');
   }
 
 
@@ -149,8 +142,12 @@ public class ClosureInf /*implements JavaFunction */{
 
 
   public LuaCallFrame getOldFrame() {
-//    Tool.pl("(2==", oframe.localBase, oframe.returnBase, oframe.nArguments, oframe.hashCode(), oframe.getTop(), ')');
     return oframe;
+  }
+
+
+  public LuaClosure makeClosureAlone(KahluaTable env) {
+    return new LuaClosure(prototype, env);
   }
 
 

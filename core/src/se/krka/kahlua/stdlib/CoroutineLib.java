@@ -22,6 +22,9 @@ THE SOFTWARE.
 package se.krka.kahlua.stdlib;
 
 import se.krka.kahlua.vm.*;
+import se.krka.kahlua.vm2.ClosureInf;
+import se.krka.kahlua.vm2.Tool;
+
 
 public class CoroutineLib implements JavaFunction {
 
@@ -49,6 +52,7 @@ public class CoroutineLib implements JavaFunction {
 	}
 
 	private final int index;
+	private static KahluaTable env;
 	private static final CoroutineLib[] functions;
 
     static {
@@ -71,6 +75,7 @@ public class CoroutineLib implements JavaFunction {
 		for (int i = 0; i < NUM_FUNCTIONS; i++) {
 			coroutine.rawset(names[i], functions[i]);
 		}
+		CoroutineLib.env = env;
 		
 		coroutine.rawset("__index", coroutine);
         KahluaTable metatables = KahluaUtil.getClassMetatables(platform, env);
@@ -171,7 +176,15 @@ public class CoroutineLib implements JavaFunction {
 
 	private LuaClosure getFunction(LuaCallFrame callFrame, String name) {
 		Object o = KahluaUtil.getArg(callFrame, 1, name);
-		KahluaUtil.luaAssert(o instanceof LuaClosure, "argument must be a lua function");
+		if (o instanceof ClosureInf) {
+			//TODO: make it right
+			ClosureInf ci = ((ClosureInf)o);
+			o = ci.getOldClosure();
+			if (o == null) {
+				o = ci.makeClosureAlone(env);
+			}
+		}
+		KahluaUtil.luaAssert(o instanceof LuaClosure, "argument must be a lua function, got "+ o);
 		LuaClosure c = (LuaClosure) o;
 		return c;
 	}
