@@ -61,8 +61,8 @@ public class TestKahluaThread2 implements Runnable {
     TestVM tv = new TestVM();
     tv.testThrow("./testsuite/lua/throw.lua");
     tv.lua("./testsuite/lua/testhelper.lua");
-    tv.lua("./testsuite/lua/thread2.lua");
-    tv.lua("./testsuite/lua/forloop.lua");
+//    tv.lua("./testsuite/lua/bigarray.lua");
+    tv.lua("./luagb/cartridge/Tetris.gb.lua");
 
 //    testAllLua();
 //    test_signature();

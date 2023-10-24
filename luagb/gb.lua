@@ -1,5 +1,6 @@
-local romfile = "cartridge/Legend of Zelda, The - Link's Awakening (U) (V1.2) [!].gb"
-local card = require(romfile);
+local romfile1 = "cartridge/Legend of Zelda, The - Link's Awakening (U) (V1.2) [!].gb"
+local romfile2 = "cartridge/Tetris.gb"
+local card = require(romfile2);
 local Gameboy = require("gameboy/init")
 
 if bit.Javabitlib then

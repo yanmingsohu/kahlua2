@@ -58,7 +58,7 @@ public class Luaenv {
 		platform = new J2SEPlatform();
 		env = platform.newEnvironment();
 		thread = new KahluaThread2(platform, env);
-		thread.setDebug(DebugInf.ALL);
+		thread.setDebug(DebugInf.NONE);
 		thread.setOutputDir("./bin/lua");
 		caller = new LuaCaller(converterManager);
 		exposer = new LuaJavaClassExposer(converterManager, platform, env);
