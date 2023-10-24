@@ -48,12 +48,31 @@ public class Luaenv {
 	private final int Height = 400;
 	private final int GBw = 160;
 	private final int GBh = 140;
-	private final int DEBUG_FLAG = DebugInf.NONE;
+	private final int DEBUG_FLAG = DebugInf.BUILD;
 
 
 	public static void main(String[] args) throws Throwable {
-		Luaenv lua = new Luaenv();
-		lua.run();
+		(new Thread() {
+			public void run() {
+				try {
+					Luaenv lua = new Luaenv(true);
+					lua.run();
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}).start();
+
+		(new Thread() {
+			public void run() {
+				try {
+					Luaenv lua = new Luaenv(false);
+					lua.run();
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}).start();
 	}
 
 	private KahluaThread createThread(boolean newT) {
@@ -67,11 +86,11 @@ public class Luaenv {
 		}
 	}
 
-	private Luaenv() {
+	private Luaenv(boolean useNewVersion) {
 		KahluaConverterManager converterManager = new KahluaConverterManager();
 		platform = new J2SEPlatform();
 		env = platform.newEnvironment();
-		thread = createThread(true);
+		thread = createThread(useNewVersion);
 		caller = new LuaCaller(converterManager);
 		exposer = new LuaJavaClassExposer(converterManager, platform, env);
 		//thread.setOutputDir("./bin");
@@ -98,6 +117,7 @@ public class Luaenv {
 
 
 		try {
+			Tool.pl("Thread", thread.getClass());
 			require("gb");
 			fr.dispose();
 		} catch (Exception e) {
@@ -273,7 +293,7 @@ public class Luaenv {
 
 	public class Screen extends JDialog {
 		public Screen() {
-			setTitle("LuaGB on Kahlua");
+			setTitle("LuaGB on Kahlua - "+ thread.getClass().getSimpleName());
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent e) {
 					dispose();

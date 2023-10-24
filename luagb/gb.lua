@@ -16,7 +16,6 @@ function readRomFromFile(romname)
   loadRom(card, rombase .. romname);
 
   function card:byte(i)
-    print(i, "read", card.data[i])
     return card.data[i]
   end
   return card
