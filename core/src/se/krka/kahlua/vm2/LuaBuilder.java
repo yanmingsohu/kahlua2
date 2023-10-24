@@ -147,6 +147,7 @@ public class LuaBuilder implements IConst {
     public final LocalVar vError;
     public final LocalVar vStack;
     public final LocalVar vLocalBase;
+    public final LocalVar vConstants[];
 
 
     public State(ClosureInf ci) {
@@ -167,6 +168,11 @@ public class LuaBuilder implements IConst {
       this.vError = internalVar(Throwable.class);
       this.vStack = internalVar(Object[].class, "_stack");
       this.vLocalBase = internalVar(int.class, "_localbase");
+
+      this.vConstants = new LocalVar[ci.prototype.constants.length];
+      for (int i=0; i<vConstants.length; ++i) {
+        this.vConstants[i] = internalVar(Object.class, "_consts_"+ i);
+      }
     }
 
 

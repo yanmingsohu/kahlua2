@@ -210,6 +210,16 @@ public class ClassMaker implements IConst {
     s.vLocalBase.store();
     s.vLocalBase._lock();
 
+    for (int i=0; i<s.vConstants.length; ++i) {
+      LocalVar vConst = s.vConstants[i];
+      s.vPrototype.load();
+      vField(Prototype.class, "constants");
+      vInt(i);
+      mv.visitInsn(AALOAD);
+      vConst.store();
+      vConst._lock();
+    }
+
     vSyncStack();
 
     if (di.has(DebugInf.CALL)) {
@@ -582,18 +592,11 @@ public class ClassMaker implements IConst {
 
 
   void vGetConstants(int i) {
-    stat.vPrototype.load();
-    vField(Prototype.class, "constants");
-    vInt(i);
-    mv.visitInsn(AALOAD);
-  }
-
-
-  void vGetConstants(IBuildParam index) {
-    stat.vPrototype.load();
-    vField(Prototype.class, "constants");
-    index.param1();
-    mv.visitInsn(AALOAD);
+//    stat.vPrototype.load();
+//    vField(Prototype.class, "constants");
+//    vInt(i);
+//    mv.visitInsn(AALOAD);
+    stat.vConstants[i].load();
   }
 
 
@@ -705,7 +708,7 @@ public class ClassMaker implements IConst {
     if (cindex < 0) {
       vGetStackVar(i);
     } else {
-      vGetConstants(() -> vInt(cindex));
+      vGetConstants(cindex);
     }
   }
 
