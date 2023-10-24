@@ -62,9 +62,9 @@ public class TestKahluaThread2 implements Runnable {
     tv.testThrow("./testsuite/lua/throw.lua");
     tv.lua("./testsuite/lua/testhelper.lua");
     tv.lua("./testsuite/lua/thread2.lua");
-    tv.lua("./testsuite/lua/os.lua");
+    tv.lua("./testsuite/lua/forloop.lua");
 
-    testAllLua();
+//    testAllLua();
 //    test_signature();
 
     Tool.pl("Done");

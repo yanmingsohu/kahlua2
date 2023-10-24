@@ -38,17 +38,20 @@ public class LocalVar {
   private static final Code ObjectCode = new Code(ALOAD, ASTORE);
 
   static {
-    types.put(Double.class, new Code(DLOAD, DSTORE));
-    types.put(double.class, new Code(DLOAD, DSTORE));
-    types.put(Float.class, new Code(FLOAD, FSTORE));
-    types.put(float.class, new Code(FLOAD, FSTORE));
-    types.put(Integer.class, new Code(ILOAD, ISTORE));
-    types.put(int.class, new Code(ILOAD, ISTORE));
-    types.put(Long.class, new Code(LLOAD, LSTORE));
-    types.put(long.class, new Code(LLOAD, LSTORE));
-    types.put(Object.class, ObjectCode);
-    types.put(Boolean.class, new Code(ILOAD, ISTORE));
     types.put(boolean.class, new Code(ILOAD, ISTORE));
+    types.put(char.class, new Code(ILOAD, ISTORE));
+    types.put(byte.class, new Code(ILOAD, ISTORE));
+    types.put(int.class, new Code(ILOAD, ISTORE));
+    types.put(long.class, new Code(LLOAD, LSTORE));
+    types.put(float.class, new Code(FLOAD, FSTORE));
+    types.put(double.class, new Code(DLOAD, DSTORE));
+    types.put(Object.class, ObjectCode);
+
+//    types.put(Double.class, new Code(DLOAD, DSTORE));
+//    types.put(Float.class, new Code(FLOAD, FSTORE));
+//    types.put(Integer.class, new Code(ILOAD, ISTORE));
+//    types.put(Long.class, new Code(LLOAD, LSTORE));
+//    types.put(Boolean.class, new Code(ILOAD, ISTORE));
   }
 
   private final MethodVisitor mv;

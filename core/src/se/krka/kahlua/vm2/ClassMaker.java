@@ -40,6 +40,11 @@ import static se.krka.kahlua.vm2.Tool.*;
 
 /**
  * The class will be cached after successful compilation
+ *
+ * About ASM Error message:
+ *   "Index 0 out of bounds for length 0" : Variable type error
+ *   "Index 1 out of bounds for length 0" : Extra variables on the stack
+ *   "Index -1 out of bounds for length 0" : Try operating on an empty stack
  */
 public class ClassMaker implements IConst {
 
@@ -546,7 +551,7 @@ public class ClassMaker implements IConst {
 
   void vClearStack(int from) {
     mv.visitVarInsn(ALOAD, vCallframe);
-    mv.visitLdcInsn(from);
+    vInt(from);
     vInvokeFunc(LuaCallFrame.class, "clearFromIndex", I);
   }
 

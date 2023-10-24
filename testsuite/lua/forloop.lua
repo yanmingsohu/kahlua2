@@ -18,3 +18,6 @@ testCall(function()
 	end
 end)
 
+for i = 0, 10, 1 do
+	print("for -> ", i)
+end

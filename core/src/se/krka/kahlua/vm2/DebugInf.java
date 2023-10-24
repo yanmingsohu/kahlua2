@@ -231,14 +231,19 @@ public class DebugInf implements IConst {
       case OP_CALL:
       case OP_TAILCALL:
       case OP_RETURN:
-      case OP_FORLOOP:
-      case OP_FORPREP:
       case OP_TFORLOOP:
       case OP_SETLIST:
       case OP_VARARG:
       case OP_CLOSE:
       case OP_CLOSURE: // show Up values after run
         cm.vPrintStack(a);
+        break;
+
+      case OP_FORLOOP:
+        cm.vPrintStack(a, a+1, a+2, a+3);
+        break;
+      case OP_FORPREP:
+        cm.vPrintStack(a, a+2);
         break;
 
       case OP_GETTABLE:

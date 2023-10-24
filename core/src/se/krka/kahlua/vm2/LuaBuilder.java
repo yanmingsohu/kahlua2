@@ -987,20 +987,11 @@ public class LuaBuilder implements IConst {
     int a = getA8(op);
     int b = getSBx(op);
 
-    final int iter = vUser +1;
-    final int step = vUser +2;
-
-    cm.vGetStackVar(a);
-    cm.vToPrimitiveDouble(true);
-    mv.visitVarInsn(DSTORE, iter);
-
-    cm.vGetStackVar(a + 2);
-    cm.vToPrimitiveDouble(true);
-    mv.visitVarInsn(DSTORE, step);
-
     cm.vSetStackVar(a, () -> {
-      mv.visitVarInsn(DLOAD, iter);
-      mv.visitVarInsn(DLOAD, step);
+      cm.vGetStackVar(a);
+      cm.vToPrimitiveDouble(true);
+      cm.vGetStackVar(a + 2);
+      cm.vToPrimitiveDouble(true);
       mv.visitInsn(DSUB);
       cm.vToObjectDouble(false);
     });
@@ -1013,50 +1004,51 @@ public class LuaBuilder implements IConst {
     int b = getSBx(op);
 
     final Label jumpTo = s.jumpToLabel(b);
-    final int iter = vUser +1;
-    final int step = vUser +2;
-    final int end  = vUser +3;
-    final int iterDouble = vUser +4;
+    final Label ret = new Label();
+    LocalVar iter = s.newVar(OD, "iter");
+    LocalVar step = s.newVar(OD, "step");
+    LocalVar end  = s.newVar(OD, "end");
 
     cm.vGetStackVar(a);
-    cm.vToPrimitiveDouble(true);
-    mv.visitVarInsn(DSTORE, iter);
+    iter.store();
 
     cm.vGetStackVar(a + 1);
-    cm.vToPrimitiveDouble(true);
-    mv.visitVarInsn(DSTORE, end);
+    end.store();
 
     cm.vGetStackVar(a + 2);
+    step.store();
+
+    // iter = item + step
+    iter.load();
     cm.vToPrimitiveDouble(true);
-    mv.visitVarInsn(DSTORE, step);
-
-    mv.visitVarInsn(DLOAD, iter);
-    mv.visitVarInsn(DLOAD, step);
+    step.load();
+    cm.vToPrimitiveDouble(true);
     mv.visitInsn(DADD);
-    mv.visitVarInsn(DSTORE, iter);
+    cm.vToObjectDouble(false);
+    iter.store();
 
-    cm.vSetStackVar(a, () -> {
-      mv.visitVarInsn(DLOAD, iter);
-      cm.vToObjectDouble(false);
-      cm.vCopyRef();
-      mv.visitVarInsn(DSTORE, iterDouble);
-    });
+    cm.vSetStackVar(a, () -> iter.load());
 
     final IIF checkloop = new IIF() {
       public void doThen() {
-        cm.vSetStackVar(a+3, ()-> mv.visitVarInsn(DLOAD, iterDouble));
+        cm.vSetStackVar(a + 3, ()-> iter.load());
         cm.vGoto(jumpTo);
       }
       public void doElse() {
         cm.vClearStack(a);
+        cm.vGoto(ret);
       }
     };
 
-    mv.visitVarInsn(DLOAD, iter);
-    mv.visitVarInsn(DLOAD, end);
+    iter.load();
+    cm.vToPrimitiveDouble(true);
+    end.load();
+    cm.vToPrimitiveDouble(true);
     mv.visitInsn(DCMPG);
 
-    mv.visitVarInsn(DLOAD, step);
+    step.load();
+    cm.vToPrimitiveDouble(true);
+    mv.visitInsn(D2I);
     cm.vIf(IFGT, new IIF() {
       public void doThen() {
         cm.vIf(IFLE, checkloop);
@@ -1065,6 +1057,8 @@ public class LuaBuilder implements IConst {
         cm.vIf(IFGE, checkloop);
       }
     });
+
+    mv.visitLabel(ret);
   }
 
 

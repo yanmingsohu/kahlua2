@@ -49,6 +49,7 @@ public interface IConst {
   Class F = float.class;
   Class D = double.class;
   Class B = boolean.class;
+  Class OD = Double.class;
   Class PT = Prototype.class;
   Class FR = LuaCallFrame.class;
   Class CU = LuaClosure.class;
