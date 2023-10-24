@@ -48,25 +48,32 @@ import java.util.stream.Stream;
 public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.ALL;
+  static final int DEBUG = DebugInf.BUILD;
   public LuaCallFrame callFrame;
   private static KahluaTable lastEnv;
 
 
   public void ___asm() {
+    Object[] a = new Object[0];
+    a[1] = new Object();
+    Object t = (a[1]);
+
+    if (t == a[0]) {
+      Tool.pl("eq");
+    }
   }
 
 
   public static void main(String[] av) throws Exception {
     TestVM tv = new TestVM();
-//    tv.testThrow("./testsuite/lua/throw.lua");
-//    tv.lua("./testsuite/lua/testhelper.lua");
-    tv.lua("./testsuite/lua/table2.lua");
+    tv.testThrow("./testsuite/lua/throw.lua");
+    tv.lua("./testsuite/lua/testhelper.lua");
+//    tv.lua("./testsuite/lua/table2.lua");
 
     //TODO: org.objectweb.asm.MethodTooLargeException: Method too large
     // tv.lua("./luagb/cartridge/Tetris.gb.lua");
 
-//    testAllLua();
+    testAllLua();
 //    test_signature();
 
     Tool.pl("Done");

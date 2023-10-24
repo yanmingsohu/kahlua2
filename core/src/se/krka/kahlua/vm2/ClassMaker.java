@@ -179,18 +179,18 @@ public class ClassMaker implements IConst {
     // ci.newFrame(this.coroutine)
     s.vCI.load();
     vThis();
-    vField(LuaScript.class, "coroutine");
-    vInvokeFunc(CI, "newFrame", Coroutine.class);
+    vField(LS, "coroutine");
+    vInvokeFunc(CI, "newFrame", CR);
 
     // final LuaClosure vClosure = ci.getOldClosure();
     s.vCI.load();
-    vInvokeFunc(ClosureInf.class, "getOldClosure");
+    vInvokeFunc(CI, "getOldClosure");
     s.vClosure.store();
     s.vClosure._lock();
 
     // final LuaCallFrame vCallframe = closure.getOldFrame();
     s.vCI.load();
-    vInvokeFunc(ClosureInf.class, "getOldFrame");
+    vInvokeFunc(CI, "getOldFrame");
     s.vCallframe.store();
     s.vCallframe._lock();
 
@@ -201,14 +201,20 @@ public class ClassMaker implements IConst {
 
     // final Prototype vPrototype = ci.prototype
     s.vCI.load();
-    vField(ClosureInf.class, "prototype");
+    vField(CI, "prototype");
     s.vPrototype.store();
     s.vPrototype._lock();
+
+    s.vCallframe.load();
+    vField(FR, "localBase");
+    s.vLocalBase.store();
+    s.vLocalBase._lock();
+
+    vSyncStack();
 
     if (di.has(DebugInf.CALL)) {
       vPrint(">>>> vClosureFunctionHeader", s.vCI);
     }
-
     vNull();
     s.vError.store();
   }
@@ -504,10 +510,57 @@ public class ClassMaker implements IConst {
   }
 
 
-  void vGetStackVar(IBuildParam bp) {
+  void vCheckLocalBaseChanged() {
+    LocalVar a = stat.newVar("a");
+    LocalVar b = stat.newVar("b");
+    stat.vLocalBase.load();
+    vInvokeStatic(Integer.class, "valueOf", I);
+    a.store();
+
     stat.vCallframe.load();
+    vField(FR, "localBase");
+    vInvokeStatic(Integer.class, "valueOf", I);
+    b.store();
+
+    a.load();
+    vInvokeFunc(Integer.class, "intValue");
+    b.load();
+    vInvokeFunc(Integer.class, "intValue");
+    vIf(IF_ICMPNE, ()->{
+      vPrint("!!!! stack base changed", a, "~", b);
+    });
+
+    vField("coroutine");
+    vField(CR, "objectStack");
+    a.store();
+
+    stat.vStack.load();
+    a.load();
+    vIf(IF_ACMPNE, ()-> {
+      vPrint("!!!! stack ref changed", a, "~", stat.vStack);
+    });
+  }
+
+
+  /**
+   * stack variable may change after growing
+   */
+  void vSyncStack() {
+    vField("coroutine");
+    vField(CR, "objectStack");
+    stat.vStack.store();
+  }
+
+
+  void vGetStackVar(IBuildParam bp) {
+//    stat.vCallframe.load();
+//    bp.param1();
+//    vInvokeFunc(LuaCallFrame.class, "get", I);
+    stat.vStack.load();
+    stat.vLocalBase.load();
     bp.param1();
-    vInvokeFunc(LuaCallFrame.class, "get", I);
+    mv.visitInsn(IADD);
+    mv.visitInsn(AALOAD);
   }
 
 
@@ -515,18 +568,16 @@ public class ClassMaker implements IConst {
    * @param bp Push some var to stack top
    */
   void vSetStackVar(int i, IBuildParam bp) {
-    stat.vCallframe.load();
+//    stat.vCallframe.load();
+//    vInt(i);
+//    bp.param1();
+//    vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    stat.vStack.load();
+    stat.vLocalBase.load();
     vInt(i);
+    mv.visitInsn(IADD);
     bp.param1();
-    vInvokeFunc(LuaCallFrame.class, "set", I, O);
-  }
-
-
-  void vSetStackVar(IBuildParam2 bp) {
-    stat.vCallframe.load();
-    bp.param1();
-    bp.param2();
-    vInvokeFunc(LuaCallFrame.class, "set", I, O);
+    mv.visitInsn(AASTORE);
   }
 
 
@@ -804,6 +855,7 @@ public class ClassMaker implements IConst {
     vField("coroutine");
     p.param1();
     vInvokeFunc(Coroutine.class, "setTop", I);
+    vSyncStack();
   }
 
 
@@ -811,6 +863,7 @@ public class ClassMaker implements IConst {
     stat.vCallframe.load();
     p.param1();
     vInvokeFunc(FR, "setTop", I);
+    vSyncStack();
   }
 
 
@@ -835,6 +888,7 @@ public class ClassMaker implements IConst {
     p.param1();
     p.param2();
     vInvokeFunc(LuaScript.class, "pushVarargs", PT,FR,I,I);
+    vSyncStack();
   }
 
 
@@ -1014,7 +1068,9 @@ public class ClassMaker implements IConst {
       vCopyRef();
       vInt(i);
       if (oa[i] instanceof LocalVar) {
-        ((LocalVar)oa[i]).load();
+        ((LocalVar) oa[i]).load();
+      } else if (oa[i] instanceof IBuildParam) {
+        ((IBuildParam) oa[i]).param1();
       } else {
         vString(String.valueOf(oa[i]));
       }

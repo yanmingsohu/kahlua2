@@ -145,6 +145,8 @@ public class LuaBuilder implements IConst {
     public final LocalVar vPrototype;
     public final LocalVar vCI;
     public final LocalVar vError;
+    public final LocalVar vStack;
+    public final LocalVar vLocalBase;
 
 
     public State(ClosureInf ci) {
@@ -163,6 +165,8 @@ public class LuaBuilder implements IConst {
       this.vPrototype = internalVar(PT);
       this.vCI = internalVar(CI);
       this.vError = internalVar(Throwable.class);
+      this.vStack = internalVar(Object[].class, "_stack");
+      this.vLocalBase = internalVar(int.class, "_localbase");
     }
 
 
@@ -176,7 +180,11 @@ public class LuaBuilder implements IConst {
 
 
     private LocalVar internalVar(Class c) {
-      String name = Tool.toLocalVarName(c);
+      return internalVar(c, Tool.toLocalVarName(c));
+    }
+
+
+    private LocalVar internalVar(Class c, String name) {
       final int vid = nextInternalVarId();
       LocalVar v = new LocalVar(mv, c, vid, name, initLabel, returnLabel);
       super.add(v);
@@ -1258,6 +1266,7 @@ public class LuaBuilder implements IConst {
     cm.vInvokeFunc(LuaScript.class, "call", CI,FR,O,I,I,I);
 
     cm.vAutoRestoreTop();
+    cm.vSyncStack();
   }
 
 

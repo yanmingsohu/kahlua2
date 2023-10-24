@@ -80,14 +80,6 @@ public abstract class StateBase implements IConst {
   }
 
 
-  private int nextVarid(int offset) {
-    if (offset > 0) {
-      return offset + (varId++);
-    }
-    return (varId++);
-  }
-
-
   protected void add(LocalVar lv) {
     outputVarDebugInf.add(lv);
   }
