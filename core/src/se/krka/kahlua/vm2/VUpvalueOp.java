@@ -33,7 +33,7 @@ public class VUpvalueOp implements IConst {
 
   private final ClassMaker cm;
   private final MethodVisitor mv;
-  private final int tmpVarIndex;
+  private final LocalVar tmpVarIndex;
 
 
   /**
@@ -41,29 +41,29 @@ public class VUpvalueOp implements IConst {
    * @param cm
    * @param mv
    * @param upindex index in vClosure array
-   * @param _tmpVarIndex index in heap variable, can be 0
    */
-  VUpvalueOp(ClassMaker cm, MethodVisitor mv, int upindex, int _tmpVarIndex) {
+  VUpvalueOp(ClassMaker cm, MethodVisitor mv, int upindex, LuaBuilder.State s) {
     this.cm = cm;
     this.mv = mv;
-    this.tmpVarIndex = vUser + _tmpVarIndex;
+    this.tmpVarIndex = s.newVar("tmp");
 
-    mv.visitVarInsn(ALOAD, vClosure);
+    s.vClosure.load();
+
     cm.vField(LuaClosure.class, "upvalues");
     mv.visitLdcInsn(upindex);
     mv.visitInsn(AALOAD);
-    mv.visitVarInsn(ASTORE, tmpVarIndex);
+    tmpVarIndex.store();
   }
 
 
   public void getValue() {
-    mv.visitVarInsn(ALOAD, tmpVarIndex);
+    tmpVarIndex.load();
     cm.vInvokeFunc(UpValue.class, "getValue");
   }
 
 
   public void setValue(IBuildParam p) {
-    mv.visitVarInsn(ALOAD, tmpVarIndex);
+    tmpVarIndex.load();
     p.param1();
     cm.vInvokeFunc(UpValue.class, "setValue", O);
   }

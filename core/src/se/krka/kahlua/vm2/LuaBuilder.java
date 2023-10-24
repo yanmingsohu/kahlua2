@@ -84,6 +84,7 @@ public class LuaBuilder implements IConst {
     final int startIndex = plist.size();
     mv = cm.beginMethod(ci.funcName);
     State state = new State(ci);
+    cm.updateState(state);
 
     di.update(cm, classPath);
     int firstLine = ci.prototype.lines[0];
@@ -138,12 +139,12 @@ public class LuaBuilder implements IConst {
     private final int[] opcodes;
     private int npc = 0;
 
-    final LocalVar vCallframe;
-    final LocalVar vPlatform;
-    final LocalVar vClosure;
-    final LocalVar vPrototype;
-    final LocalVar vCI;
-    final LocalVar vError;
+    public final LocalVar vCallframe;
+    public final LocalVar vPlatform;
+    public final LocalVar vClosure;
+    public final LocalVar vPrototype;
+    public final LocalVar vCI;
+    public final LocalVar vError;
 
 
     public State(ClosureInf ci) {
@@ -156,12 +157,12 @@ public class LuaBuilder implements IConst {
       this.finallyLabel = new Label();
       this.returnLabel = initLabels();
 
-      this.vCallframe = internalVar(FR, IConst.vCallframe);
-      this.vPlatform = internalVar(Platform.class, IConst.vPlatform);
-      this.vClosure = internalVar(CU, IConst.vClosure);
-      this.vPrototype = internalVar(PT, IConst.vPrototype);
-      this.vCI = internalVar(CI, IConst.vCI);
-      this.vError = internalVar(Throwable.class, IConst.vException);
+      this.vCallframe = internalVar(FR);
+      this.vPlatform = internalVar(Platform.class);
+      this.vClosure = internalVar(CU);
+      this.vPrototype = internalVar(PT);
+      this.vCI = internalVar(CI);
+      this.vError = internalVar(Throwable.class);
     }
 
 
@@ -174,9 +175,10 @@ public class LuaBuilder implements IConst {
     }
 
 
-    private LocalVar internalVar(Class c, int index) {
+    private LocalVar internalVar(Class c) {
       String name = Tool.toLocalVarName(c);
-      LocalVar v = new LocalVar(mv, c, index, name, initLabel, returnLabel);
+      final int vid = nextInternalVarId();
+      LocalVar v = new LocalVar(mv, c, vid, name, initLabel, returnLabel);
       super.add(v);
       return v;
     }
@@ -237,24 +239,24 @@ public class LuaBuilder implements IConst {
       case OP_LOADK: op_loadk(); break;
       case OP_LOADBOOL: op_loadbool(s); break;
       case OP_LOADNIL: op_loadnil(); break;
-      case OP_GETUPVAL: op_getupval(); break;
+      case OP_GETUPVAL: op_getupval(s); break;
       case OP_GETGLOBAL: op_getglobal(); break;
       case OP_GETTABLE: op_gettable(); break;
       case OP_SETGLOBAL: op_setglobal(); break;
-      case OP_SETUPVAL: op_setupval(); break;
+      case OP_SETUPVAL: op_setupval(s); break;
       case OP_SETTABLE: op_settable(); break;
       case OP_NEWTABLE: op_newtable(); break;
-      case OP_SELF: op_self(); break;
+      case OP_SELF: op_self(s); break;
       case OP_ADD: op_add(s); break;
       case OP_SUB: op_sub(s); break;
       case OP_MUL: op_mul(s); break;
       case OP_DIV: op_div(s); break;
       case OP_MOD: op_mod(s); break;
       case OP_POW: op_pow(s); break;
-      case OP_UNM: op_unm(); break;
+      case OP_UNM: op_unm(s); break;
       case OP_NOT: op_not(); break;
       case OP_LEN: op_len(s); break;
-      case OP_CONCAT: op_concat(); break;
+      case OP_CONCAT: op_concat(s); break;
       case OP_JMP: op_jmp(s); break;
       case OP_EQ: op_eq(s); break;
       case OP_LT: op_lt(s); break;
@@ -345,11 +347,11 @@ public class LuaBuilder implements IConst {
     cm.vClearStack(a, b);
   }
 
-  void op_getupval() {
+  void op_getupval(State s) {
     int a = getA8(op);
     int b = getB9(op);
 
-    VUpvalueOp up = new VUpvalueOp(cm, mv, b, 0);
+    VUpvalueOp up = new VUpvalueOp(cm, mv, b, s);
     cm.vSetStackVar(a, () -> {
       up.getValue();
     });
@@ -387,7 +389,6 @@ public class LuaBuilder implements IConst {
     final int a = getA8(op);
     final int b = getB9(op);
     final int c = getC9(op);
-    final int notused = 0;
 
     cm.vSetStackVar(a, () -> {
       cm.vGetTableVar(new IBuildParam2() {
@@ -395,17 +396,17 @@ public class LuaBuilder implements IConst {
           cm.vGetStackVar(b);
         }
         public void param2() {
-          cm.vGetRegOrConst(c, notused);
+          cm.vGetRegOrConst(c);
         }
       });
     });
   }
 
-  void op_setupval() {
+  void op_setupval(State s) {
     int a = getA8(op);
     int b = getB9(op);
 
-    VUpvalueOp upop = new VUpvalueOp(cm, mv, b, vUser);
+    VUpvalueOp upop = new VUpvalueOp(cm, mv, b, s);
     upop.setValue(() -> {
       cm.vGetStackVar(a);
     });
@@ -423,10 +424,10 @@ public class LuaBuilder implements IConst {
         cm.vGetStackVar(a);
       }
       public void param2() {
-        cm.vGetRegOrConst(b, vTmp);
+        cm.vGetRegOrConst(b);
       }
       public void param3() {
-        cm.vGetRegOrConst(c, vTmp);
+        cm.vGetRegOrConst(c);
       }
     });
   }
@@ -439,29 +440,28 @@ public class LuaBuilder implements IConst {
     });
   }
 
-  void op_self() {
+  void op_self(State s) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
 
-    final int tmp = 0;
-    final int bObj = vUser + 1;
+    LocalVar bObj = s.newVar("bObj");
 
 
     cm.vGetStackVar(b);
-    mv.visitVarInsn(ASTORE, bObj);
+    bObj.store();
 
     cm.vSetStackVar(a+1, ()->{
-      mv.visitVarInsn(ALOAD, bObj);
+      bObj.load();
     });
 
     cm.vSetStackVar(a, ()->{
       cm.vGetTableVar(new IBuildParam2() {
         public void param1() {
-          mv.visitVarInsn(ALOAD, bObj);
+          bObj.load();
         }
         public void param2() {
-          cm.vGetRegOrConst(c, tmp);
+          cm.vGetRegOrConst(c);
         }
       });
     });
@@ -493,7 +493,7 @@ public class LuaBuilder implements IConst {
 
   void op_pow(State s) {
     math_cal(s, "__pow", false, (bd, cd)->{
-      mv.visitVarInsn(ALOAD, vPlatform);
+      s.vPlatform.load();
       bd.load();
       cm.vToPrimitiveDouble(false);
       cd.load();
@@ -551,7 +551,6 @@ public class LuaBuilder implements IConst {
     final LocalVar bd = s.newVar(O, "bd");
     final LocalVar cd = s.newVar(O, "cd");
     final LocalVar res = s.newVar(O, "res");
-    final int tmp = s.nextVarid(-1);
 
     Label saveRes = new Label();
     Label useMetaOp1 = new Label();
@@ -559,10 +558,10 @@ public class LuaBuilder implements IConst {
     Label primitive = new Label();
 
     {
-      cm.vGetRegOrConst(b, tmp);
+      cm.vGetRegOrConst(b);
       bo.store();
 
-      cm.vGetRegOrConst(c, tmp);
+      cm.vGetRegOrConst(c);
       co.store();
 
       cm.vThis();
@@ -625,13 +624,13 @@ public class LuaBuilder implements IConst {
     cm.vSetStackVar(a, ()-> res.load());
   }
 
-  void op_unm() {
+  void op_unm(State s) {
     int a = getA8(op);
     int b = getB9(op);
 
-    final int aObj = vUser +1;
-    final int res = vUser +2;
-    final int metafun = vUser +3;
+    LocalVar aObj = s.newVar("aObj");
+    LocalVar res = s.newVar("res");
+    LocalVar metafun = s.newVar("metafun");
 
     cm.vGetStackVar(b);
 
@@ -639,24 +638,24 @@ public class LuaBuilder implements IConst {
       public void success() {
         mv.visitInsn(DNEG);
         cm.vInvokeStatic(Double.class, "valueOf", D);
-        mv.visitVarInsn(ASTORE, res);
+        res.store();
       }
 
       public void nan() {
-        mv.visitVarInsn(ASTORE, aObj);
+        aObj.store();
 
         cm.vGetMetaOp("__unm", ()->{
-          mv.visitVarInsn(ALOAD, aObj);
+          aObj.load();
         });
 
-        mv.visitVarInsn(ASTORE, metafun);
+        metafun.store();
 
         cm.vCall(new IBuildParam4() {
           public void param1() {
-            mv.visitVarInsn(ALOAD, metafun);
+            metafun.load();
           }
           public void param2() {
-            mv.visitVarInsn(ALOAD, aObj);
+            aObj.load();
           }
           public void param3() {
             cm.vNull();
@@ -665,12 +664,12 @@ public class LuaBuilder implements IConst {
             cm.vNull();
           }
         });
-        mv.visitVarInsn(ASTORE, res);
+        res.store();
       }
     });
 
     cm.vSetStackVar(a, ()->{
-      mv.visitVarInsn(ALOAD, res);
+      res.load();
     });
   }
 
@@ -739,7 +738,7 @@ public class LuaBuilder implements IConst {
   }
 
 
-  void op_concat() {
+  void op_concat(State s) {
     int a = getA8(op);
     int b = getB9(op);
     int c = getC9(op);
@@ -748,7 +747,7 @@ public class LuaBuilder implements IConst {
     cm.vInt(a);
     cm.vInt(b);
     cm.vInt(c);
-    mv.visitVarInsn(ALOAD, vCallframe);
+    s.vCallframe.load();
     cm.vInvokeFunc(LuaScript.class, "auto_op_concat", I,I,I, LuaCallFrame.class);
   }
 
@@ -853,17 +852,16 @@ public class LuaBuilder implements IConst {
     final Label isstr = new Label();
     final Label rcomp = new Label();
 
-    final int tmp = 0;
-    final int bo = vUser +1;
-    final int co = vUser +2;
-    final int azero = vUser +3;
+    final int bo = s.nextVarid();
+    final int co = s.nextVarid();
+    final int azero = s.nextVarid();
 
     cm.vBoolean(a == 0);
     mv.visitVarInsn(ISTORE, azero);
 
-    cm.vGetRegOrConst(b, tmp);
+    cm.vGetRegOrConst(b);
     mv.visitVarInsn(ASTORE, bo);
-    cm.vGetRegOrConst(c, tmp);
+    cm.vGetRegOrConst(c);
     mv.visitVarInsn(ASTORE, co);
 
     // ------- check if double
@@ -969,11 +967,11 @@ public class LuaBuilder implements IConst {
     boolean eqt = (c == 0);
 
     Label jumpto = s.jumpn1();
-    final int value = vUser +1;
+    LocalVar value = s.newVar("value");
 
     cm.vGetStackVar(b);
     cm.vCopyRef();
-    mv.visitVarInsn(ASTORE, value);
+    value.store();
     cm.vBoolEval(false, true);
     cm.vBoolean(eqt);
 
@@ -983,7 +981,7 @@ public class LuaBuilder implements IConst {
       }
 
       public void doElse() {
-        cm.vSetStackVar(a, () -> mv.visitVarInsn(ALOAD, value));
+        cm.vSetStackVar(a, () -> value.load());
       }
     });
   }

@@ -32,7 +32,8 @@ import java.util.List;
 public abstract class StateBase implements IConst {
 
   private final MethodVisitor mv;
-  private int varId = -1;
+  private int varId = 1;
+  private int internalVarId = 1;
   private List<LocalVar> outputVarDebugInf;
 
 
@@ -56,6 +57,12 @@ public abstract class StateBase implements IConst {
   }
 
 
+  public abstract LocalVar newVar(Class c, String name);
+
+
+  public abstract LocalVar newVar(String name);
+
+
   public void vAllVariables() {
     for (LocalVar lv : outputVarDebugInf) {
       lv.output();
@@ -64,11 +71,16 @@ public abstract class StateBase implements IConst {
 
 
   public int nextVarid() {
-    return nextVarid(vUser);
+    return internalVarId + (varId++);
   }
 
 
-  public int nextVarid(int offset) {
+  protected int nextInternalVarId() {
+    return internalVarId++;
+  }
+
+
+  private int nextVarid(int offset) {
     if (offset > 0) {
       return offset + (varId++);
     }

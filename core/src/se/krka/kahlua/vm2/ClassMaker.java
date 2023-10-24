@@ -25,7 +25,6 @@ package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.*;
 import se.krka.kahlua.vm.*;
-import sun.security.util.Debug;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -53,6 +52,7 @@ public class ClassMaker implements IConst {
   private MethodVisitor mv;
   private AnnotationVisitor av0;
   private Class clazz;
+  private LuaBuilder.State stat;
 
   final Class scriptSuperClass = LuaScript.class;
   final String className;
@@ -80,6 +80,11 @@ public class ClassMaker implements IConst {
       null);
 
     cw.visitSource(classPath +".lua", null);
+  }
+
+
+  public void updateState(LuaBuilder.State stat) {
+    this.stat = stat;
   }
 
 
@@ -485,7 +490,7 @@ public class ClassMaker implements IConst {
 
 
   void vEnvironment() {
-    mv.visitVarInsn(ALOAD, vClosure);
+    stat.vClosure.load();
     vField(LuaClosure.class, "env");
   }
 
@@ -500,7 +505,7 @@ public class ClassMaker implements IConst {
 
 
   void vGetStackVar(IBuildParam bp) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     bp.param1();
     vInvokeFunc(LuaCallFrame.class, "get", I);
   }
@@ -510,7 +515,7 @@ public class ClassMaker implements IConst {
    * @param bp Push some var to stack top
    */
   void vSetStackVar(int i, IBuildParam bp) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vInt(i);
     bp.param1();
     vInvokeFunc(LuaCallFrame.class, "set", I, O);
@@ -518,7 +523,7 @@ public class ClassMaker implements IConst {
 
 
   void vSetStackVar(IBuildParam2 bp) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     bp.param1();
     bp.param2();
     vInvokeFunc(LuaCallFrame.class, "set", I, O);
@@ -526,7 +531,7 @@ public class ClassMaker implements IConst {
 
 
   void vGetConstants(int i) {
-    mv.visitVarInsn(ALOAD, vPrototype);
+    stat.vPrototype.load();
     vField(Prototype.class, "constants");
     vInt(i);
     mv.visitInsn(AALOAD);
@@ -534,7 +539,7 @@ public class ClassMaker implements IConst {
 
 
   void vGetConstants(IBuildParam index) {
-    mv.visitVarInsn(ALOAD, vPrototype);
+    stat.vPrototype.load();
     vField(Prototype.class, "constants");
     index.param1();
     mv.visitInsn(AALOAD);
@@ -542,7 +547,7 @@ public class ClassMaker implements IConst {
 
 
   void vClearStack(int from, int to) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     mv.visitLdcInsn(from);
     mv.visitLdcInsn(to);
     vInvokeFunc(LuaCallFrame.class, "stackClear", I, I);
@@ -550,7 +555,7 @@ public class ClassMaker implements IConst {
 
 
   void vClearStack(int from) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vInt(from);
     vInvokeFunc(LuaCallFrame.class, "clearFromIndex", I);
   }
@@ -600,7 +605,7 @@ public class ClassMaker implements IConst {
 
 
   void vNewTable() {
-    mv.visitVarInsn(ALOAD, vPlatform);
+    stat.vPlatform.load();
     vInvokeInterface(Platform.class, "newTable");
   }
 
@@ -643,10 +648,8 @@ public class ClassMaker implements IConst {
   /**
    * @see KahluaThread#getRegisterOrConstant
    * @param i index to stack or constants, i is the opcode and will not change at runtime
-   * @param varindex This variable will be used for calculations,
-   *                 so it must be reserved in advance
    */
-  void vGetRegOrConst(int i, int varindex) {
+  void vGetRegOrConst(int i) {
     final int cindex = i - LuaConstVarBegin;
     if (cindex < 0) {
       vGetStackVar(i);
@@ -742,7 +745,7 @@ public class ClassMaker implements IConst {
    * get stack top index to java stack
    */
   void vGetTop() {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vInvokeFunc(FR, "getTop");
   }
 
@@ -751,19 +754,19 @@ public class ClassMaker implements IConst {
    * get stack base index to java stack
    */
   void vGetBase() {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vField(FR, "localBase");
   }
 
 
   void vReturnBase() {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vField(FR, "returnBase");
   }
 
 
   void vCloseLocalUpvlues(IBuildParam p) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     p.param1();
     vInvokeFunc(LuaCallFrame.class, "closeUpvalues", I);
   }
@@ -788,7 +791,7 @@ public class ClassMaker implements IConst {
 
 
   void vFrameStackCopy(IBuildParam3 p) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     p.param1();
     p.param2();
     p.param3();
@@ -805,21 +808,21 @@ public class ClassMaker implements IConst {
 
 
   void vSetFrameTop(IBuildParam p) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     p.param1();
     vInvokeFunc(FR, "setTop", I);
   }
 
 
   void vAutoRestoreTop() {
-    mv.visitVarInsn(ALOAD, vCI);
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCI.load();
+    stat.vCallframe.load();
     vInvokeFunc(CI, "restoreStack", FR);
   }
 
 
   void vSetRestoreTop(boolean r) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vBoolean(r);
     vPutField(FR, "restoreTop");
   }
@@ -827,8 +830,8 @@ public class ClassMaker implements IConst {
 
   void vPushVarargs(IBuildParam2 p) {
     vThis();
-    mv.visitVarInsn(ALOAD, vPrototype);
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vPrototype.load();
+    stat.vCallframe.load();
     p.param1();
     p.param2();
     vInvokeFunc(LuaScript.class, "pushVarargs", PT,FR,I,I);
@@ -837,7 +840,7 @@ public class ClassMaker implements IConst {
 
   // callFrame.findUpvalue(b);
   void vFindUpvalue(IBuildParam p) {
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     p.param1();
     vInvokeFunc(FR, "findUpvalue", I);
   }
@@ -845,7 +848,7 @@ public class ClassMaker implements IConst {
 
   // closure.upvalues[b];
   void vGetUpvalueFromClosure(IBuildParam p) {
-    mv.visitVarInsn(ALOAD, vClosure);
+    stat.vClosure.load();
     vField(LuaClosure.class, "upvalues");
     p.param1();
     mv.visitInsn(AALOAD);
@@ -961,21 +964,21 @@ public class ClassMaker implements IConst {
   void vPrintStack(int ...i) {
     vThis();
     vField(LuaScript.class, "coroutine");
-    mv.visitVarInsn(ALOAD, vCallframe);
+    stat.vCallframe.load();
     vIntArray(i);
     vInvokeStatic(DebugInf.class, "printLuaStack", CR, FR, int[].class);
   }
 
 
   void vPrintConsts(int ...i) {
-    mv.visitVarInsn(ALOAD, vPrototype);
+    stat.vPrototype.load();
     vIntArray(i);
     vInvokeStatic(DebugInf.class, "printLuaConsts", PT, int[].class);
   }
 
 
   void vPrintOldClosureUpvaleu(int ...i) {
-    mv.visitVarInsn(ALOAD, vClosure);
+    stat.vClosure.load();
     vField(CU, "upvalues");
     vIntArray(i);
     vInvokeStatic(DebugInf.class, "printUpValues", UpValue[].class, int[].class);

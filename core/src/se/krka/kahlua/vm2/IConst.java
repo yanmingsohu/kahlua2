@@ -34,14 +34,6 @@ public interface IConst {
   int LuaConstVarBegin = 256;
 
   int vThis = 0; // must be 0
-  int vCallframe = 1;
-  int vPlatform = 2;
-  int vClosure = 3;
-  int vPrototype = 4;
-  int vCI = 5;
-  int vException = 6;
-
-  int vUser = 7;
 
   Class O = Object.class;
   Class S = String.class;
