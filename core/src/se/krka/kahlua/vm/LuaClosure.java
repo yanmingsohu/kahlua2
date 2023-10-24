@@ -22,7 +22,10 @@ THE SOFTWARE.
 package se.krka.kahlua.vm;
 
 
-public final class LuaClosure {
+import se.krka.kahlua.vm2.IInternalCallable;
+
+
+public final class LuaClosure implements IInternalCallable {
 	public Prototype prototype;
 	public KahluaTable env;
 

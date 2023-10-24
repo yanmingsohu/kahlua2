@@ -106,6 +106,8 @@ function Graphics.new(modules)
     end
   end
 
+  print(graphics.oam[0])
+
   graphics.initialize = function(gameboy)
     graphics.gameboy = gameboy
     graphics.registers.status.SetMode(2)

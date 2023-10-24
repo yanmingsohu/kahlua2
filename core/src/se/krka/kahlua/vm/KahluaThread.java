@@ -22,6 +22,8 @@
 package se.krka.kahlua.vm;
 
 import se.krka.kahlua.stdlib.BaseLib;
+import se.krka.kahlua.vm2.IInternalCallable;
+import se.krka.kahlua.vm2.Tool;
 
 import java.io.PrintStream;
 
@@ -1099,7 +1101,7 @@ public class KahluaThread {
 				throw new RuntimeException("attempted index of non-table: "
 						+ curObj);
 			}
-			if (metaOp instanceof JavaFunction || metaOp instanceof LuaClosure) {
+			if (metaOp instanceof IInternalCallable) {
 				Object res = call(metaOp, table, key, null);
 				return res;
 			} else {
@@ -1130,7 +1132,7 @@ public class KahluaThread {
 				metaOp = getMetaOp(curObj, "__newindex");
 				KahluaUtil.luaAssert(metaOp != null,	"attempted index of non-table");
 			}
-			if (metaOp instanceof JavaFunction || metaOp instanceof LuaClosure) {
+			if (metaOp instanceof IInternalCallable) {
 				call(metaOp, table, key, value);
 				return;
 			} else {

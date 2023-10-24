@@ -1,5 +1,3 @@
-local romfile1 = "cartridge/Legend of Zelda, The - Link's Awakening (U) (V1.2) [!].gb"
-local romfile2 = "cartridge/Tetris.gb"
 local Gameboy = require("gameboy/init")
 
 if bit.Javabitlib then
@@ -11,11 +9,11 @@ local function play_gameboy_audio()
 end
 
 
-function readRomFromFile()
+function readRomFromFile(romname)
   local rombase = "C:\\Users\\jym\\AppData\\Roaming\\LOVE\\LuaGB\\games\\";
   local card = {data={}, size=0}
 
-  loadRom(card, rombase .. "Tetris.gb");
+  loadRom(card, rombase .. romname);
 
   function card:byte(i)
     print(i, "read", card.data[i])
@@ -24,8 +22,10 @@ function readRomFromFile()
   return card
 end
 
---local card2 = require(romfile2)
-local card = readRomFromFile()
+local romname1 = "Legend of Zelda, The - Link's Awakening (U) (V1.2) [!].gb"
+local romname2 = "Tetris.gb"
+--local card2 = require("cartridge/"+ romname1)
+local card = readRomFromFile(romname1)
 
 
 

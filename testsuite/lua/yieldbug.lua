@@ -1,3 +1,6 @@
+print("VM2 cannot support Yield")
+return
+
 local coro = coroutine.create(function()
 	for i = 1, 10 do
 		coroutine.yield("a", "b")

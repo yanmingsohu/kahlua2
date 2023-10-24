@@ -22,8 +22,10 @@ THE SOFTWARE.
 package se.krka.kahlua.vm;
 
 
+import se.krka.kahlua.vm2.IInternalCallable;
 
-public interface JavaFunction {
+
+public interface JavaFunction extends IInternalCallable {
 	/**
 	 * This interface defines functions which the Kahlua engine can call.
 	 *

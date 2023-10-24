@@ -48,7 +48,7 @@ public class Luaenv {
 	private final int Height = 400;
 	private final int GBw = 160;
 	private final int GBh = 140;
-	private final int DEBUG_FLAG = DebugInf.ALL;
+	private final int DEBUG_FLAG = DebugInf.NONE;
 
 
 	public static void main(String[] args) throws Throwable {

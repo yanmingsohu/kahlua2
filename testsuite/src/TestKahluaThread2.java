@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.NONE;
+  static final int DEBUG = DebugInf.ALL;
   public LuaCallFrame callFrame;
   private static KahluaTable lastEnv;
 
@@ -59,9 +59,9 @@ public class TestKahluaThread2 implements Runnable {
 
   public static void main(String[] av) throws Exception {
     TestVM tv = new TestVM();
-    tv.testThrow("./testsuite/lua/throw.lua");
-    tv.lua("./testsuite/lua/testhelper.lua");
-    tv.lua("./testsuite/lua/yieldbug.lua");
+//    tv.testThrow("./testsuite/lua/throw.lua");
+//    tv.lua("./testsuite/lua/testhelper.lua");
+    tv.lua("./testsuite/lua/table2.lua");
 
     //TODO: org.objectweb.asm.MethodTooLargeException: Method too large
     // tv.lua("./luagb/cartridge/Tetris.gb.lua");
