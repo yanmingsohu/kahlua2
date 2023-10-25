@@ -34,12 +34,14 @@ public class KahluaTableImpl2 extends KahluaTableImpl {
 
   private Object[] list;
   private int listLength;
+  private boolean onlyArray;
 
 
   public KahluaTableImpl2(Map<Object, Object> delegate) {
     super(delegate);
     this.list = new Object[55];
     this.listLength = 0;
+    this.onlyArray = true;
   }
 
 
@@ -69,17 +71,23 @@ public class KahluaTableImpl2 extends KahluaTableImpl {
     if (r != null) {
       return r;
     }
-    return super.rawget(Double.valueOf(key));
+    if (!onlyArray) {
+      return super.rawget(Double.valueOf(key));
+    }
+    return null;
   }
 
 
   public void rawset(int key, Object value) {
     _seti(key, value);
-    super.rawset(Double.valueOf(key), value);
+    if (!onlyArray) {
+      super.rawset(Double.valueOf(key), value);
+    }
   }
 
 
   public void rawset(Object key, Object value) {
+    onlyArray = false;
     if (key instanceof Double) {
       Double n = (Double)key;
       double d = (double)n;
@@ -93,6 +101,7 @@ public class KahluaTableImpl2 extends KahluaTableImpl {
 
 
   public Object rawget(Object key) {
+    onlyArray = false;
     if (key instanceof Double) {
       Double n = (Double)key;
       double d = (double)n;

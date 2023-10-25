@@ -53,6 +53,10 @@ public class Luaenv {
 	private final int GBw = 160;
 	private final int GBh = 140;
 	private final int DEBUG_FLAG = DebugInf.BUILD;
+	private int x = 200;
+	private int y = 200;
+
+	private static int count = 1;
 
 
 	public static void main(String[] args) throws Throwable {
@@ -114,6 +118,7 @@ public class Luaenv {
 		thread = createThread(useNewVersion);
 		caller = new LuaCaller(converterManager);
 		exposer = new LuaJavaClassExposer(converterManager, platform, env);
+		x += count * Width; count++;
 		//thread.setOutputDir("./bin");
 
 		libCache = new HashMap<>();
@@ -331,6 +336,7 @@ public class Luaenv {
 					dispose();
 				}
 			});
+			setLocation(x, y);
 		}
 
 		public void paint(Graphics g) {
