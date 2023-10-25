@@ -48,8 +48,11 @@ public class DebugInf implements IConst {
   public static final int FILEMSG = 1<<5;
   public static final int SHORTOP = 1<<6;
   public static final int SHORPS  = 1<<7;
+  public static final int STATISTICS = 1<<8;
 
   public int flag = NONE;
+  private final int counts[] = new int[opNames.length];
+  private int totalOpCount = 0;
 
   private final static String[] opNames = {
     /*  0 */  "OP_MOVE"
@@ -129,6 +132,8 @@ public class DebugInf implements IConst {
     this.opcode = opcode;
     this.op = op;
     this.pc = pc;
+    counts[opcode]++;
+    totalOpCount++;
   }
 
 
@@ -194,6 +199,34 @@ public class DebugInf implements IConst {
   public void stackAll() {
     cm.vPrintStack();
     cm.vPrintConsts();
+  }
+
+
+  public void statistics() {
+    StringBuilder buf = new StringBuilder(200);
+    buf.append("Lua instruction statistics");
+    for (int i=0; i<counts.length; ++i) {
+      double p = ((int)((double)counts[i] / totalOpCount *10000.0) / 100.0);
+      buf.append("\n");
+      str(buf, 15, opNames[i]);
+      str(buf, 10, counts[i]);
+      str(buf,  8, p);
+      buf.append("%");
+    }
+    buf.append("\n");
+    str(buf, 42, "----- Total: ").append(totalOpCount);
+    Tool.plx(Tool.STACK_DEPTH+1, buf);
+  }
+
+
+  public StringBuilder str(StringBuilder buf, int minlen, Object o) {
+    String s = String.valueOf(o);
+    final int t = minlen - s.length();
+    for (int i=0; i<t; ++i) {
+      buf.append(SP);
+    }
+    buf.append(s);
+    return buf;
   }
 
 

@@ -22,6 +22,7 @@
 
 import se.krka.kahlua.j2se.LuaRuntime;
 import se.krka.kahlua.vm.*;
+import se.krka.kahlua.vm2.DebugInf;
 import se.krka.kahlua.vm2.Tool;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ import java.io.IOException;
 public class Benchmarks extends LuaRuntime {
 
   public final static String baseDir = "./Lua-Benchmarks/";
+  public final static boolean HideLuaConsole = true;
 
   private long start;
   private long used;
@@ -61,6 +63,8 @@ public class Benchmarks extends LuaRuntime {
 
 
   public static void t(String name) throws Exception {
+    System.out.print("wait...\r");
+
     Benchmarks bNew = new Benchmarks(true);
     bNew.runOnThread(name).join();
 
@@ -76,6 +80,7 @@ public class Benchmarks extends LuaRuntime {
 
   public Benchmarks(boolean newVersion) {
     super(newVersion, baseDir);
+    super.out.open = !HideLuaConsole;
     KahluaTable io = super.platform.newTable();
     super.env.rawset("io", io);
     io.rawset("write", new Write());
@@ -126,6 +131,7 @@ public class Benchmarks extends LuaRuntime {
 
     @Override
     public int call(LuaCallFrame callFrame, int nArguments) {
+      if (HideLuaConsole) return 0;
       StringBuilder buf = new StringBuilder();
       for (int i=0; i<nArguments; ++i) {
         buf.append(callFrame.get(i));
@@ -180,6 +186,11 @@ public class Benchmarks extends LuaRuntime {
   @Override
   public void onStart() throws IOException {
     start = System.currentTimeMillis();
+  }
+
+
+  public int debug() {
+    return DebugInf.BUILD; // | DebugInf.STATISTICS
   }
 
 

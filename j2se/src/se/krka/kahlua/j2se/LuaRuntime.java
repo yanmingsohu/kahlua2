@@ -38,7 +38,8 @@ import se.krka.kahlua.vm2.Tool;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,14 +52,15 @@ public abstract class LuaRuntime {
   protected final LuaCaller caller;
   protected final LuaJavaClassExposer exposer;
   protected final String baseDir;
-  protected int DEBUG_FLAG = DebugInf.BUILD;
 
   protected final Map<String, Object> libCache;
   protected boolean newVersion;
   protected String lastName;
+  protected LuaPrintStream out;
 
 
   public LuaRuntime(boolean useNewVersion, String baseDir) {
+    this.out = new LuaPrintStream(System.out);
     this.newVersion = useNewVersion;
     this.baseDir = baseDir;
     KahluaConverterManager converterManager = new KahluaConverterManager();
@@ -91,13 +93,18 @@ public abstract class LuaRuntime {
 
   protected KahluaThread createThread() {
     if (newVersion) {
-      KahluaThread2 t2 = new KahluaThread2(platform, env);
-      t2.setDebug(DEBUG_FLAG);
+      KahluaThread2 t2 = new KahluaThread2(out, platform, env);
+      t2.setDebug(debug());
       t2.setOutputDir("./bin/lua");
       return t2;
     } else {
-      return new KahluaThread(platform, env);
+      return new KahluaThread(out, platform, env);
     }
+  }
+
+
+  public int debug() {
+    return DebugInf.BUILD;
   }
 
 
@@ -184,5 +191,20 @@ public abstract class LuaRuntime {
       }
     }
     return null;
+  }
+
+
+  public class LuaPrintStream extends PrintStream {
+    public boolean open = true;
+
+    public LuaPrintStream(OutputStream out) {
+      super(out);
+    }
+
+    public void println(String x) {
+      if (open) {
+        super.println(x);
+      }
+    }
   }
 }
