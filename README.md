@@ -24,8 +24,10 @@ You can see that the average frame rate is 1~4 frame/second, and it is very unst
 
 ![screen1](https://github.com/yanmingsohu/kahlua2/blob/master/screen1.png)
 
-Now let's working ...
 
+When I changed the interpreted mode to compiled mode, the performance did not improve significantly. It seems that the optimization ability of jvm is very strong. Now the performance bottleneck is on KahluaTable.
+
+If I couldn't find something that worked, I'd stop here, it looks like the attempt at performance improvement failed.
 
 
 # Progress
