@@ -6,6 +6,7 @@ import se.krka.kahlua.integration.expose.LuaJavaClassExposer;
 import se.krka.kahlua.j2se.J2SEPlatform;
 import se.krka.kahlua.j2se.J2SEPlatform2;
 import se.krka.kahlua.j2se.KahluaTableImpl2;
+import se.krka.kahlua.j2se.LuaRuntime;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaThread;
@@ -30,29 +31,19 @@ import java.util.Map;
 import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 
 
-public class Luaenv {
+public class Luaenv extends LuaRuntime {
 
-	private final Platform platform;
-	private final KahluaTable env;
-	private final KahluaThread thread;
-	private final LuaCaller caller;
-	private final LuaJavaClassExposer exposer;
-	private final String baseDir = "./luagb/";
-
-	private Map<String, Object> libCache;
 	private JDialog fr;
 	private BufferedImage buf;
 	private double frame;
 	private double lastt;
 	private double total = 1;
 	private StringBuilder fps = createFPS();
-	private boolean newVersion;
 
 	private final int Width = 500;
 	private final int Height = 400;
 	private final int GBw = 160;
 	private final int GBh = 140;
-	private final int DEBUG_FLAG = DebugInf.BUILD;
 	private int x = 200;
 	private int y = 200;
 
@@ -60,68 +51,17 @@ public class Luaenv {
 
 
 	public static void main(String[] args) throws Throwable {
-		(new Thread() {
-			public void run() {
-				try {
-					Luaenv lua = new Luaenv(true);
-					lua.run();
-				} catch(Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
+		Luaenv luaNew = new Luaenv(true, "./luagb/");
+		luaNew.runOnThread("gb");
 
-		(new Thread() {
-			public void run() {
-				try {
-					Luaenv lua = new Luaenv(false);
-					lua.run();
-				} catch(Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
+		Luaenv luaOld = new Luaenv(false, "./luagb/");
+		luaOld.runOnThread("gb");
 	}
 
-	private KahluaThread createThread(boolean newT) {
-		if (newT) {
-			KahluaThread2 t2 = new KahluaThread2(platform, env);
-			t2.setDebug(DEBUG_FLAG);
-			t2.setOutputDir("./bin/lua");
-			return t2;
-		} else {
-			return new KahluaThread(platform, env);
-		}
-	}
-
-	private Platform getPlatform(boolean newT) {
-		if (newT) {
-			return new J2SEPlatform2();
-		} else {
-			return new J2SEPlatform();
-		}
-	}
-
-	private KahluaTable getEnv(boolean newT) {
-		if (newT) {
-			return ((J2SEPlatform2)platform).newEnvironment(false);
-		} else {
-			return platform.newEnvironment();
-		}
-	}
-
-	private Luaenv(boolean useNewVersion) {
-		this.newVersion = useNewVersion;
-		KahluaConverterManager converterManager = new KahluaConverterManager();
-		platform = getPlatform(useNewVersion);
-		env = getEnv(useNewVersion);
-		thread = createThread(useNewVersion);
-		caller = new LuaCaller(converterManager);
-		exposer = new LuaJavaClassExposer(converterManager, platform, env);
+	private Luaenv(boolean useNewVersion, String baseDir) {
+		super(useNewVersion, baseDir);
 		x += count * Width; count++;
-		//thread.setOutputDir("./bin");
 
-		libCache = new HashMap<>();
 		buf = new BufferedImage(Width, Height, TYPE_INT_RGB);
 		lastt = System.currentTimeMillis();
 
@@ -131,70 +71,16 @@ public class Luaenv {
 		fr.setVisible(true);
 	}
 
-	public void run() throws IOException {
-		// java bit
-		KahluaTable javaBase = platform.newEnvironment();
-		// lua bit
-		//KahluaTable javaBase = platform.newTable();
 
-		env.rawset("Java", javaBase);
-		exposer.exposeLikeJavaRecursively(ArrayList.class, javaBase);
-		exposer.exposeGlobalFunctions(this);
-
-
-		try {
-			Tool.pl("Thread", thread.getClass());
-			require("gb");
-			fr.dispose();
-		} catch (Exception e) {
-			e.printStackTrace();
-			printdebug();
-			Tool.printTable(env);
-		}
-		pl("Done");
+	@Override
+	public void onExit() throws IOException {
+		fr.dispose();
+    Tool.pl("Done");
 	}
 
 
-	public Throwable finderror(Object[] retObj) {
-		for (int i=0; i<retObj.length; ++i) {
-			Tool.pl(i, "->", retObj[i]);
-			if (retObj[i] instanceof Throwable) {
-				return (Throwable) retObj[i];
-			}
-		}
-		return null;
-	}
-
-
-	@LuaMethod(name = "require", global = true)
-	public Object require(String name) throws IOException {
-		final String filename = baseDir + name + ".lua";
-		Object lib = libCache.get(filename);
-		if (lib != null) {
-			return lib;
-		}
-
-		FileInputStream fi = new FileInputStream(filename);
-
-		LuaClosure closure = LuaCompiler.loadis(fi, filename, env);
-		Object[] retObj = caller.pcall(thread, closure);
-		LuaReturn ret = LuaReturn.createReturn(retObj);
-		if (!ret.isSuccess()) {
-			Throwable t = finderror(retObj);
-			if (t == null) {
-				throw new RuntimeException(ret.toString());
-			} else {
-				throw new RuntimeException(t);
-			}
-		}
-
-		if (ret.size() > 0) {
-			lib = ret.get(0);
-		} else {
-			lib = 0;
-		}
-		libCache.put(filename, lib);
-		return lib;
+	@Override
+	public void onStart() throws IOException {
 	}
 
 
@@ -307,24 +193,6 @@ public class Luaenv {
 		//     0->4321  10->4321 19->4321
 		b.append("   0Frame    0ms      0FPS");
 		return b;
-	}
-
-
-	public void printdebug() {
-		if (thread instanceof KahluaThread2) {
-			KahluaThread2 t2 = (KahluaThread2) thread;
-			t2.printStack();
-		}
-	}
-
-
-	public static void pl(Object ...o) {
-		StringBuilder buf = new StringBuilder();
-		for (int i=0; i<o.length; ++i) {
-			buf.append(o[i]);
-			buf.append(" ");
-		}
-		System.out.println(buf.toString());
 	}
 
 
