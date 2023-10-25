@@ -23,7 +23,6 @@ package se.krka.kahlua.vm;
 
 import se.krka.kahlua.stdlib.BaseLib;
 import se.krka.kahlua.vm2.IInternalCallable;
-import se.krka.kahlua.vm2.Tool;
 
 import java.io.PrintStream;
 

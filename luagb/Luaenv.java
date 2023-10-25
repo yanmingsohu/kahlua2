@@ -4,10 +4,13 @@ import se.krka.kahlua.integration.LuaReturn;
 import se.krka.kahlua.integration.annotations.LuaMethod;
 import se.krka.kahlua.integration.expose.LuaJavaClassExposer;
 import se.krka.kahlua.j2se.J2SEPlatform;
+import se.krka.kahlua.j2se.J2SEPlatform2;
+import se.krka.kahlua.j2se.KahluaTableImpl2;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaThread;
 import se.krka.kahlua.vm.LuaClosure;
+import se.krka.kahlua.vm.Platform;
 import se.krka.kahlua.vm2.DebugInf;
 import se.krka.kahlua.vm2.KahluaThread2;
 import se.krka.kahlua.vm2.Tool;
@@ -29,7 +32,7 @@ import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 
 public class Luaenv {
 
-	private final J2SEPlatform platform;
+	private final Platform platform;
 	private final KahluaTable env;
 	private final KahluaThread thread;
 	private final LuaCaller caller;
@@ -41,7 +44,7 @@ public class Luaenv {
 	private BufferedImage buf;
 	private double frame;
 	private double lastt;
-	private double total;
+	private double total = 1;
 	private StringBuilder fps = createFPS();
 
 	private final int Width = 500;
@@ -86,10 +89,26 @@ public class Luaenv {
 		}
 	}
 
+	private Platform getPlatform(boolean newT) {
+		if (newT) {
+			return new J2SEPlatform2();
+		} else {
+			return new J2SEPlatform();
+		}
+	}
+
+	private KahluaTable getEnv(boolean newT) {
+		if (newT) {
+			return ((J2SEPlatform2)platform).newEnvironment(false);
+		} else {
+			return platform.newEnvironment();
+		}
+	}
+
 	private Luaenv(boolean useNewVersion) {
 		KahluaConverterManager converterManager = new KahluaConverterManager();
-		platform = new J2SEPlatform();
-		env = platform.newEnvironment();
+		platform = getPlatform(useNewVersion);
+		env = getEnv(useNewVersion);
 		thread = createThread(useNewVersion);
 		caller = new LuaCaller(converterManager);
 		exposer = new LuaJavaClassExposer(converterManager, platform, env);
@@ -210,7 +229,7 @@ public class Luaenv {
 			double now = System.currentTimeMillis();
 			double used = now - lastt;
 			lastt = now;
-			setFrame((int)f, (int)used, (int)(1/(used/1000)));
+			setFrame((int)f, (int)used);
 			total += used;
 		}
 		frame = f;
@@ -240,7 +259,7 @@ public class Luaenv {
 	}
 
 
-	private void setFrame(int frame, int used, int _fps) {
+	private void setFrame(int frame, int used) {
 		final String sp = "   ";
 		fps.setLength(0);
 		fps.append(frame);
@@ -256,18 +275,24 @@ public class Luaenv {
 		}
 		fps.append(sp);
 
-		fps.append(_fps);
+		fps.append(num2(1.0/(used/1000.0)));
 		fps.append(" FPS");
 		fps.append(sp);
 
-		fps.append(num2(frame / (total/1000)));
-		fps.append(" FPS.avg");
+		if (total > 100) {
+			fps.append(num2(frame / (total / 1000)));
+			fps.append(" FPS.avg");
+			fps.append(sp);
+		}
+
+		fps.append(num2(KahluaTableImpl2.hisRate()));
+		fps.append("% THR");
 	}
 
 
 	private static String num2(double x) {
 		int r = (int)(x * 100.0);
-		return Double.toString(((double)r) / 100.0);
+		return (((double)r) / 100.0) +"";
 	}
 
 

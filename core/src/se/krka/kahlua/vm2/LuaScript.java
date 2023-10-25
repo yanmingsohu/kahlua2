@@ -58,11 +58,13 @@ public abstract class LuaScript implements Runnable, IConst {
   }
 
 
+  //TODO: optimization
   protected Object tableGet(Object table, Object key) {
     return t.tableGet(table, key);
   }
 
 
+  //TODO: optimization
   protected void tableSet(Object o, Object k, Object v) {
     t.tableSet(o, k, v);
   }

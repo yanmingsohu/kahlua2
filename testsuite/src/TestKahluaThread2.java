@@ -50,26 +50,20 @@ public class TestKahluaThread2 implements Runnable {
   static final boolean USE_NEW_THREAD = true;
   static final int DEBUG = DebugInf.BUILD;
   public LuaCallFrame callFrame;
+  private static Platform pl;
+  private static PrintStream out;
   private static KahluaTable lastEnv;
 
 
   public void ___asm(Prototype p) {
-    Object[] a = new Object[0];
-    a[1] = new Object();
-    Object t = (a[1]);
-
-    if (t == a[0]) {
-      Tool.pl("eq");
-    }
-
-    if (p != null) {
-      Tool.pl(p);
-    }
   }
 
 
   public static void main(String[] av) throws Exception {
-    Tool.pl(av);
+    pl = J2SEPlatform.getInstance();
+    out = Tool.makePrintStream(); //System.out;
+    lastEnv = pl.newEnvironment();
+
     TestVM tv = new TestVM();
     tv.testThrow("./testsuite/lua/throw.lua");
     tv.lua("./testsuite/lua/testhelper.lua");
@@ -91,6 +85,9 @@ public class TestKahluaThread2 implements Runnable {
     File[] files = from(dir, ".lua");
 
     try {
+      if (USE_NEW_THREAD) {
+        lastEnv.rawset("NewThreadVersion", 1.0);
+      }
       Test.testDir(dir, files);
     } catch (Exception e) {
       e.printStackTrace();
@@ -118,10 +115,6 @@ public class TestKahluaThread2 implements Runnable {
 
 
   public static KahluaThread newThread() {
-    Platform pl = J2SEPlatform.getInstance();
-    PrintStream out = System.out;
-    lastEnv = pl.newEnvironment();
-
     if (USE_NEW_THREAD) {
       KahluaThread2 thread = new KahluaThread2(out, pl, lastEnv);
       thread.setOutputDir("./bin/lua");

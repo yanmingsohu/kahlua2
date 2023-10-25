@@ -1,3 +1,5 @@
+if NewThreadVersion then print("NewThreadVersion cannot support"); return end
+
 local ok = pcall(function()
 	coro = coroutine.create(function()
 		coroutine.yield(123)

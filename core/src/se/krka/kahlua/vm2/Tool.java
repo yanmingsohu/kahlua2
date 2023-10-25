@@ -26,6 +26,7 @@ import org.objectweb.asm.signature.SignatureVisitor;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaTableIterator;
 
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
@@ -308,5 +309,14 @@ public class Tool {
       out.append(it.getValue());
     }
     plx(STACK_DEPTH +1, "Table", t, out);
+  }
+
+
+  public static PrintStream makePrintStream() {
+    return new PrintStream(System.out) {
+      public void println(String x) {
+        plx(STACK_DEPTH +5, x);
+      }
+    };
   }
 }

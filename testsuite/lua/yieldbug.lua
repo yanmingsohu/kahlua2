@@ -1,5 +1,4 @@
-print("VM2 cannot support Yield")
-return
+if NewThreadVersion then print("NewThreadVersion cannot support"); return end
 
 local coro = coroutine.create(function()
 	for i = 1, 10 do
