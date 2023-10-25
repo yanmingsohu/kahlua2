@@ -22,7 +22,7 @@ THE SOFTWARE.
 package se.krka.kahlua.vm;
 
 
-import se.krka.kahlua.vm2.IInternalCallable;
+import se.krka.kahlua.luaj.compiler.IInternalCallable;
 
 
 public final class LuaClosure implements IInternalCallable {

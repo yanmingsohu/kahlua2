@@ -22,9 +22,9 @@
 
 package se.krka.kahlua.vm2;
 
+import se.krka.kahlua.luaj.compiler.IInternalCallable;
 import se.krka.kahlua.vm.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 

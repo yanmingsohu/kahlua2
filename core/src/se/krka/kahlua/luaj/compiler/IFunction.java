@@ -20,8 +20,8 @@
  THE SOFTWARE.
  */
 
-package se.krka.kahlua.vm2;
+package se.krka.kahlua.luaj.compiler;
 
-public interface IInternalCallable {
+public interface IFunction {
 
 }
