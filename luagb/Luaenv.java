@@ -46,6 +46,7 @@ public class Luaenv {
 	private double lastt;
 	private double total = 1;
 	private StringBuilder fps = createFPS();
+	private boolean newVersion;
 
 	private final int Width = 500;
 	private final int Height = 400;
@@ -106,6 +107,7 @@ public class Luaenv {
 	}
 
 	private Luaenv(boolean useNewVersion) {
+		this.newVersion = useNewVersion;
 		KahluaConverterManager converterManager = new KahluaConverterManager();
 		platform = getPlatform(useNewVersion);
 		env = getEnv(useNewVersion);
@@ -202,9 +204,11 @@ public class Luaenv {
 
 		for (int y = 0; y < pixel.len(); ++y) {
 			KahluaTable row = (KahluaTable) pixel.rawget(y);
+			//if (row == null) continue;
 
 			for (int x=0; x < row.len(); ++x) {
 				KahluaTable c = (KahluaTable) row.rawget(x);
+				//if (c == null) continue;
 
 				int r = (int)(double) c.rawget(1);
 				int g = (int)(double) c.rawget(2);
@@ -284,9 +288,6 @@ public class Luaenv {
 			fps.append(" FPS.avg");
 			fps.append(sp);
 		}
-
-		fps.append(num2(KahluaTableImpl2.hisRate()));
-		fps.append("% THR");
 	}
 
 
