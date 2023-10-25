@@ -29,14 +29,19 @@ When I changed the interpreted mode to compiled mode, the performance did not im
 
 If I couldn't find something that worked, I'd stop here, it looks like the attempt at performance improvement failed.
 
+![screen2](https://github.com/yanmingsohu/kahlua2/blob/master/screen2.png)
+
+The latest version can be merged into the old code, because there is no change in the logic of the old code. To try the new version, you need to switch KahluaThread to KahluaThread2 and J2SEPlatform to J2SEPlatform2 (optional)
+
 
 # Progress
 
 1. [x] Understand how the program works
 1. [x] Understand JVM byte code
 1. [x] Understand Lua byte code
-1. [ ] Replace interpreter with java code compiler
-1. [ ] Explore java asm best practices
+1. [x] Replace interpreter with java code compiler
+1. [x] Explore java asm best practices
+1. [ ] Find new ways to optimize performance
 
 
 # About
