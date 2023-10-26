@@ -160,6 +160,6 @@ public class KahluaTableImpl implements KahluaTable, ICanbeRecycled {
 
   @Override
   public RecyclePackage getRecyclePackage() {
-    return new RecyclePackage(delegate, RecyclePackage.Type.Map);
+    return new RecyclePackage(this, RecyclePackage.Type.Map);
   }
 }

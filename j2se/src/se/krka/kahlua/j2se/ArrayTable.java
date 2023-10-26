@@ -27,10 +27,12 @@ import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaTableIterator;
 import se.krka.kahlua.vm.LuaCallFrame;
 
+import java.lang.ref.WeakReference;
+
 
 public class ArrayTable implements KahluaTable, ICanbeRecycled {
 
-  private ITableSwitcher sw;
+  private WeakReference<ITableSwitcher> sw;
   private Object[] list;
   private KahluaTable meta;
   private int maxIndex = 0;
@@ -41,14 +43,19 @@ public class ArrayTable implements KahluaTable, ICanbeRecycled {
   ArrayTable(ITableSwitcher sw) {
     this.list = new Object[55];
     this.qlength = 0;
-    this.sw = sw;
+    this.sw = new WeakReference<>(sw);
   }
 
 
   ArrayTable(RecyclePackage rp, ITableSwitcher sw) {
     this.list = (Object[]) rp.data;
     this.qlength = 0;
-    this.sw = sw;
+    this.sw = new WeakReference<>(sw);
+  }
+
+
+  void bind(ITableSwitcher sw) {
+    this.sw = new WeakReference<>(sw);
   }
 
 
@@ -72,7 +79,7 @@ public class ArrayTable implements KahluaTable, ICanbeRecycled {
       return;
     }
 
-    sw.switchToMap(meta, this.list).rawset(key, value);
+    sw.get().switchToMap(meta, this.list).rawset(key, value);
   }
 
 
@@ -166,7 +173,7 @@ public class ArrayTable implements KahluaTable, ICanbeRecycled {
 
   @Override
   public RecyclePackage getRecyclePackage() {
-    return new RecyclePackage(list, RecyclePackage.Type.Array);
+    return new RecyclePackage(this, RecyclePackage.Type.Array);
   }
 
 

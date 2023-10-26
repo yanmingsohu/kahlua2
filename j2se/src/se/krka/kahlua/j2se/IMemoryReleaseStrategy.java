@@ -22,6 +22,8 @@
 
 package se.krka.kahlua.j2se;
 
+import se.krka.kahlua.j2se.RecyclePackage.Type;
+
 import java.util.Queue;
 
 
@@ -33,8 +35,11 @@ public interface IMemoryReleaseStrategy {
 
   /**
    * Delete the data to free up memory
+   * Call this method every once in a while,
+   * once for Type.Map and once for Type.Array.
+   * @see Type
    */
-  void release(Queue<RecyclePackage> o, RecyclePackage.Type t);
+  void release(Queue<RecyclePackage> o, Type t);
 
   /**
    * Return milliseconds

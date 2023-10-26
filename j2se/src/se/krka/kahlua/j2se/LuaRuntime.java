@@ -84,7 +84,9 @@ public abstract class LuaRuntime {
 
   protected KahluaTable getEnv() {
     if (newVersion) {
-      return ((J2SEPlatform2)platform).newEnvironment(false);
+      J2SEPlatform2 v2 = (J2SEPlatform2) platform;
+      v2.useConcurrent(false);
+      return v2.newEnvironment();
     } else {
       return platform.newEnvironment();
     }

@@ -175,12 +175,12 @@ public class Luaenv extends LuaRuntime {
 			fps.append(sp);
 		}
 
-		if (newVersion && J2SEPlatform2.N>0) {
-			bot.append("N:").append(J2SEPlatform2.N)
-				.append(" R:").append(J2SEPlatform2.R)
-				.append(" CR:").append(J2SEPlatform2.CR)
-				.append(" D:").append(J2SEPlatform2.D);
-		}
+//		if (newVersion && J2SEPlatform2.N>0) {
+//			bot.append("N:").append(J2SEPlatform2.N)
+//				.append(" R:").append(J2SEPlatform2.R)
+//				.append(" CR:").append(J2SEPlatform2.CR)
+//				.append(" D:").append(J2SEPlatform2.D);
+//		}
 	}
 
 

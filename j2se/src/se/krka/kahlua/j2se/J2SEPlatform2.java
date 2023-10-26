@@ -43,6 +43,7 @@ public class J2SEPlatform2 extends J2SEPlatform {
 
   private static J2SEPlatform2 INSTANCE = new J2SEPlatform2();
   private TableRecycle recy = new TableRecycle();
+  private boolean concurrent = true;
 
 
   public static J2SEPlatform2 getInstance() {
@@ -50,27 +51,32 @@ public class J2SEPlatform2 extends J2SEPlatform {
   }
 
 
-  @Override
-  public KahluaTable newTable() {
-    return newTable(true);
+  public void useConcurrent(boolean use) {
+    this.concurrent = use;
   }
 
 
-  public KahluaTable newTable(boolean concurrent) {
+  @Override
+  public KahluaTable newTable() {
     return recy.newUserTable(concurrent);
   }
 
 
+
   @Override
   public KahluaTable newEnvironment() {
-    return newEnvironment(true);
+    KahluaTable env = newTable();
+    setupEnvironment(env);
+    return env;
   }
 
 
-  public KahluaTable newEnvironment(boolean concurrent) {
-    KahluaTable env = newTable(concurrent);
-    setupEnvironment(env);
-    return env;
+  public Map createMap() {
+    if (concurrent) {
+      return new ConcurrentHashMap<>();
+    } else {
+      return new HashMap<>();
+    }
   }
 
 
@@ -80,12 +86,6 @@ public class J2SEPlatform2 extends J2SEPlatform {
   public void setMemoryManager(IMemoryReleaseStrategy m) {
     recy.updateMemoryStrategy(m);
   }
-
-
-  public static int N = 0;
-  public static int R = 0;
-  public static int CR = 0;
-  public static int D = 0;
 
 
   private class TableRecycle implements ITableRecycle, ThreadFactory {
@@ -103,7 +103,6 @@ public class J2SEPlatform2 extends J2SEPlatform {
         try {
           for (;;) {
             process(work.take());
-            //++R;
           }
         } catch (InterruptedException e) {
           e.printStackTrace();
@@ -134,23 +133,19 @@ public class J2SEPlatform2 extends J2SEPlatform {
 
 
     KahluaTable newUserTable(boolean concurrent) {
-      KahluaTableImpl2 kt2 = new KahluaTableImpl2(new NewMapTable(concurrent), this);
+      KahluaTableImpl2 kt2 = new KahluaTableImpl2(this);
       kt2.registerTo(cleaner);
       return kt2;
     }
 
 
     private void process(RecyclePackage t) {
+      ((KahluaTable)t.data).wipe();
+
       if (t.key == RecyclePackage.Type.Map) {
-        Map m = (Map) t.data;
-        m.clear();
         mcache.add(t);
       }
       else if (t.key == RecyclePackage.Type.Array) {
-        Object[] arr = (Object[]) t.data;
-        for (int i=0; i<arr.length; ++i) {
-          arr[i] = null;
-        }
         acache.add(t);
       }
       else {
@@ -160,33 +155,28 @@ public class J2SEPlatform2 extends J2SEPlatform {
 
     @Override
     public void recycle(RecyclePackage d) {
-      if (work.offer(d)) {
-        //++CR;
-      } else {
-        //++D;
-      }
+      work.offer(d);
     }
 
     @Override
     public KahluaTable createArrayTable(ITableSwitcher s) {
       RecyclePackage rp = acache.poll();
       if (rp == null) {
-        //++N;
         return new ArrayTable(s);
       } else {
-        //++R;
-        return new ArrayTable(rp, s);
+        ArrayTable at = (ArrayTable) rp.data;
+        at.bind(s);
+        return at;
       }
     }
 
     @Override
-    public KahluaTable createMapTable(IMapCreator c) {
+    public KahluaTable createMapTable() {
       RecyclePackage rp = mcache.poll();
       if (rp == null) {
-        //++N;
-        return new KahluaTableImpl(c.create());
+        return new KahluaTableImpl(createMap());
       } else {
-        return new KahluaTableImpl(rp);
+        return (KahluaTable) rp.data;
       }
     }
 
@@ -203,25 +193,6 @@ public class J2SEPlatform2 extends J2SEPlatform {
       t.setDaemon(true);
       t.start();
       return t;
-    }
-  }
-
-
-  public class NewMapTable implements IMapCreator {
-
-    private boolean concurrent;
-
-    public NewMapTable(boolean concurrent) {
-      this.concurrent = concurrent;
-    }
-
-    @Override
-    public Map create() {
-      if (concurrent) {
-        return new ConcurrentHashMap<>();
-      } else {
-        return new HashMap<>();
-      }
     }
   }
 }

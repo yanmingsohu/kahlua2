@@ -33,5 +33,5 @@ public interface ITableRecycle {
 
   KahluaTable createArrayTable(ITableSwitcher s);
 
-  KahluaTable createMapTable(IMapCreator c);
+  KahluaTable createMapTable();
 }

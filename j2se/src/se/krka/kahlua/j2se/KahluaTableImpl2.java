@@ -32,14 +32,12 @@ import java.lang.ref.WeakReference;
 
 public class KahluaTableImpl2 implements KahluaTable, ITableSwitcher {
 
-  private IMapCreator mapCreator;
   private ITableRecycle recy;
   private KahluaTable impl;
   private Cleanning c;
 
 
-  public KahluaTableImpl2(IMapCreator creator, ITableRecycle recy) {
-    this.mapCreator = creator;
+  public KahluaTableImpl2(ITableRecycle recy) {
     this.recy = recy;
     this.impl = recy.createArrayTable(this);
     this.c = new Cleanning(recy, (ICanbeRecycled)this.impl);
@@ -106,7 +104,7 @@ public class KahluaTableImpl2 implements KahluaTable, ITableSwitcher {
 
   @Override
   public KahluaTable switchToMap(KahluaTable meta, Object[] values) {
-    KahluaTable v1 = recy.createMapTable(mapCreator);
+    KahluaTable v1 = recy.createMapTable();
     v1.setMetatable(meta);
 
     for (int i=0; i<values.length; ++i) {
@@ -120,9 +118,7 @@ public class KahluaTableImpl2 implements KahluaTable, ITableSwitcher {
     c.update((ICanbeRecycled)v1);
 
     impl = v1;
-    mapCreator = null;
-
-    return impl;
+    return v1;
   }
 
 
