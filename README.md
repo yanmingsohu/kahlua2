@@ -33,6 +33,10 @@ If I couldn't find something that worked, I'd stop here, it looks like the attem
 
 The latest version can be merged into the old code, because there is no change in the logic of the old code. To try the new version, you need to switch KahluaThread to KahluaThread2 and J2SEPlatform to J2SEPlatform2 (optional)
 
+I added a J2SEPlatform2 and allocated a new KahluaTableImpl2 object in it. This object is faster when the user only uses the Table as an array, and the array/Map inside the Table will be recycled. You can pass J2SEPlatform2.setMemoryManager() to set up a memory manager, For example, every 10 minutes, release half of the memory.
+
+
+
 
 # Progress
 
@@ -41,6 +45,7 @@ The latest version can be merged into the old code, because there is no change i
 1. [x] Understand Lua byte code
 1. [x] Replace interpreter with java code compiler
 1. [x] Explore java asm best practices
+1. [x] Optimize Table objects
 1. [ ] Find new ways to optimize performance
 
 
