@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 
-public class KahluaTableImpl implements KahluaTable {
+public class KahluaTableImpl implements KahluaTable, ICanbeRecycled {
 
   private final Map<Object, Object> delegate;
   private KahluaTable metatable;
@@ -36,6 +36,11 @@ public class KahluaTableImpl implements KahluaTable {
 
   public KahluaTableImpl(Map<Object, Object> delegate) {
     this.delegate = delegate;
+  }
+
+
+  KahluaTableImpl(RecyclePackage rp) {
+    this.delegate = (Map) rp.data;
   }
 
 
@@ -150,5 +155,11 @@ public class KahluaTableImpl implements KahluaTable {
   @Override
   public String toString() {
     return "table 0x" + Integer.toHexString(System.identityHashCode(this));
+  }
+
+
+  @Override
+  public RecyclePackage getRecyclePackage() {
+    return new RecyclePackage(delegate, RecyclePackage.Type.Map);
   }
 }

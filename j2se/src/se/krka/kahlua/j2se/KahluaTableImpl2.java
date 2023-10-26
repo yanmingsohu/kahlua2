@@ -24,24 +24,25 @@ package se.krka.kahlua.j2se;
 
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaTableIterator;
-import se.krka.kahlua.vm.LuaCallFrame;
 import se.krka.kahlua.vm2.Tool;
 
-
-public class KahluaTableImpl2 implements KahluaTable {
-
-  public static int totalTable;
-  public static int releaseArray;
+import java.lang.ref.Cleaner;
+import java.lang.ref.WeakReference;
 
 
-  private J2SEPlatform2.NewMapTable mapCreator;
+public class KahluaTableImpl2 implements KahluaTable, ITableSwitcher {
+
+  private IMapCreator mapCreator;
+  private ITableRecycle recy;
   private KahluaTable impl;
+  private Cleanning c;
 
 
-  public KahluaTableImpl2(J2SEPlatform2.NewMapTable creator) {
+  public KahluaTableImpl2(IMapCreator creator, ITableRecycle recy) {
     this.mapCreator = creator;
-    this.impl = new ArrayTable();
-    //++totalTable;
+    this.recy = recy;
+    this.impl = recy.createArrayTable(this);
+    this.c = new Cleanning(recy, (ICanbeRecycled)this.impl);
   }
 
 
@@ -67,7 +68,7 @@ public class KahluaTableImpl2 implements KahluaTable {
 
   @Override
   public String toString() {
-    return "table2 0x" + Tool.hash(this);
+    return "Table2 0x" + Tool.hash(this);
   }
 
 
@@ -103,193 +104,51 @@ public class KahluaTableImpl2 implements KahluaTable {
   }
 
 
-  private KahluaTable switchToMap(ArrayTable at) {
-    KahluaTable v1 = mapCreator.createMapTable();
-    v1.setMetatable(at.getMetatable());
-    for (int i=0; i<at.list.length; ++i) {
-      Object v = at.list[i];
+  @Override
+  public KahluaTable switchToMap(KahluaTable meta, Object[] values) {
+    KahluaTable v1 = recy.createMapTable(mapCreator);
+    v1.setMetatable(meta);
+
+    for (int i=0; i<values.length; ++i) {
+      Object v = values[i];
       if (v != null) {
         v1.rawset(Double.valueOf(i), v);
       }
     }
+
+    c.run();
+    c.update((ICanbeRecycled)v1);
+
     impl = v1;
     mapCreator = null;
-    //++releaseArray;
+
     return impl;
   }
 
 
-  private class ArrayTable implements KahluaTable {
-    private Object[] list;
-    private KahluaTable meta;
-    private int maxIndex = 0;
-    private int minIndex = Integer.MAX_VALUE;
-    private int qlength;
-
-    private ArrayTable() {
-      this.list = new Object[55];
-      this.qlength = 0;
-    }
-
-
-    @Override
-    public void setMetatable(KahluaTable metatable) {
-      this.meta = metatable;
-    }
-
-
-    @Override
-    public KahluaTable getMetatable() {
-      return meta;
-    }
-
-
-    @Override
-    public void rawset(Object key, Object value) {
-      int index = tryUseArray(key);
-      if (index >= 0) {
-        rawset(index, value);
-        return;
-      }
-      switchToMap(this).rawset(key, value);
-    }
-
-
-    @Override
-    public Object rawget(Object key) {
-      if (key == null) return null;
-      int index = tryUseArray(key);
-      if (index >= 0) {
-        return rawget(index);
-      }
-      return null;
-    }
-
-
-    private int tryUseArray(final Object key) {
-      if (key instanceof Double) {
-        final Double dk = (Double)key;
-        final int i = dk.intValue();
-        if (dk == (double)i) {
-          return i;
-        }
-      }
-      return -1;
-    }
-
-
-    @Override
-    public void rawset(int key, Object value) {
-      if (key >= list.length) {
-        Object[] newList = new Object[key * 2];
-        System.arraycopy(list, 0, newList, 0, list.length);
-        list = newList;
-      }
-
-      final Object old = list[key];
-
-      if (value == null) {
-        if (old != null) --qlength;
-        list[key] = null;
-      } else { // value != null
-        if (old == null) ++qlength;
-        list[key] = value;
-      }
-
-      if (key <= minIndex) {
-        minIndex = key;
-      }
-      if (key >= maxIndex) {
-        maxIndex = key +1;
-      }
-    }
-
-
-    @Override
-    public Object rawget(int key) {
-      if (key < list.length) {
-        return list[key];
-      }
-      return null;
-    }
-
-
-    @Override
-    public int len() {
-      return qlength;
-    }
-
-
-    @Override
-    public KahluaTableIterator iterator() {
-      return new ArrayIterator(this);
-    }
-
-
-    @Override
-    public boolean isEmpty() {
-      return qlength == 0;
-    }
-
-
-    @Override
-    public void wipe() {
-      for (int i=minIndex; i<maxIndex; ++i) {
-        list[i] = null;
-      }
-      minIndex = Integer.MAX_VALUE;
-      maxIndex = 0;
-      qlength = 0;
-    }
+  public void registerTo(Cleaner c) {
+    c.register(this, this.c);
   }
 
 
-  private class ArrayIterator implements KahluaTableIterator {
-    private Double curKey;
-    private Object curValue;
-    private ArrayTable at;
-    int i = 0;
+  private static class Cleanning implements Runnable {
 
+    RecyclePackage data;
+    ITableRecycle recy;
 
-    private ArrayIterator(ArrayTable at) {
-      this.at = at;
+    // Do not reference target
+    public Cleanning(ITableRecycle recy, ICanbeRecycled target) {
+      this.recy = recy;
+      update(target);
     }
 
-
-    @Override
-    public int call(LuaCallFrame callFrame, int nArguments) {
-      if (advance()) {
-        return callFrame.push(curKey, curValue);
-      }
-      return 0;
+    private void update(ICanbeRecycled target) {
+      data = target.getRecyclePackage();
     }
 
-
     @Override
-    public boolean advance() {
-      while (at.list[i] == null) {
-        if (++i >= at.list.length) {
-          curKey = null;
-          curValue = null;
-          return false;
-        }
-      }
-
-      curKey = (double) i;
-      curValue = at.list[i];
-      return true;
-    }
-
-
-    @Override
-    public Object getKey() {
-      return curKey;
-    }
-
-
-    @Override
-    public Object getValue() {
-      return curValue;
+    public void run() {
+      recy.recycle(data);
     }
   }
 }

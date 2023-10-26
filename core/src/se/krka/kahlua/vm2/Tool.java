@@ -326,4 +326,24 @@ public class Tool {
       }
     };
   }
+
+
+  public static boolean join(Thread t) {
+    try {
+      t.join();
+      return true;
+    } catch (InterruptedException e) {
+      Tool.pl(e.getMessage());
+    }
+    return false;
+  }
+
+
+  public static void sleep(long ms) {
+    try {
+      Thread.sleep(ms);
+    } catch (InterruptedException e) {
+      Tool.pl(e.getMessage());
+    }
+  }
 }

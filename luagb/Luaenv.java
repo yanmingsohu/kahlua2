@@ -1,4 +1,5 @@
 import se.krka.kahlua.integration.annotations.LuaMethod;
+import se.krka.kahlua.j2se.J2SEPlatform2;
 import se.krka.kahlua.j2se.KahluaTableImpl2;
 import se.krka.kahlua.j2se.LuaRuntime;
 import se.krka.kahlua.vm.KahluaTable;
@@ -24,6 +25,7 @@ public class Luaenv extends LuaRuntime {
 	private double lastt;
 	private double total = 1;
 	private StringBuilder fps = new StringBuilder();
+	private StringBuilder bot = new StringBuilder();
 
 	private final int Width = 500;
 	private final int Height = 400;
@@ -104,6 +106,7 @@ public class Luaenv extends LuaRuntime {
 
 		gr.setColor(Color.white);
 		gr.drawString(fps.toString(), offx, 50);
+		gr.drawString(bot.toString(), offx, 380);
 		fr.repaint();
 	}
 
@@ -147,6 +150,8 @@ public class Luaenv extends LuaRuntime {
 	private void setFrame(int frame, int used) {
 		final String sp = "   ";
 		fps.setLength(0);
+		bot.setLength(0);
+
 		fps.append(frame);
 		fps.append(" Frame");
 		fps.append(sp);
@@ -170,11 +175,11 @@ public class Luaenv extends LuaRuntime {
 			fps.append(sp);
 		}
 
-		if (newVersion && KahluaTableImpl2.totalTable > 0) {
-			int usedArray = KahluaTableImpl2.totalTable - KahluaTableImpl2.releaseArray;
-			fps.append(num2(usedArray*100/ KahluaTableImpl2.totalTable)).append("%TFA ");
-			fps.append(usedArray).append("A");
-//			fps.append(KahluaTableImpl2.totalTable).append("T ");
+		if (newVersion) {
+			bot.append("N:").append(J2SEPlatform2.N)
+				.append(" R:").append(J2SEPlatform2.R)
+				.append(" CR:").append(J2SEPlatform2.CR)
+				.append(" D:").append(J2SEPlatform2.D);
 		}
 	}
 
