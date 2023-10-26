@@ -103,7 +103,7 @@ public class J2SEPlatform2 extends J2SEPlatform {
         try {
           for (;;) {
             process(work.take());
-            ++R;
+            //++R;
           }
         } catch (InterruptedException e) {
           e.printStackTrace();
@@ -161,9 +161,9 @@ public class J2SEPlatform2 extends J2SEPlatform {
     @Override
     public void recycle(RecyclePackage d) {
       if (work.offer(d)) {
-        ++CR;
+        //++CR;
       } else {
-        ++D;
+        //++D;
       }
     }
 
@@ -171,7 +171,7 @@ public class J2SEPlatform2 extends J2SEPlatform {
     public KahluaTable createArrayTable(ITableSwitcher s) {
       RecyclePackage rp = acache.poll();
       if (rp == null) {
-        ++N;
+        //++N;
         return new ArrayTable(s);
       } else {
         //++R;
@@ -183,7 +183,7 @@ public class J2SEPlatform2 extends J2SEPlatform {
     public KahluaTable createMapTable(IMapCreator c) {
       RecyclePackage rp = mcache.poll();
       if (rp == null) {
-        ++N;
+        //++N;
         return new KahluaTableImpl(c.create());
       } else {
         return new KahluaTableImpl(rp);
