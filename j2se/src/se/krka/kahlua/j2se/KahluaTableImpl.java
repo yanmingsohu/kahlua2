@@ -27,110 +27,128 @@ import se.krka.kahlua.vm.*;
 import java.util.Iterator;
 import java.util.Map;
 
+
 public class KahluaTableImpl implements KahluaTable {
-    private final Map<Object, Object> delegate;
-    private KahluaTable metatable;
 
-    public KahluaTableImpl(Map<Object, Object> delegate) {
-        this.delegate = delegate;
+  private final Map<Object, Object> delegate;
+  private KahluaTable metatable;
+
+
+  public KahluaTableImpl(Map<Object, Object> delegate) {
+    this.delegate = delegate;
+  }
+
+
+  @Override
+  public void setMetatable(KahluaTable metatable) {
+    this.metatable = metatable;
+  }
+
+
+  @Override
+  public KahluaTable getMetatable() {
+    return metatable;
+  }
+
+
+  @Override
+  public void rawset(Object key, Object value) {
+    if (value == null) {
+      delegate.remove(key);
+      return;
     }
+    delegate.put(key, value);
+  }
 
-    @Override
-    public void setMetatable(KahluaTable metatable) {
-        this.metatable = metatable;
+
+  @Override
+  public Object rawget(Object key) {
+    if (key == null) {
+      return null;
     }
+    return delegate.get(key);
+  }
 
-    @Override
-    public KahluaTable getMetatable() {
-        return metatable;
-    }
 
-    @Override
-    public void rawset(Object key, Object value) {
-        if (value == null) {
-            delegate.remove(key);
-            return;
+  @Override
+  public void rawset(int key, Object value) {
+    rawset(KahluaUtil.toDouble(key), value);
+  }
+
+
+  @Override
+  public Object rawget(int key) {
+    return rawget(KahluaUtil.toDouble(key));
+  }
+
+
+  @Override
+  public int len() {
+    return KahluaUtil.len(this, 0, 2 * delegate.size());
+  }
+
+
+  @Override
+  public KahluaTableIterator iterator() {
+    final Iterator<Map.Entry<Object, Object>> iterator = delegate.entrySet().iterator();
+    return new KahluaTableIterator() {
+      private Object curKey;
+      private Object curValue;
+
+
+      @Override
+      public int call(LuaCallFrame callFrame, int nArguments) {
+        if (advance()) {
+          return callFrame.push(getKey(), getValue());
         }
-        delegate.put(key, value);
-    }
+        return 0;
+      }
 
-    @Override
-    public Object rawget(Object key) {
-        if (key == null) {
-            return null;
+
+      @Override
+      public boolean advance() {
+        if (iterator.hasNext()) {
+          Map.Entry<Object, Object> value = iterator.next();
+          curKey = value.getKey();
+          curValue = value.getValue();
+          return true;
         }
-        return delegate.get(key);
-    }
+        curKey = null;
+        curValue = null;
+        return false;
+      }
 
-    @Override
-    public void rawset(int key, Object value) {
-        rawset(KahluaUtil.toDouble(key), value);
-    }
 
-    @Override
-    public Object rawget(int key) {
-        return rawget(KahluaUtil.toDouble(key));
-    }
+      @Override
+      public Object getKey() {
+        return curKey;
 
-    @Override
-    public int len() {
-        return KahluaUtil.len(this, 0, 2 * delegate.size());
-    }
+      }
 
-    @Override
-    public KahluaTableIterator iterator() {
-        final Iterator<Map.Entry<Object,Object>> iterator = delegate.entrySet().iterator();
-        return new KahluaTableIterator() {
-            private Object curKey;
-            private Object curValue;
 
-            @Override
-            public int call(LuaCallFrame callFrame, int nArguments) {
-                if (advance()) {
-                    return callFrame.push(getKey(), getValue());
-                }
-                return 0;
-            }
+      @Override
+      public Object getValue() {
+        return curValue;
+      }
+    };
 
-            @Override
-            public boolean advance() {
-                if (iterator.hasNext()) {
-                    Map.Entry<Object, Object> value = iterator.next();
-                    curKey = value.getKey();
-                    curValue = value.getValue();
-                    return true;
-                }
-                curKey = null;
-                curValue = null;
-                return false;
-            }
+  }
 
-            @Override
-            public Object getKey() {
-                return curKey;
 
-            }
+  @Override
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
 
-            @Override
-            public Object getValue() {
-                return curValue;
-            }
-        };
 
-    }
+  @Override
+  public void wipe() {
+    delegate.clear();
+  }
 
-	@Override
-	public boolean isEmpty() {
-		return delegate.isEmpty();
-	}
 
-	@Override
-	public void wipe() {
-		delegate.clear();
-	}
-
-	@Override
-    public String toString() {
-        return "table 0x" + Integer.toHexString(System.identityHashCode(this));
-    }
+  @Override
+  public String toString() {
+    return "table 0x" + Integer.toHexString(System.identityHashCode(this));
+  }
 }

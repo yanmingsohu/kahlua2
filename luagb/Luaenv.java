@@ -1,4 +1,5 @@
 import se.krka.kahlua.integration.annotations.LuaMethod;
+import se.krka.kahlua.j2se.KahluaTableImpl2;
 import se.krka.kahlua.j2se.LuaRuntime;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm2.DebugInf;
@@ -22,7 +23,7 @@ public class Luaenv extends LuaRuntime {
 	private double frame;
 	private double lastt;
 	private double total = 1;
-	private StringBuilder fps = createFPS();
+	private StringBuilder fps = new StringBuilder();
 
 	private final int Width = 500;
 	private final int Height = 400;
@@ -168,20 +169,19 @@ public class Luaenv extends LuaRuntime {
 			fps.append(" FPS.avg");
 			fps.append(sp);
 		}
+
+		if (newVersion && KahluaTableImpl2.totalTable > 0) {
+			int usedArray = KahluaTableImpl2.totalTable - KahluaTableImpl2.releaseArray;
+			fps.append(num2(usedArray*100/ KahluaTableImpl2.totalTable)).append("%TFA ");
+			fps.append(usedArray).append("A");
+//			fps.append(KahluaTableImpl2.totalTable).append("T ");
+		}
 	}
 
 
 	private static String num2(double x) {
 		int r = (int)(x * 100.0);
 		return (((double)r) / 100.0) +"";
-	}
-
-
-	private StringBuilder createFPS() {
-		StringBuilder b = new StringBuilder();
-		//     0->4321  10->4321 19->4321
-		b.append("   0Frame    0ms      0FPS");
-		return b;
 	}
 
 

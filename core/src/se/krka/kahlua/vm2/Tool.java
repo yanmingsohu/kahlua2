@@ -23,6 +23,7 @@
 package se.krka.kahlua.vm2;
 
 import org.objectweb.asm.signature.SignatureVisitor;
+import se.krka.kahlua.vm.JavaFunction;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm.KahluaTableIterator;
 
@@ -306,7 +307,13 @@ public class Tool {
       out.append(ent).append(tab);
       out.append(it.getKey());
       out.append("\t:\t");
-      out.append(it.getValue());
+
+      Object o = it.getValue();
+      if (o instanceof JavaFunction) {
+        out.append("JavaFunc ").append(o.getClass()).append(sp).append(o);
+      } else {
+        out.append(o);
+      }
     }
     plx(STACK_DEPTH +1, "Table", t, out);
   }

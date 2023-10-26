@@ -30,3 +30,18 @@ end
 
 local g = Graphics.new()
 g.initialize()
+
+
+local t2 = {}
+t2[2.0] = 2
+t2["2"] = 3
+
+assert(t2[2.0] == 2)
+assert(t2[2] == 2)
+assert(t2["2"] == 3)
+
+t2[2] = 4
+
+assert(t2[2.0] == 4)
+assert(t2[2] == 4)
+assert(t2["2"] == 3)

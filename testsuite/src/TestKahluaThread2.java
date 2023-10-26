@@ -25,6 +25,7 @@ import se.krka.kahlua.converter.KahluaConverterManager;
 import se.krka.kahlua.integration.LuaCaller;
 import se.krka.kahlua.integration.LuaReturn;
 import se.krka.kahlua.j2se.J2SEPlatform;
+import se.krka.kahlua.j2se.J2SEPlatform2;
 import se.krka.kahlua.luaj.compiler.LuaCompiler;
 import se.krka.kahlua.vm.*;
 import se.krka.kahlua.vm2.DebugInf;
@@ -33,6 +34,7 @@ import se.krka.kahlua.vm2.Tool;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -49,6 +51,8 @@ public class TestKahluaThread2 implements Runnable {
 
   static final boolean USE_NEW_THREAD = true;
   static final int DEBUG = DebugInf.BUILD;
+  static final File RootDir = new File("./testsuite/lua");
+
   public LuaCallFrame callFrame;
   private static Platform pl;
   private static PrintStream out;
@@ -67,31 +71,26 @@ public class TestKahluaThread2 implements Runnable {
     TestVM tv = new TestVM();
     tv.testThrow("./testsuite/lua/throw.lua");
     tv.lua("./testsuite/lua/testhelper.lua");
-//    tv.lua("./testsuite/lua/table2.lua");
+    tv.lua("./testsuite/lua/table2.lua");
 
     //TODO: org.objectweb.asm.MethodTooLargeException: Method too large
     // tv.lua("./luagb/cartridge/Tetris.gb.lua");
 
-    testAllLua();
+    testAllLua(tv);
 //    test_signature();
 
     Tool.pl("Done");
   }
 
 
-  private static void testAllLua() throws Exception {
-    File dir = new File("./testsuite/lua");
-//    File[] files = from(dir, "os.lua");
-    File[] files = from(dir, ".lua");
+  private static void testAllLua(TestVM tv) throws Exception {
+    File[] files = from(RootDir, ".lua");
 
-    try {
-      if (USE_NEW_THREAD) {
-        lastEnv.rawset("NewThreadVersion", 1.0);
-      }
-      Test.testDir(dir, files);
-    } catch (Exception e) {
-      e.printStackTrace();
-      Tool.printTable(lastEnv);
+    if (USE_NEW_THREAD) {
+      lastEnv.rawset("NewThreadVersion", 1.0);
+    }
+    for (File f : files) {
+      tv.lua(f.getPath());
     }
   }
 
@@ -130,9 +129,9 @@ public class TestKahluaThread2 implements Runnable {
     KahluaThread thread;
     LuaCaller caller;
 
-    public TestVM() {
+    public TestVM() throws IOException {
       KahluaConverterManager converterManager = new KahluaConverterManager();
-      thread = newThread();
+      thread = Test.getThread(RootDir);
       caller = new LuaCaller(converterManager);
     }
 
@@ -164,9 +163,10 @@ public class TestKahluaThread2 implements Runnable {
         for (int i = 0; i < ret.size(); ++i) {
           Tool.pl("  return", i, ret.get(i));
         }
-      } else {
-        Tool.pl("  return NONE");
       }
+//      else {
+//        Tool.pl("  return NONE");
+//      }
 
       if (ret.isSuccess()) {
         Tool.pl("OK", filename);
@@ -174,7 +174,8 @@ public class TestKahluaThread2 implements Runnable {
         Tool.pl("ERROR", filename);
         DebugInf.printLuaStack(thread.currentCoroutine);
         Tool.printTable(lastEnv);
-        printError(ret);
+        Exception e = printError(ret);
+        if (e != null) throw e;
       }
 
       Test.verifyCorrectStack(thread);
@@ -219,14 +220,15 @@ public class TestKahluaThread2 implements Runnable {
   }
 
 
-  public static void printError(LuaReturn ret) {
-    if (ret.isSuccess()) return;
+  public static Exception printError(LuaReturn ret) {
+    if (ret.isSuccess()) return null;
     System.out.println("Lua Error: "+ ret.getErrorString());
     System.out.println(formatTrace(ret.getLuaStackTrace()));
     Exception e = ret.getJavaException();
     if (e != null) {
       e.printStackTrace();
     }
+    return e;
   }
 
 

@@ -554,7 +554,9 @@ function Graphics.new(modules)
     -- now, for every sprite in the list, display it on the current scanline
     for i = #active_sprites, 1, -1 do
       local sprite = graphics.cache.oam[active_sprites[i]]
-
+      if sprite == nil then
+        print(graphics.cache.oam, "i:", i, "a:", active_sprites, "a[i]:", active_sprites[i], graphics.cache.oam[active_sprites[i]], ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+      end
       local sub_y = 16 - ((sprite.y + 16) - scanline)
       if sprite.vertical_flip then
         sub_y = sprite_size - 1 - sub_y

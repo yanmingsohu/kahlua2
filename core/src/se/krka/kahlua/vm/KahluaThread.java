@@ -1098,7 +1098,7 @@ public class KahluaThread {
 					return null;
 				}
 				throw new RuntimeException("attempted index of non-table: "
-						+ curObj);
+						+ curObj +"/"+ table +"["+ key +"]");
 			}
 			if (metaOp instanceof IInternalCallable) {
 				Object res = call(metaOp, table, key, null);

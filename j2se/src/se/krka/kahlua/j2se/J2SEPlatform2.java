@@ -25,6 +25,7 @@ package se.krka.kahlua.j2se;
 import se.krka.kahlua.vm.KahluaTable;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -45,11 +46,7 @@ public class J2SEPlatform2 extends J2SEPlatform {
 
 
   public KahluaTable newTable(boolean concurrent) {
-    if (concurrent) {
-      return new KahluaTableImpl2(new ConcurrentHashMap<Object, Object>());
-    } else {
-      return new KahluaTableImpl2(new HashMap<Object, Object>());
-    }
+    return new KahluaTableImpl2(new NewMapTable(concurrent));
   }
 
 
@@ -65,4 +62,30 @@ public class J2SEPlatform2 extends J2SEPlatform {
     return env;
   }
 
+
+  public static class NewMapTable {
+
+    private boolean concurrent;
+
+    public NewMapTable(boolean concurrent) {
+      this.concurrent = concurrent;
+    }
+
+
+    public Map create() {
+      if (concurrent) {
+        return new ConcurrentHashMap<>();
+      } else {
+        return new HashMap<>();
+      }
+    }
+
+
+    /**
+     * Must return Table implements store object with Map
+     */
+    KahluaTable createMapTable() {
+      return new KahluaTableImpl(create());
+    }
+  }
 }

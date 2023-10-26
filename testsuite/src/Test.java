@@ -31,7 +31,7 @@ import java.io.*;
 public class Test {
 
 
-	private static KahluaThread getThread(File dir) throws FileNotFoundException, IOException {
+	public static KahluaThread getThread(File dir) throws FileNotFoundException, IOException {
         Platform platform = J2SEPlatform.getInstance();
         KahluaThread thread = TestKahluaThread2.newThread();
 		OsLib.register(platform, thread.getEnvironment());
