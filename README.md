@@ -30,11 +30,16 @@ When I changed the interpreted mode to compiled mode, the performance did not im
 If I couldn't find something that worked, I'd stop here, it looks like the attempt at performance improvement failed.
 
 ![screen2](https://github.com/yanmingsohu/kahlua2/blob/master/screen2.png)
+```
+Special instructions in pictures
+N: Table created completely from scratch
+R: Recycling Table
+D: Table discarded because it was released too quickly and too late to be processed.
+```
 
 The latest version can be merged into the old code, because there is no change in the logic of the old code. To try the new version, you need to switch KahluaThread to KahluaThread2 and J2SEPlatform to J2SEPlatform2 (optional)
 
 I added a J2SEPlatform2 and allocated a new KahluaTableImpl2 object in it. This object is faster when the user only uses the Table as an array, and the array/Map inside the Table will be recycled. You can pass J2SEPlatform2.setMemoryManager() to set up a memory manager, For example, every 10 minutes, release half of the memory.
-
 
 
 
