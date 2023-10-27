@@ -20,8 +20,8 @@ function Graphics.new(modules)
     for i = 0xFE00, 0xFE9F do
       graphics.oam[i] = 0
     end
-    print(graphics, graphics.oam)
-    print(graphics.oam[0xFE00])
+    --print(graphics, graphics.oam)
+    --print(graphics.oam[0xFE00])
   end
 
   return graphics

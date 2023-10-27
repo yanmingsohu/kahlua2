@@ -110,12 +110,22 @@ public class ComputStack {
   private LuaCallFrame pushFrame(Coroutine c, Prototype pt, JavaFunction jf) {
     LuaClosure lc = null;
     if (jf == null) {
-      lc = new LuaClosure(pt, c.environment);
+      lc = new LuaClosure(pt, findEnv(c));
     }
 
     LuaCallFrame cf = c.pushNewCallFrame(
         lc, jf, localBase, returnBase, nArguments, jf == null, false);
 
     return cf;
+  }
+
+
+  public static KahluaTable findEnv(Coroutine c) {
+    LuaCallFrame f = c.currentCallFrame();
+    if (f != null) {
+      KahluaTable env = f.getEnvironment();
+      if (env != null) return env;
+    }
+    return c.environment;
   }
 }

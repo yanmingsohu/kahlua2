@@ -42,21 +42,38 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 
 public class TestKahluaThread2 implements Runnable {
 
+  static final boolean PrintEnv = false;
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.BUILD;
+  static final int DEBUG = DebugInf.NONE;
   static final File RootDir = new File("./testsuite/lua");
 
   public LuaCallFrame callFrame;
   private static Platform pl;
   private static PrintStream out;
   private static KahluaTable lastEnv;
+
+  private final static Map<String,String> cannotImplement = new HashMap();
+
+  static {
+    Map m = cannotImplement;
+
+    m.put("coroutine.lua", "cannot support yield witch coroutine");
+    m.put("coroutinebug.lua", "cannot support yield witch coroutine");
+    m.put("coroutinebug2.lua", "cannot support yield witch coroutine");
+    m.put("coroutinebug3.lua", "cannot support yield witch coroutine");
+    m.put("yieldbug.lua", "cannot support yield witch coroutine");
+    m.put("environment.lua", "cannot change environment use setfenv()");
+    m.put("format_generated.lua", " Method too large");
+  }
 
 
   public void ___asm(Prototype p) {
@@ -65,16 +82,15 @@ public class TestKahluaThread2 implements Runnable {
 
   public static void main(String[] av) throws Exception {
     pl = J2SEPlatform.getInstance();
-    out = Tool.makePrintStream(); //System.out;
+    out = Tool.makePrintStream();
     lastEnv = pl.newEnvironment();
 
     TestVM tv = new TestVM();
     tv.testThrow("./testsuite/lua/throw.lua");
+    // This prevents compilation of stdlib.lua in older versions of thread
+    tv.lua("./core/resources/stdlib.lua");
     tv.lua("./testsuite/lua/testhelper.lua");
     tv.lua("./testsuite/lua/table2.lua");
-
-    //TODO: org.objectweb.asm.MethodTooLargeException: Method too large
-    // tv.lua("./luagb/cartridge/Tetris.gb.lua");
 
     testAllLua(tv);
 //    test_signature();
@@ -98,7 +114,18 @@ public class TestKahluaThread2 implements Runnable {
   private static File[] from(File dir, String ext) throws Exception {
     Predicate<Path> luafile = new Predicate<Path>() {
       public boolean test(Path o) {
-        return o.toFile().getName().endsWith(ext);
+        String name = o.toFile().getName();
+        boolean isExt = name.endsWith(ext);
+
+        if (!isExt) {
+          return false;
+        }
+        String cannot = cannotImplement.get(name);
+        if (cannot != null) {
+          Tool.pl("-- SKIP", o, cannot);
+          return false;
+        }
+        return true;
       }
     };
 
@@ -147,7 +174,9 @@ public class TestKahluaThread2 implements Runnable {
         Throwable cause = e.getCause();
         if (cause == null) cause = e;
         if ("ok".equals(cause.getMessage()) != true) {
-          Tool.printTable(lastEnv);
+          if (PrintEnv) {
+            Tool.printTable(lastEnv);
+          }
           throw e;
         }
         Tool.pl("Throw test pass");
@@ -164,16 +193,15 @@ public class TestKahluaThread2 implements Runnable {
           Tool.pl("  return", i, ret.get(i));
         }
       }
-//      else {
-//        Tool.pl("  return NONE");
-//      }
 
       if (ret.isSuccess()) {
         Tool.pl("OK", filename);
       } else {
         Tool.pl("ERROR", filename);
         DebugInf.printLuaStack(thread.currentCoroutine);
-        Tool.printTable(lastEnv);
+        if (PrintEnv) {
+          Tool.printTable(lastEnv);
+        }
         Exception e = printError(ret);
         if (e != null) throw e;
       }

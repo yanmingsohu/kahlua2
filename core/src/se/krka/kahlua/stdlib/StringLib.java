@@ -22,6 +22,8 @@ THE SOFTWARE.
 package se.krka.kahlua.stdlib;
 
 import se.krka.kahlua.vm.*;
+import se.krka.kahlua.vm2.ClosureInf;
+
 
 public final class StringLib implements JavaFunction {
 
@@ -1421,7 +1423,8 @@ public final class StringLib implements JavaFunction {
 						repl instanceof String ||
 						repl instanceof LuaClosure ||
 						repl instanceof JavaFunction ||
-						repl instanceof KahluaTable )) {
+						repl instanceof KahluaTable ||
+						repl instanceof ClosureInf)) {
 			KahluaUtil.fail(("string/function/table expected, got " + repl));
 		}
 

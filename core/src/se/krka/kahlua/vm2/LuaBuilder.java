@@ -143,6 +143,8 @@ public class LuaBuilder implements IConst {
 
     private final int[] opcodes;
     private int npc = 0;
+    private int methodLine = 0; //TODO: split function
+    private boolean canSplit = true;
 
     public final LocalVar vCallframe;
     public final LocalVar vPlatform;

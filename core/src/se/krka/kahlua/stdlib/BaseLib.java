@@ -29,6 +29,8 @@ import se.krka.kahlua.vm.LuaCallFrame;
 import se.krka.kahlua.vm.LuaClosure;
 import se.krka.kahlua.vm.KahluaThread;
 import se.krka.kahlua.vm.Coroutine;
+import se.krka.kahlua.vm2.ClosureInf;
+
 
 public final class BaseLib implements JavaFunction {
 
@@ -55,7 +57,7 @@ public final class BaseLib implements JavaFunction {
 	private static final int NUM_FUNCTIONS = 18;
 
 	private static final String[] names;
-	private static final Object DOUBLE_ONE = new Double(1.0);
+	private static final Object DOUBLE_ONE = Double.valueOf(1.0);
 
     private static final BaseLib[] functions;
 
@@ -193,7 +195,9 @@ public final class BaseLib implements JavaFunction {
         
         Object o = callFrame.get(0);
         if (o instanceof LuaClosure) {
-        	closure = (LuaClosure) o;
+					closure = (LuaClosure) o;
+				} else if (o instanceof ClosureInf) {
+        	throw new RuntimeException("cannot support in VM2");
         } else {
         	o = KahluaUtil.rawTonumber(o);
         	KahluaUtil.luaAssert(o != null, "expected a lua function or a number");
@@ -225,8 +229,15 @@ public final class BaseLib implements JavaFunction {
         if (o == null || o instanceof JavaFunction) {
         	res = callFrame.coroutine.environment;
         } else if (o instanceof LuaClosure) {
-        	LuaClosure closure = (LuaClosure) o;
-        	res = closure.env;
+					LuaClosure closure = (LuaClosure) o;
+					if (closure != null) {
+						res = closure.env;
+					} else {
+						res = callFrame.getEnvironment();
+					}
+				} else if (o instanceof ClosureInf) {
+					LuaClosure closure = ((ClosureInf) o).getOldClosure();
+					res = closure.env;
         } else {
         	Double d = KahluaUtil.rawTonumber(o);
         	KahluaUtil.luaAssert(d != null, "Expected number");

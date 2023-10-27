@@ -1,5 +1,3 @@
-if NewThreadVersion then print("NewThreadVersion cannot support"); return end
-
 testCall("stacktrace should pass through coroutines [coroutine.resume]", function()
 	local coro = coroutine.create(function()
 		local function foo()
