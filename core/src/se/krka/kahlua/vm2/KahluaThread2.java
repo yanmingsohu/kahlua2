@@ -34,6 +34,8 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class KahluaThread2 extends KahluaThread {
 
+  private static final DebugInf.Statistics st = new DebugInf.Statistics();
+
   private String outputDir;
   private final DebugInf di;
   final Platform platform;
@@ -47,7 +49,7 @@ public class KahluaThread2 extends KahluaThread {
   public KahluaThread2(PrintStream s, Platform p, KahluaTable e) {
     super(s, p, e);
     this.platform = p;
-    this.di = new DebugInf();
+    this.di = new DebugInf(DebugInf.NONE, this.st);
   }
 
 
@@ -95,6 +97,11 @@ public class KahluaThread2 extends KahluaThread {
     int nReturnValues = cs.returnValues(currentCoroutine);
     //currentCoroutine.stackTrace = "";
     return nReturnValues;
+  }
+
+
+  public static void printStatistics() {
+    Tool.pl(st);
   }
 
 

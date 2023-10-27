@@ -53,7 +53,7 @@ public class TestKahluaThread2 implements Runnable {
 
   static final boolean PrintEnv = false;
   static final boolean USE_NEW_THREAD = true;
-  static final int DEBUG = DebugInf.NONE;
+  static final int DEBUG = DebugInf.STATISTICS;
   static final File RootDir = new File("./testsuite/lua");
 
   public LuaCallFrame callFrame;
@@ -66,13 +66,13 @@ public class TestKahluaThread2 implements Runnable {
   static {
     Map m = cannotImplement;
 
-    m.put("coroutine.lua", "cannot support yield witch coroutine");
-    m.put("coroutinebug.lua", "cannot support yield witch coroutine");
-    m.put("coroutinebug2.lua", "cannot support yield witch coroutine");
-    m.put("coroutinebug3.lua", "cannot support yield witch coroutine");
-    m.put("yieldbug.lua", "cannot support yield witch coroutine");
+    m.put("coroutine.lua", "cannot support yield in coroutine");
+    m.put("coroutinebug.lua", "cannot support yield in coroutine");
+    m.put("coroutinebug2.lua", "cannot support yield in coroutine");
+    m.put("coroutinebug3.lua", "cannot support yield in coroutine");
+    m.put("yieldbug.lua", "cannot support yield in coroutine");
     m.put("environment.lua", "cannot change environment use setfenv()");
-    m.put("format_generated.lua", " Method too large");
+    m.put("format_generated.lua", "Method too large, split function");
   }
 
 
@@ -95,6 +95,7 @@ public class TestKahluaThread2 implements Runnable {
     testAllLua(tv);
 //    test_signature();
 
+    KahluaThread2.printStatistics();
     Tool.pl("Done");
   }
 

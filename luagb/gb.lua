@@ -34,7 +34,8 @@ gb:reset()
 gb.audio.on_buffer_full(play_gameboy_audio)
 
 
-while (true) do
+gbrunning = 1
+while (gbrunning) do
   for i = 0, 1000, 1 do
     gb:step()
   end

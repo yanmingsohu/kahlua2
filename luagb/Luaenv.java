@@ -4,6 +4,7 @@ import se.krka.kahlua.j2se.KahluaTableImpl2;
 import se.krka.kahlua.j2se.LuaRuntime;
 import se.krka.kahlua.vm.KahluaTable;
 import se.krka.kahlua.vm2.DebugInf;
+import se.krka.kahlua.vm2.KahluaThread2;
 import se.krka.kahlua.vm2.Tool;
 
 import javax.swing.*;
@@ -196,6 +197,10 @@ public class Luaenv extends LuaRuntime {
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent e) {
 					dispose();
+					env.rawset("gbrunning", Boolean.FALSE);
+					if (newVersion) {
+						KahluaThread2.printStatistics();
+					}
 				}
 			});
 			setLocation(x, y);

@@ -41,6 +41,70 @@ The latest version can be merged into the old code, because there is no change i
 
 I added a J2SEPlatform2 and allocated a new KahluaTableImpl2 object in it. This object is faster when the user only uses the Table as an array, and the array/Map inside the Table will be recycled. You can pass J2SEPlatform2.setMemoryManager() to set up a memory manager, For example, every 10 minutes, release half of the memory.
 
+## Benchmarks
+
+This is the result of running Lua Benchmarks:
+
+KahluaThread2 represents a new compiler, which has obvious advantages in long-term testing
+
+```
+0^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/mandel.lua used 63 ms
+1^ t(Benchmarks.java:  77) -  Benchmarks >> mandel
+ KahluaThread2 	Used 218 ms
+ KahluaThread 	Used 100 ms
+
+2^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/fixpoint-fact.lua used 9 ms
+3^ t(Benchmarks.java:  77) -  Benchmarks >> fixpoint-fact
+ KahluaThread2 	Used 9 ms
+ KahluaThread 	Used 0 ms
+
+4^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/binary-trees.lua used 16 ms
+5^ t(Benchmarks.java:  77) -  Benchmarks >> binary-trees
+ KahluaThread2 	Used 530 ms
+ KahluaThread 	Used 1046 ms
+
+6^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/fannkuch-redux.lua used 0 ms
+7^ t(Benchmarks.java:  77) -  Benchmarks >> fannkuch-redux
+ KahluaThread2 	Used 5634 ms
+ KahluaThread 	Used 22883 ms
+
+8^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/heapsort.lua used 0 ms
+9^ t(Benchmarks.java:  77) -  Benchmarks >> heapsort
+ KahluaThread2 	Used 604 ms
+ KahluaThread 	Used 1574 ms
+
+10^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/qt.lua used 47 ms
+11^ t(Benchmarks.java:  77) -  Benchmarks >> qt
+ KahluaThread2 	Used 6746 ms
+ KahluaThread 	Used 14552 ms
+
+12^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/n-body.lua used 16 ms
+13^ t(Benchmarks.java:  77) -  Benchmarks >> n-body
+ KahluaThread2 	Used 47 ms
+ KahluaThread 	Used 0 ms
+
+14^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/queen.lua used 0 ms
+15^ t(Benchmarks.java:  77) -  Benchmarks >> queen
+ KahluaThread2 	Used 375 ms
+ KahluaThread 	Used 767 ms
+
+16^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/sieve.lua used 16 ms
+17^ t(Benchmarks.java:  77) -  Benchmarks >> sieve
+ KahluaThread2 	Used 109 ms
+ KahluaThread 	Used 172 ms
+
+18^ makeJavacode(LuaBuilder.java:  79) -  Build ./Lua-Benchmarks/spectral-norm.lua used 0 ms
+19^ t(Benchmarks.java:  77) -  Benchmarks >> spectral-norm
+ KahluaThread2 	Used 16 ms
+ KahluaThread 	Used 16 ms
+```
+
+## Other
+
+Call KahluaThread2.printStatistics() Can count the usage of Lua instructions.
+
+`se.krka.kahlua.j2se.LuaRuntime` is a small runtime,
+inheriting it can quickly start a Lua script with java code.
 
 
 # Progress

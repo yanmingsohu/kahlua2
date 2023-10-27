@@ -78,10 +78,6 @@ public class LuaBuilder implements IConst {
     if (di.has(DebugInf.BUILD)) {
       Tool.pl("Build", classPath, "used", System.currentTimeMillis() - start, "ms");
     }
-
-    if (di.has(DebugInf.STATISTICS)) {
-      di.statistics();
-    }
   }
 
 

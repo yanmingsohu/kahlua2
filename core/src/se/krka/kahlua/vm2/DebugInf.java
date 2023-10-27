@@ -51,8 +51,6 @@ public class DebugInf implements IConst {
   public static final int STATISTICS = 1<<8;
 
   public int flag = NONE;
-  private final int counts[] = new int[opNames.length];
-  private int totalOpCount = 0;
 
   private final static String[] opNames = {
     /*  0 */  "OP_MOVE"
@@ -103,6 +101,7 @@ public class DebugInf implements IConst {
   };
 
 
+  private Statistics st;
   private ClassMaker cm;
   private String classPath;
   private int line;
@@ -112,16 +111,22 @@ public class DebugInf implements IConst {
 
 
   public DebugInf() {
-    this(NONE);
+    this(NONE, null);
+  }
+
+
+  public DebugInf(int _flag_, Statistics _s) {
+    this.flag = _flag_;
+    this.st = _s;
   }
 
 
   public DebugInf(int _flag_) {
-    this.flag = _flag_;
+    this(_flag_, null);
   }
 
 
-  public void update(ClassMaker cm, String classPath) {
+                  public void update(ClassMaker cm, String classPath) {
     this.cm = cm;
     this.classPath = classPath;
   }
@@ -132,8 +137,9 @@ public class DebugInf implements IConst {
     this.opcode = opcode;
     this.op = op;
     this.pc = pc;
-    counts[opcode]++;
-    totalOpCount++;
+    if (this.st != null) {
+      this.st.add(opcode);
+    }
   }
 
 
@@ -199,34 +205,6 @@ public class DebugInf implements IConst {
   public void stackAll() {
     cm.vPrintStack();
     cm.vPrintConsts();
-  }
-
-
-  public void statistics() {
-    StringBuilder buf = new StringBuilder(200);
-    buf.append("Lua instruction statistics");
-    for (int i=0; i<counts.length; ++i) {
-      double p = ((int)((double)counts[i] / totalOpCount *10000.0) / 100.0);
-      buf.append("\n");
-      str(buf, 15, opNames[i]);
-      str(buf, 10, counts[i]);
-      str(buf,  8, p);
-      buf.append("%");
-    }
-    buf.append("\n");
-    str(buf, 42, "----- Total: ").append(totalOpCount);
-    Tool.plx(Tool.STACK_DEPTH+1, buf);
-  }
-
-
-  public StringBuilder str(StringBuilder buf, int minlen, Object o) {
-    String s = String.valueOf(o);
-    final int t = minlen - s.length();
-    for (int i=0; i<t; ++i) {
-      buf.append(SP);
-    }
-    buf.append(s);
-    return buf;
   }
 
 
@@ -548,4 +526,44 @@ public class DebugInf implements IConst {
     };
   }
 
+
+  public static class Statistics {
+
+    private final int counts[] = new int[opNames.length];
+    private int totalOpCount = 0;
+
+
+    public void add(int opcode) {
+      counts[opcode]++;
+      totalOpCount++;
+    }
+
+
+    public String toString() {
+      StringBuilder buf = new StringBuilder(200);
+      buf.append("Lua instruction statistics");
+      for (int i=0; i<counts.length; ++i) {
+        double p = ((int)((double)counts[i] / totalOpCount *10000.0) / 100.0);
+        buf.append("\n");
+        str(buf, 15, opNames[i]);
+        str(buf, 10, counts[i]);
+        str(buf,  8, p);
+        buf.append("%");
+      }
+      buf.append("\n");
+      str(buf, 42, "----- Total: ").append(totalOpCount);
+      return buf.toString();
+    }
+  }
+
+
+  public static StringBuilder str(StringBuilder buf, int minlen, Object o) {
+    String s = String.valueOf(o);
+    final int t = minlen - s.length();
+    for (int i=0; i<t; ++i) {
+      buf.append(SP);
+    }
+    buf.append(s);
+    return buf;
+  }
 }

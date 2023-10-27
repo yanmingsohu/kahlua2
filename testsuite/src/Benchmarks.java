@@ -23,6 +23,7 @@
 import se.krka.kahlua.j2se.LuaRuntime;
 import se.krka.kahlua.vm.*;
 import se.krka.kahlua.vm2.DebugInf;
+import se.krka.kahlua.vm2.KahluaThread2;
 import se.krka.kahlua.vm2.Tool;
 
 import java.io.IOException;
@@ -59,6 +60,8 @@ public class Benchmarks extends LuaRuntime {
     t("queen");
     t("sieve");
     t("spectral-norm");
+
+    KahluaThread2.printStatistics();
   }
 
 
